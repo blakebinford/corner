@@ -1,0 +1,119 @@
+{% load timezone %} 
+
+<div id="organizer-chat-container">
+    <div id="organizer-chat-header">
+        <h3>Talk to registered athletes and the competition organzer</h3>
+    </div>
+    <div id="organizer-chat-box">
+        {% for message in organizer_messages %}
+        <div class="organizer-chat-message {% if message.user == request.user %}sent-by-me{% endif %}" data-message-id="{{ message.id }}">
+            <div class="user-info">
+                <div class="user-icon">{{ message.user.username|slice:":1"|upper }}</div>
+            </div>
+            <div class="message-content">
+                <div><span class="username">{{ message.user.username }}</span>: {{ message.message }}</div>
+                <div class="{% if message.user == request.user %}timestamp-right{% else %}timestamp{% endif %}">
+                    {{ message.timestamp|time_ago }} </div>
+        </div>
+        {% empty %}
+        <p>No messages yet.</p>
+        {% endfor %}
+    </div>
+
+    <form id="organizer-chat-form">
+        <div class="input-container">
+            <input type="text" id="organizer-chat-message-input" autocomplete="off" placeholder="Type your message...">
+            <button type="submit" id="organizer-chat-message-submit"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const organizerChatSocket = new WebSocket(
+        'ws://' + window.location.host +
+        '/ws/organizer_chat/' + {{ competition.id }} + '/'
+    );
+    const organizerChatBox = document.getElementById('organizer-chat-box');
+
+    // Function to generate a random color based on username
+    function getUserColor(username) {
+        let hash = 0;
+        for (let i = 0; i < username.length; i++) {
+            hash = username.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        let color = '#';
+        for (let i = 0; i < 3; i++) {
+            let value = (hash >> (i * 8)) & 0xFF;
+            color += ('00' + value.toString(16)).substr(-2);
+        }
+        return color;
+    }
+
+    // Update user icons with random colors
+    document.addEventListener('DOMContentLoaded', function () {
+        const userIcons = document.querySelectorAll('.user-icon');
+        userIcons.forEach(icon => {
+            const username = icon.closest('.organizer-chat-message').querySelector('.username').textContent;
+            icon.style.backgroundColor = getUserColor(username);
+        });
+    });
+
+    // Handle new messages from websocket
+    organizerChatSocket.onmessage = function (e) {
+        try {
+            const data = JSON.parse(e.data);
+            const messageElement = document.createElement('div');
+            const isSentByMe = data.user === '{{ request.user.username }}';
+            messageElement.classList.add('organizer-chat-message');
+            if (isSentByMe) {
+                messageElement.classList.add('sent-by-me');
+            }
+            messageElement.dataset.messageId = data.message_id;
+
+            messageElement.innerHTML = `
+                <div class="user-info">
+                    <div class="user-icon" style="background-color: ${getUserColor(data.user)};">${data.user.slice(0, 1).toUpperCase()}</div>
+                </div>
+                <div class="message-content">
+                    <div><span class="username">${data.user}</span>: ${data.message}</div>
+                    <div class="${isSentByMe ? 'timestamp-right' : 'timestamp'}">
+                        ${data.timestamp}
+                    </div>
+                </div>
+            `;
+
+            organizerChatBox.appendChild(messageElement);
+            organizerChatBox.scrollTop = organizerChatBox.scrollHeight; // Scroll to the bottom
+        } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+        }
+    };
+
+    organizerChatSocket.onerror = function (error) {
+        console.error('WebSocket error:', error);
+    };
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Form Submission Logic
+        const organizerChatForm = document.getElementById('organizer-chat-form');
+        if (organizerChatForm) {
+            organizerChatForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                console.log('Form submission prevented.');
+
+                const messageInputDom = document.getElementById('organizer-chat-message-input');
+                const message = messageInputDom.value;
+
+                console.log('Sending message:', message);
+
+                organizerChatSocket.send(JSON.stringify({
+                    'message': message
+                }));
+
+                messageInputDom.value = '';
+            });
+        } else {
+            console.error('Organizer chat form not found!');
+        }
+    });
+</script>

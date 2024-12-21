@@ -1,0 +1,303 @@
+#chat-container {
+    width: 100%; /* Changed to 100% */
+    border: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    height: 500px; /* Adjust as needed */
+    border-radius: 10px; /* Add rounded corners to the container */
+    overflow: hidden; /* Hide content that overflows due to rounded corners */
+}
+
+#chat-header {
+    background: #ffffff;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+    display: flex; /* Use flexbox for horizontal alignment */
+    align-items: center; /* Vertically align items */
+    filter: brightness(95%);
+}
+
+#chat-header h3 {
+    margin: 0;
+    font-size: 16px;
+    flex-grow: 1; /* Allow the title to take up available space */
+    color: #070606;
+}
+
+.competition-thumbnail {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+    object-fit: cover; /* Ensures the image covers the area nicely */
+}
+
+#chat-box {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background: #ffffff; /* Blue gradient */
+}
+
+/* Individual Message */
+.chat-message {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    max-width: 70%;
+}
+
+/* User Info */
+.user-info {
+    margin-right: 10px;
+}
+
+.user-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #666; /* Default background color */
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+
+/* Message Content */
+.message-content {
+    flex-direction: row;
+    flex-grow: 1;
+    background-color: #e5e5ea;
+    color: #202124;
+    padding: 10px;
+    border-radius: 10px;
+    position: relative;
+}
+
+.username {
+    font-weight: bold;
+    color: #202124;
+}
+
+.message-content p {
+    margin: 0;
+}
+
+/* Message Timestamp */
+.timestamp {
+    font-size: 0.8em;
+    color: #000000;
+    text-align: right;
+}
+.timestamp-right {
+    font-size: 0.8em;
+    color: #000000;
+    text-align: right;
+}
+
+/* Chat Form */
+#chat-form {
+    display: flex;
+    padding: 10px;
+    background: #ffffff;
+    filter: brightness(95%);
+    flex-shrink: 0;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+}
+
+#chat-message-input {
+    flex-grow: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 20px;
+    margin-right: 5px;
+    background-color: #ffffff;
+    color: black;
+}
+
+#chat-message-submit {
+    background-color: #006fec;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 5px;
+}
+
+/* Style Font Awesome icons */
+.fas {
+    font-family: 'Font Awesome 5 Free'; /* Or the appropriate Font Awesome font family */
+    font-weight: 900; /* Solid style */
+    font-size: 16px; /* Adjust as needed */
+    color: #ffffff;
+}
+
+.message-content.sent-by-me {
+    background-color: #77dd77;
+    color: #202124;
+}
+/* Organizer Chat Container */
+.organizer-chat-container {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 400px;
+}
+
+#organizer-chat-header {
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-bottom: 1px solid #ccc;
+}
+
+/* Organizer Chat Header */
+.organizer-chat-container #organizer-chat-header {
+    background: linear-gradient(to bottom,  #0d6efd, #5091d8); /* Example gradient */
+    color: white;
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+}
+
+.organizer-chat-container #organizer-chat-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+/* Organizer Chat Box */
+.organizer-chat-container #organizer-chat-box {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    height: 290px;
+    background-color: #f8f9fa; /* Light background */
+}
+
+/* Individual Message */
+.organizer-chat-container .organizer-chat-message {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    max-width: 70%; /* Adjust as needed */
+}
+
+/* User Info */
+.organizer-chat-container .user-info {
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.organizer-chat-container .user-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ced4da;
+    color: #495057;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* Message Content */
+.organizer-chat-container .message-content {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 10px 15px;
+    border-radius: 18px;
+    position: relative;
+}
+
+.organizer-chat-container .username {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+    color: #0d6efd;
+}
+
+/* Message Timestamp */
+.organizer-chat-container .timestamp, .organizer-chat-container .timestamp-right {
+    font-size: 0.7rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+/* Chat Form */
+.organizer-chat-container #organizer-chat-form {
+    padding: 10px;
+    background-color: #e9ecef;
+    border-top: 1px solid #ced4da;
+    display: flex;
+    align-items: center;
+}
+
+.organizer-chat-container .input-container {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.organizer-chat-container #organizer-chat-message-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 20px;
+    background-color: #fff;
+    color: #495057;
+}
+
+.organizer-chat-container #organizer-chat-message-submit {
+    background-color: #0d6efd;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    margin-left: 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.organizer-chat-container #organizer-chat-message-submit .fas {
+    color: white;
+    font-size: 1rem;
+}
+
+/* Sent by Me Styling */
+.organizer-chat-container .sent-by-me {
+    flex-direction: row-reverse;
+    align-self: flex-end;
+}
+
+.organizer-chat-container .sent-by-me .message-content {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.organizer-chat-container .sent-by-me .username {
+    color: #f8f9fa;
+    text-align: right;
+}
+
+.organizer-chat-container .sent-by-me .timestamp, .organizer-chat-container .sent-by-me .timestamp-right {
+    text-align: right;
+    color: #ced4da;
+}
+
+.btn {
+    margin: 10px;
+}

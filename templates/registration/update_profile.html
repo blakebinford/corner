@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Update Profile</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="profileForm">
+                        {% csrf_token %}
+                        {{ profile_form.locationiq_token }}
+                        {{ profile_form.validated_address }}
+                        {{ profile_form.validated_city }}
+                        {{ profile_form.validated_state }}
+                        {{ profile_form.validated_zip }}
+                        {{ profile_form.validated_country }}
+
+                        <div class="row">
+                            <div class="col-sm-12 col-md-4">
+                                <h3>User Information</h3>
+                                {% for field in user_form %}
+                                    <div class="mb-3">
+                                        {{ field.label_tag }}
+                                        {% if field.field.required %}
+                                            <span class="required">*</span>
+                                        {% endif %}
+
+                                        {% render_field field class="form-control" %}
+
+                                        {% if field.help_text %}
+                                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                                        {% endif %}
+
+                                        {% for error in field.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="col-sm-12 col-md-4">
+                                <h3>Athlete Profile: Personal Info</h3>
+                                <div class="mb-3">
+                                    <label for="address_autocomplete">Address</label>
+                                    <input type="text" class="form-control" id="address_autocomplete" placeholder="Start typing your address...">
+                                    <small class="form-text text-muted">Search for your address</small>
+                                </div>
+                                {% for field in profile_form %}
+                                    {% if field.name == 'gender' or field.name == 'nickname' or field.name == 'phone_number' or field.name == 'whatsapp_number' or field.name == 'date_of_birth'%}
+                                        <div class="mb-3">
+                                            {{ field.label_tag }}
+                                            {% if field.field.required %}
+                                                <span class="required">*</span>
+                                            {% endif %}
+
+                                            {% if field.name == 'gender' %}
+                                                {% render_field field class="form-select" %}
+                                            {% elif field.name == 'date_of_birth' %}
+                                                {% render_field field class="form-control" placeholder="mm/dd/yyyy" id="dob" %}
+                                                <small class="form-text text-muted">Enter date in mm/dd/yyyy format</small>
+                                            {% elif field.name == 'phone_number' %}
+                                                {% render_field field class="form-control" id="phone_number" %}
+                                                <small class="form-text text-muted">Enter phone number in (xxx)xxx-xxxx format</small>
+                                            {% elif field.name == 'whatsapp_number' %}
+                                                {% render_field field class="form-control" id="whatsapp_number" %}
+                                                <small class="form-text text-muted">Enter WhatsApp number in (xxx)xxx-xxxx format</small>
+                                            {% else %}
+                                                {% render_field field class="form-control" %}
+                                            {% endif %}
+
+                                            {% if field.help_text %}
+                                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                                            {% endif %}
+
+                                            {% for error in field.errors %}
+                                                <div class="invalid-feedback">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+
+                            <div class="col-sm-12 col-md-4">
+                                <h3>Athlete Profile: Gym/Team Info</h3>
+                                {% for field in profile_form %}
+                                    {% if field.name == 'home_gym' or field.name == 'team_name' or field.name == 'coach' or field.name == 'height' or field.name == 'weight' %}
+                                        <div class="mb-3">
+                                            {{ field.label_tag }}
+                                            {% if field.field.required %}
+                                                <span class="required">*</span>
+                                            {% endif %}
+
+                                            {% if field.field.widget.input_type == 'checkbox' %}
+                                                <div class="form-check">
+                                                    {% render_field field class="form-check-input" %}
+                                                </div>
+                                            {% else %}
+                                                {% render_field field class="form-control" %}
+                                            {% endif %}
+
+                                            {% if field.help_text %}
+                                                <small class="form-text text-muted">{{ field.help_text }}</small>
+                                            {% endif %}
+
+                                            {% for error in field.errors %}
+                                                <div class="invalid-feedback">{{ error }}</div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+  window.LIQ_API_KEY = 'pk.ce7e46d31aee270ee18995304f27fc39';
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const locationIQToken = 'pk.ce7e46d31aee270ee18995304f27fc39';
+        const addressField = document.getElementById('address_autocomplete');
+
+        let autocomplete = new LocationIQ.search.Autocomplete(addressField, {
+            key: locationIQToken,
+            search_button: false, // Disable search button
+            addressdetails: 1, // Request full address details
+            limit: 5, // Limit to 5 suggestions
+
+            // Event handler for when an address is selected
+            onAddressSelect: function(result) {
+                // Extract address details from the result
+                const address = result.address;
+
+                // Populate the hidden fields with the address details
+                document.getElementById('id_validated_address').value = address.road + (address.house_number ? ', ' + address.house_number : '');
+                document.getElementById('id_validated_city').value = address.city || address.town || address.village;
+                document.getElementById('id_validated_state').value = address.state;
+                document.getElementById('id_validated_zip').value = address.postcode;
+                document.getElementById('id_validated_country').value = address.country;
+            }
+        });
+
+        autocomplete.onLoad();
+    });
+    const dobInput = document.getElementById('dob');
+
+    dobInput.addEventListener('input', function(e) {
+      let input = this.value;
+      // Remove non-digits and limit to 8 characters
+      let cleanInput = input.replace(/\D/g, '').substring(0, 8);
+
+      if (cleanInput.length > 2) {
+        // Add first slash
+        cleanInput = cleanInput.substring(0, 2) + '/' + cleanInput.substring(2);
+      }
+      if (cleanInput.length > 5) {
+        // Add second slash
+        cleanInput = cleanInput.substring(0, 5) + '/' + cleanInput.substring(5);
+      }
+
+      this.value = cleanInput;
+    });
+
+  function formatPhoneNumber(inputField) {
+    inputField.addEventListener('input', function(e) {
+      let input = this.value;
+      let cleanInput = input.replace(/\D/g, '').substring(0, 10); // Remove non-digits, limit to 10 digits
+      let formattedInput = '';
+
+      if (cleanInput.length > 0) {
+        formattedInput = '(' + cleanInput.substring(0, 3);
+      }
+      if (cleanInput.length > 3) {
+        formattedInput += ') ' + cleanInput.substring(3, 6);
+      }
+      if (cleanInput.length > 6) {
+        formattedInput += '-' + cleanInput.substring(6, 10);
+      }
+
+      this.value = formattedInput;
+    });
+  }
+
+  const phoneNumberInput = document.getElementById('phone_number');
+  const whatsappNumberInput = document.getElementById('whatsapp_number');
+
+  if (phoneNumberInput) {
+    formatPhoneNumber(phoneNumberInput);
+  }
+
+  if (whatsappNumberInput) {
+    formatPhoneNumber(whatsappNumberInput);
+  }
+</script>
+{% endblock %}

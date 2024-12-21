@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="container mt-5">
+        <div id="carouselExampleIndicators" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+                <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="2" aria-label="Slide 3"></button>
+            </div>
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <img src="https://images.unsplash.com/photo-1529516821574-50d9337fcee2?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8c3Ryb25nbWFufGVufDB8fDB8fHww" class="d-block w-100" alt="Strongman 1">
+                </div>
+                <div class="carousel-item">
+                    <img src="https://images.unsplash.com/photo-1623874400767-0fcdeedd0f5d?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="d-block w-100" alt="Strongman 2">
+                </div>
+                <div class="carousel-item">
+                    <img src="https://plus.unsplash.com/premium_photo-1663012934387-fa3199db8862?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8c3Ryb25nbWFufGVufDB8fDB8fHww" class="d-block w-100" alt="Strongman 3">
+                </div>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-4">
+                <h2>Welcome to Comp Corner</h2>
+                <p>Your one-stop platform for managing and finding strongman competitions.</p>
+                <p>Whether you're an athlete, organizer, or fan, ComPodium provides the tools and resources you need to stay connected to the world of strongman.</p>
+                <a href="{% url 'competitions:competition_list' %}" class="btn btn-primary">Browse Competitions</a>
+            </div>
+            <div class="col-md-4">
+                <h2>Latest Blog Articles</h2>
+                <ul class="list-unstyled">
+                    <li><a href="#">Mastering the Atlas Stones: Tips for Grip and Explosiveness</a></li>
+                    <li><a href="#">Strongman Yoke Carry: Building Unstoppable Leg Drive</a></li>
+                    <li><a href="#">Strongman Deadlift Domination: Tips for Max Strength</a></li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h2>Upcoming Competitions</h2>
+                {% for competition in upcoming_competitions %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title"><a href="{% url 'competitions:competition_detail' competition.pk %}">{{ competition.name }}</a></h5>
+                            <p class="card-text">{{ competition.comp_date }}</p>
+                            <p class="card-text">{{ competition.location }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+<h2>Update Score</h2>
+<p>Athlete: {{ athlete_competition.athlete.user.get_full_name }}</p>
+<p>Event: {{ event_order.event.name }}</p>
+
+<form method="post" action="{% url 'competitions:update_score' competition.pk athlete_competition.pk event_order.pk %}">
+  {% csrf_token %}
+  {% for field in form %}
+    <div class="mb-3">
+      <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+        <div class="invalid-feedback"> [
+      {% for error in field.errors %}
+        {{ error }}
+      {% endfor %}
+        </div>
+      {% endif %}
+      {% if field.help_text %}
+        <div class="form-text">{{ field.help_text }}</div> [
+      {% endif %}
+    </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary">Save</button>
+</form>
+    </div>
+  </div>
+</div>
+{% endblock %}

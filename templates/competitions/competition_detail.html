@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load competition_tags %}
+{% load implement_filters %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8">
+            <div class="card shadow">
+                <h2 class="card-title text-center mb-4" style="margin: 10px"><b>{{ competition.name }}</b></h2>
+                {% if competition.image %}
+                <img src="{{ competition.image.url }}" class="card-img-top" alt="{{ competition.name }} image">
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-10">
+                        <div class="mb-3" style="margin: 10px">
+                            {% for tag in competition.tags.all %}
+                            <span class="badge rounded-pill {% if tag.name == 'Pro/Am' %}bg-primary
+                    {% elif tag.name == 'Masters Only' %}bg-secondary
+                    {% elif tag.name == 'Novice Only' %}bg-success
+                    {% elif tag.name == 'Record Setter' %}bg-danger
+                    {% elif tag.name == 'All-Women' %}bg-warning
+                    {% elif tag.name == 'Charity' %}bg-info
+                    {% elif tag.name == 'Qualifier' %}bg-dark
+                    {% elif tag.name == 'Championship' %}bg-primary
+                    {% elif tag.name == 'Highland Games' %}bg-success
+                    {% elif tag.name == 'Purse' %}bg-success
+                    {% endif %}">{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <div class="federation-logo" style="margin-top: 5px">
+                            <img src="{{ competition.federation.logo.url }}"
+                                 alt="{{ competition.federation.name }} logo" class="rounded float-end">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="text-muted">
+                                <i class="bi bi-calendar-event"></i> {{ competition.comp_date }}
+                            </p>
+                            <p class="text-muted">
+                                <i class="bi bi-geo-alt-fill"></i> {{ competition.location }}
+                            </p>
+                            <p class="text-muted"><i class="bi bi-cash"></i> ${{ competition.signup_price }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><b>Organizer:</b> {{ competition.organizer.get_full_name }}</p>
+                            <p><b>Status:</b>
+                  <span class="badge
+                    {% if competition.status == 'upcoming' %}bg-success
+                    {% elif competition.status == 'full' %}bg-warning
+                    {% elif competition.status == 'completed' %}bg-secondary
+                    {% else %}bg-danger
+                    {% endif %}">
+                    {{ competition.status }}
+                  </span>
+                            </p>
+                            <p>
+                                <b>Capacity:</b>
+                                {{ competition.athletecompetition_set.count }}
+                                {% if competition.athletecompetition_set.count == 1 %}
+                                athlete
+                                {% else %}
+                                athletes
+                                {% endif %}
+                                registered out of {{ competition.capacity }} spots
+                            </p>
+                        </div>
+                    </div>
+                    <h4 class="text-center"><b>{{ competition.name }}</b> is brought to you by</h4>
+                    <div class="main-sponsor-logos mt-3">
+                        {% with sponsor_logos=competition.sponsor_logos.all %}
+                        {% if sponsor_logos %}
+                        <div class="row justify-content-center"> 
+                            {% for sponsor in sponsor_logos %}
+                            <div class="col-6 col-md-3 mb-3 d-flex align-items-center">
+                                <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }} logo" class="img-fluid">
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <div style="padding-left: 30px; padding-right: 30px;">
+                    <p class="card-text comp-description">{{ competition.description|safe }}</p>
+                </div>
+
+                <h3 class="text-center"><b>Divisions and Events</b></h3>
+
+                <ul class="nav nav-tabs" id="divisionsTab" role="tablist">
+                    {% for division in competition.allowed_divisions.all %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if forloop.first %}active{% endif %}"
+                                id="division-{{ division.id }}-tab" data-bs-toggle="tab"
+                                data-bs-target="#division-{{ division.id }}" type="button" role="tab"
+                                aria-controls="division-{{ division.id }}"
+                                aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">{{ division.name|capfirst }}</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="tab-content" id="divisionsTabContent">
+                    {% for division in competition.allowed_divisions.all %}
+                    <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                         id="division-{{ division.id }}" role="tabpanel"
+                         aria-labelledby="division-{{ division.id }}-tab">
+                        <table class="table table-sm table-striped table-bordered align-middle">
+                            <thead class="table-dark align-center">
+                            <tr>
+                                <th class="text-center">Weight Class</th>
+                                {% for event_order in ordered_events %}
+                                <th class="text-center">{{ event_order.event.name|capfirst }}
+                                    <br><span>({{ event_order.event.weight_type|capfirst }})</span>
+                                </th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for weight_class in competition.allowed_weight_classes.all %}
+                            {% for div_weight_class in division.divisionweightclass_set.all %}
+                            {% if div_weight_class.weight_class == weight_class %}
+                            <tr>
+                                <td class="text-capitalize text-center">{{ weight_class.name|capfirst }}<br>
+                                    ({{ div_weight_class.get_gender_display|capfirst }})
+                                </td>
+                                {% for event_order in ordered_events %}
+                                <td class="text-center">
+                                    <dl>
+                                        {% for group in event_order.event.implements.all|group_implements %}
+                                        {% with implements_for_division=group.implements|filter_implements:div_weight_class %}
+                                        {% if implements_for_division|length > 1 %}
+                                        <br> {{ group.name|capfirst }}:
+                                        {% for implement in implements_for_division %}
+                                        {{ implement.weight }}
+                                        {{ implement.get_weight_unit_display }}
+                                        {% if not forloop.last %}
+                                        , {% endif %}
+                                        {% endfor %}
+                                        {% elif implements_for_division|length == 1 %}
+                                        {% if group.name != "Implement" and implements_for_division.0.weight != None %}
+                                        <br> {{ group.name|capfirst }}
+                                        : {% endif %}
+                                        {% for implement in implements_for_division %}
+                                        {{ implement.weight }}
+                                        {{ implement.get_weight_unit_display }}
+                                        {% endfor %}
+                                        {% endif %}
+                                        {% endwith %}
+                                        {% endfor %}
+                                    </dl>
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-center">
+                {% if competition.organizer == request.user %}
+                <a href="{% url 'competitions:competition_update' competition.pk %}" class="btn btn-secondary me-2">Edit
+                    Competition</a>
+                <a href="{% url 'competitions:competition_delete' competition.pk %}" class="btn btn-danger me-2">Delete
+                    Competition</a>
+                <a href="{% url 'competitions:event_create' competition.pk %}" class="btn btn-primary me-2">Add
+                    Event</a>
+                {% endif %}
+
+                {% if user.is_authenticated and user.role == 'athlete' %}
+    {% if not user|is_registered_for_competition:competition.pk %}
+        <a href="{% url 'competitions:athletecompetition_create' competition.pk %}"
+           class="btn btn-success">Register for Competition</a>
+    {% endif %}
+{% endif %}
+
+                <a href="{% url 'competitions:competition_scorecard' competition.pk %}" class="btn btn-primary">View
+                    Scorecard</a>
+                &nbsp;
+                {% if competition.organizer == request.user %}
+                <a href="{% url 'competitions:competition_score' competition.pk %}" class="btn btn-primary">Manage
+                    Scores</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if user.is_authenticated and competition.status != 'completed' and is_organizer_or_athlete %}
+  <div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h4 class="card-title text-center mb-4">{{ competition.name }} Athlete Chat</h4>
+                    <div class="organizer-chat-container">
+                        {% include 'chat/organizer_chat.html' with organizer_messages=organizer_messages competition=competition %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+    {% endif %}
+{% endblock %}

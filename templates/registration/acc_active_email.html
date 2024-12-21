@@ -1,0 +1,12 @@
+{% autoescape off %}  {# Turn off autoescaping for the link #}
+Hi {{ user.username }},
+
+Please click on the link below to confirm your registration:
+
+http://{{ domain }}{% url 'activate' uidb64=uid token=token %}
+
+If you did not request this, please ignore this email.
+
+Thanks,
+The Strength Platform Team
+{% endautoescape %}

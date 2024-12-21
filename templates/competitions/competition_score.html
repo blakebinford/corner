@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h2>{{ competition.name }} - Live Scoring</h2>
+
+        <div id="score-update-container">
+          </div>
+
+        <h3>Events and Attempts</h3>
+        <form method="post" action="{% url 'competitions:update_multiple_scores' competition.pk %}">
+    {% csrf_token %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Athlete</th>
+                {% for event_order in ordered_events %}
+                    <th>{{ event_order.event.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for athlete_competition in competition.athletecompetition_set.all %}
+            <tr>
+                <td>{{ athlete_competition.athlete.user.get_full_name }}</td>
+                {% for event_order in ordered_events %}
+                    <td>
+                        <input type="text" name="result_{{ athlete_competition.pk }}_{{ event_order.pk }}" 
+                               value="{% for result in athlete_competition.results.all %}{% if result.event_order == event_order %}{{ result.value }}{% endif %}{% endfor %}">
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit">Update Scores</button>
+</form>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+       
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const competitionId = {{ competition.pk }};
+
+    // Create WebSocket connection
+    const socket = new WebSocket(`ws://${window.location.host}/ws/competitions/${competitionId}/`);
+
+    // Handle incoming messages
+    socket.onmessage = function (e) {
+      const data = JSON.parse(e.data);
+      const message = data.message;
+
+      // Check if the message is a score update
+      if (message.type === 'score') {
+        // Extract the relevant data from the message
+        const athleteId = message.athlete_id;
+        const eventId = message.event_id;
+        const value = message.value;
+
+        // Find the table cell to update in the UI
+        const resultCells = document.querySelectorAll(`.result-value`);
+        resultCells.forEach(cell => {
+          // Check if the cell is in the correct row (you'll need to implement this logic)
+          // Example: check if the cell has a specific data attribute matching the athlete and event
+          if (
+              /* your condition to check if this cell corresponds to the updated score */) {
+            // Update the cell with the new value
+            cell.textContent = value;
+          }
+        });
+      } else {
+        // Handle other message types or display an error
+        console.error('Invalid message type:', message.type);
+      }
+    };
+  </script>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load crispy_forms_field %}
+{% load django_bootstrap5 %}
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Competitions</h2>
+            <button class="btn btn-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                Show Filters
+            </button>
+            <div class="collapse" id="filterCollapse">
+                <div class="card card-body">
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-6"> 
+                                <label for="{{ filterset.form.comp_date_after.id_for_label }}">Comp Date After</label> 
+                                {{ filterset.form.comp_date_after }}
+                            </div>
+                            <div class="col-md-6"> 
+                                <label for="{{ filterset.form.comp_date_before.id_for_label }}">Comp Date Before</label> 
+                                {{ filterset.form.comp_date_before }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                {{ filterset.form.location }}
+                            </div>
+                            <div class="col-md-4"> 
+                                {{ filterset.form.events }} 
+                            </div>
+                            <div class="col-md-4">
+                                {{ filterset.form.allowed_divisions }}
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12 text-center"> 
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                                <a href="{% url 'competitions:competition_list' %}" class="btn btn-secondary ms-2">Remove Filters</a> 
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="row mt-4">{% for competition in competitions %}<div class="col-md-4 mb-4"><div class="card position-relative h-100">
+                        {% if competition.image %}
+                        <a href="{% url 'competitions:competition_detail' competition.pk %}">
+                            <img src="{{ competition.image.url }}" class="card-img-top" alt="{{ competition.name }} image">
+                            <span class="badge position-absolute top-0 end-0 m-2 
+                                {% if competition.status == 'upcoming' %}bg-success
+                                {% elif competition.status == 'full' %}bg-secondary
+                                {% elif competition.status == 'completed' %}bg-info
+                                {% elif competition.status == 'limited' %}bg-warning
+                                {% else %}bg-danger
+                                {% endif %}">
+                                {{ competition.status }}
+                            </span>
+                        </a>
+                        {% if competition.signup_price > 0 %}
+                        <span class="badge position-absolute top-0 start-0 m-2 bg-dark">
+                            <i class="fas fa-dollar-sign"></i> {{ competition.signup_price }}
+                        </span> 
+                        {% endif %}
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title text-center">
+                                <a href="{% url 'competitions:competition_detail' competition.pk %}" class="text-decoration-none link-dark">
+                                    {{ competition.name }}
+                                </a>
+                            </h5>
+                            <p class="card-text text-muted text-center">
+                                <i class="bi bi-calendar-event"></i>&nbsp;{{ competition.comp_date }}&nbsp;&nbsp;<i class="bi bi-geo-alt-fill"></i>&nbsp;{{ competition.location }} 
+                            </p>
+                            <h5 class="text-center">Sponsors</h5>
+                            <div class="sponsor-logos">
+                                {% with sponsor_logos=competition.sponsor_logos.all %}
+                                {% if sponsor_logos %}
+                                <div class="row justify-content-center">
+                                    {% for sponsor in sponsor_logos %}
+                                    <div class="col-6 col-md-6 mb-3 d-flex align-items-center">
+                                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }} logo" class="img-fluid">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex flex-row bd-highlight mb-6">
+                                <div class="p-2 flex-grow-1 bd-highlight">
+                                    <small class="text-muted">
+                                        <i class="bi bi-person-circle"></i> <b>Organizer:</b> {{ competition.organizer.get_full_name }}
+                                        <br>
+                                        <i class="bi bi-tags-fill"></i>
+                                        {% for tag in competition.tags.all %}
+                                        <span class="badge {% if tag.name == 'Pro/Am' %}bg-primary
+                                        {% elif tag.name == 'Masters Only' %}bg-secondary
+                                        {% elif tag.name == 'Novice Only' %}bg-success
+                                        {% elif tag.name == 'Record Setter' %}bg-danger
+                                        {% elif tag.name == 'All-Women' %}bg-warning
+                                        {% elif tag.name == 'Charity' %}bg-info
+                                        {% elif tag.name == 'Qualifier' %}bg-dark
+                                        {% elif tag.name == 'Championship' %}bg-primary
+                                        {% elif tag.name == 'Highland Games' %}bg-success
+                                        {% elif tag.name == 'Purse' %}bg-success 
+                                        {% endif %}">{{ tag.name }}</span></small> {% endfor %}
+                                </div>
+                                <div class="p-2 bd-highlight">  
+                                    {% if competition.federation %}
+                                    <div class="federation-logo">
+                                        <img src="{{ competition.federation.logo.url }}" alt="{{ competition.federation.name }} logo">
+                                    </div>
+                                    {% endif %}
+                                    {% if competition.organizer == request.user %}
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            Edit/Delete
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="{% url 'competitions:competition_update' competition.pk %}">Edit</a>
+                                            </li>
+                                            <li><a class="dropdown-item" href="{% url 'competitions:competition_delete' competition.pk %}">Delete</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>{% endfor %}
+            </div>
+            {% if not competitions %}
+            <p>No competitions available.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
