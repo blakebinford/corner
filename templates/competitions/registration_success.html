@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h2>Registration Successful!</h2>
+        <p>You have successfully registered for {{ competition.name }}.</p>
+        <p>Your registration status is: {{ athlete_competition.registration_status }}</p>
+        <a href="{% url 'competitions:competition_list' %}" class="btn btn-primary">Back to Competitions</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}

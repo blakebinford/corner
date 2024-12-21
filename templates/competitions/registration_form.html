@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        <div class="card-body">
+          <h2 class="card-title text-center  
+ mb-4">Register for {{ competition.name }}</h2>
+          <form method="post">
+            {% csrf_token %}
+            {{ form.media }} 
+            <div class="mb-3">
+              {{ form.division|as_crispy_field }} 
+            </div>
+            <div class="mb-3">
+              {{ form.weight_class|as_crispy_field }}
+            </div>
+                     <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary">Register</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+{% load crispy_forms_tags %} 
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <h2 class="mb-4">{% if object %}Edit{% else %}Create{% endif %} Competition</h2>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.media }}
+        <div class="mb-3">
+          {{ form.name|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.comp_date|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.location|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.description|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.scoring_system|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.status|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.registration_deadline|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.allowed_divisions|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.allowed_weight_classes|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.image|as_crispy_field }}
+        </div>
+        <div class="mb-3">
+          {{ form.tags|as_crispy_field }}
+        </div>
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

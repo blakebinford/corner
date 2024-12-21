@@ -1,0 +1,179 @@
+from django.contrib.sites.shortcuts import get_current_site
+from django.http import HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views import generic
+from django.urls import reverse_lazy
+from django.contrib.auth.decorators import login_required
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.template.loader import render_to_string
+from django.core.mail import EmailMessage
+from competitions.models import Competition, AthleteCompetition, EventOrder, Result
+from .forms import CustomUserCreationForm, OrganizerProfileForm, AthleteProfileUpdateForm, \
+    UserUpdateForm
+from .tokens import account_activation_token
+from .models import AthleteProfile, OrganizerProfile, User
+from django.contrib import messages
+
+class SignUpView(generic.CreateView):
+    """
+    View for user registration.
+    """
+    form_class = CustomUserCreationForm
+    success_url = reverse_lazy('login')
+    template_name = 'registration/signup.html'
+
+    def form_valid(self, form):
+        """
+        If the form is valid, save the user and create their profile based on their role.
+        """
+        user = form.save(commit=False)
+        user.is_active = False  # Deactivate account until email is verified
+        user.save()
+
+        # Send email verification
+        current_site = get_current_site(self.request)
+        mail_subject = 'Activate your account.'
+        message = render_to_string('registration/acc_active_email.html', {
+            'user': user,
+            'domain': '127.0.0.1:8000/',  # Replace with your domain
+            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+            'token': account_activation_token.make_token(user),
+        })
+        to_email = form.cleaned_data.get('email')
+
+        email = EmailMessage(
+            mail_subject, message, to=[to_email]
+        )
+        email.send()
+        if user.role == 'athlete':
+            AthleteProfile.objects.create(user=user)  # Create AthleteProfile here
+        elif user.role == 'organizer':
+            OrganizerProfile.objects.create(user=user)
+
+        return render(self.request, 'registration/email_verification_sent.html')
+
+    def get(self, request, *args, **kwargs):
+        """
+        Handles GET requests and instantiates a blank version of the form.
+        """
+        self.object = None  # Initialize self.object to None for GET requests
+        form = self.get_form()
+        return self.render_to_response(self.get_context_data(form=form))
+
+
+class UserUpdateView(generic.UpdateView):
+    """
+    View for updating user profiles.
+    """
+    form_class = UserUpdateForm
+    success_url = reverse_lazy('home')  # Replace 'home' with your desired URL
+    template_name = 'registration/update_profile.html'
+
+    def get_object(self):
+        return self.request.user
+
+
+@login_required
+def update_profile(request):
+    """
+    View for updating the user's athlete profile and user information.
+    """
+    if request.method == 'POST':
+        # Ensure the user has an AthleteProfile before creating the forms
+        if not hasattr(request.user, 'athlete_profile'):
+            AthleteProfile.objects.create(user=request.user)
+
+        user_form = UserUpdateForm(request.POST, instance=request.user)
+        profile_form = AthleteProfileUpdateForm(request.POST, instance=request.user.athlete_profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile = profile_form.save(commit=False)
+
+            # Save validated address components
+            profile.address = profile_form.cleaned_data.get('validated_address')
+            profile.city = profile_form.cleaned_data.get('validated_city')
+            profile.state_province = profile_form.cleaned_data.get('validated_state')
+            profile.postal_code = profile_form.cleaned_data.get('validated_zip')
+            profile.country = profile_form.cleaned_data.get('validated_country')
+
+            profile.save()
+
+            messages.success(request, 'Your profile has been updated successfully!')
+            return redirect('profile_update')  # Redirect to the profile page
+        else:
+            messages.error(request, 'Error updating profile. Please check the form.')
+    else:
+        # Ensure the user has an AthleteProfile before creating the forms
+        if not hasattr(request.user, 'athlete_profile'):
+            AthleteProfile.objects.create(user=request.user)
+
+        user_form = UserUpdateForm(instance=request.user)
+        profile_form = AthleteProfileUpdateForm(instance=request.user.athlete_profile)
+
+    return render(request, 'registration/update_profile.html', {
+        'user_form': user_form,
+        'profile_form': profile_form
+    })
+
+@login_required
+def update_profile(request):
+    """
+    View for updating the user's athlete profile and user information.
+    """
+    if request.method == 'POST':
+        # Ensure the user has an AthleteProfile before creating the forms
+        if not hasattr(request.user, 'athlete_profile'):
+            AthleteProfile.objects.create(user=request.user)
+
+        user_form = UserUpdateForm(request.POST, instance=request.user)
+        profile_form = AthleteProfileUpdateForm(request.POST, instance=request.user.athlete_profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request, 'Your profile has been updated successfully!')
+            return redirect('profile_update')  # Redirect to the profile page
+        else:
+            messages.error(request, 'Error updating profile. Please check the form.')
+    else:
+        # Ensure the user has an AthleteProfile before creating the forms
+        if not hasattr(request.user, 'athlete_profile'):
+            AthleteProfile.objects.create(user=request.user)
+
+        user_form = UserUpdateForm(instance=request.user)
+        profile_form = AthleteProfileUpdateForm(instance=request.user.athlete_profile)
+
+    return render(request, 'registration/update_profile.html', {
+        'user_form': user_form,
+        'profile_form': profile_form
+    })
+
+class OrganizerProfileUpdateView(generic.UpdateView):
+    """
+    View for updating organizer profiles.
+    """
+    form_class = OrganizerProfileForm
+    template_name = 'registration/update_organizer_profile.html'
+    success_url = reverse_lazy('home')  # Replace 'home' with your desired URL
+
+    def get_object(self):
+        return self.request.user.organizer_profile
+
+
+def activate(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except(TypeError, ValueError, OverflowError,
+           User.DoesNotExist):
+        user = None
+    if user is not None and account_activation_token.check_token(user, token):
+        user.is_active = True
+        user.email_verified = True
+        user.save()
+        return redirect('login')  # Redirect to login page
+    else:
+        return render(request, 'registration/acc_active_invalid.html')
+
