@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'django_browser_reload',
     'axes',
     'django_cotton',
-    'theme',
     'django_bootstrap5',
     'accounts',
     'competitions',
