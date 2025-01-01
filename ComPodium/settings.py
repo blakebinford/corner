@@ -12,9 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from competitions.tinymce import TINYMCE_DEFAULT_CONFIG
-from dotenv import load_dotenv
-
-load_dotenv()
+import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -98,14 +96,7 @@ WSGI_APPLICATION = 'ComPodium.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'compodium',
-        'USER': 'blake',
-        'PASSWORD': '758595Aa',
-        'HOST': 'localhost',
-        'PORT': '5432',  # Default PostgreSQL port
-    }
+    'default': dj_database_url.config(conn_max_age=600)
 }
 
 
