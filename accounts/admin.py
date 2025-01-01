@@ -16,20 +16,19 @@ class CustomUserAdmin(UserAdmin):
     inlines = (AthleteProfileInline, OrganizerProfileInline)
     list_display = ('username', 'email', 'role', 'is_staff')
     list_filter = ('role', 'is_staff', 'is_active')
-    ieldsets = (
+    fieldsets = (
         (None, {'fields': ('username', 'password')}),
         (('Personal info'), {'fields': (
-        'first_name', 'last_name', 'email', 'date_of_birth', 'profile_picture', 'instagram_name', 'x_name',
-        'facebook_name')}),
+            'first_name', 'last_name', 'email', 'date_of_birth', 'profile_picture',
+            'instagram_name', 'x_name', 'facebook_name'  # Include social media fields here
+        )}),
         (('Permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
         (('Important dates'), {'fields': ('last_login', 'date_joined')}),
-
-        (('Role'), {'fields': ('role',)}),  # Add this for the 'role' field
+        (('Role'), {'fields': ('role',)}),
     )
 
-admin.site.register(User, CustomUserAdmin)
 
 @admin.register(Division)
 class DivisionAdmin(admin.ModelAdmin):
@@ -37,4 +36,6 @@ class DivisionAdmin(admin.ModelAdmin):
 
 @admin.register(WeightClass)
 class WeightClassAdmin(admin.ModelAdmin):
-    list_display = ('name',)
+    list_display = ('name', 'gender', 'federation')
+
+admin.site.register(User, CustomUserAdmin)

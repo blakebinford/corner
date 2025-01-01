@@ -1,37 +1,32 @@
-<div id="chat-container">
-    <div id="chat-header">
-        <img src="{{ competition.image.url }}" alt="Competition Thumbnail" class="competition-thumbnail">
-        <h3>{{ competition.name }}</h3>
-    </div>
-    <div id="chat-box">
-        {% for message in messages %}
-        <div class="chat-message {% if message.user == request.user %}sent-by-me{% endif %}" data-message-id="{{ message.id }}">
-            <div class="user-info">
-                <div class="user-icon">{{ message.user.username|slice:":1"|upper }}</div>
-            </div>
-            <div class="message-content">
-                <div><span class="username">{{ message.user.username| }}</span>: {{ message.message }}</div>
-                <div class="{% if message.user == request.user %}timestamp-right{% else %}timestamp{% endif %}">
-                    {{ message.timestamp|date:"g:i A" }}
-                </div>
-            
-            </div>
-
+<div id="chat-box">
+    {% for message in messages %}
+    <div class="chat-message {% if message.user == request.user %}sent-by-me{% endif %}" data-message-id="{{ message.id }}">
+        <div class="user-info">
+            <div class="user-icon">{{ message.user.username|slice:":1"|upper }}</div>
         </div>
-                    
-        {% empty %}
-        <p>No messages yet.</p>
-        {% endfor %}
-    </div>
-
-    <form id="chat-form">
-        <div class="input-container">
-            <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message..." style="flex-grow: 1;">
-        <button type="submit" id="chat-message-submit"><i class="fas fa-paper-plane"></i></button>
+        <div class="message-content">
+            <div>
+                <span class="username">{{ message.user.username }}</span>: {{ message.message }}
+            </div>
+            <div class="{% if message.user == request.user %}timestamp-right{% else %}timestamp{% endif %}">
+                {{ message.timestamp|time_ago }}
+            </div>
         </div>
-    </form>
-
+    </div>
+    {% empty %}
+    <p class="no-messages">No messages yet.</p>
+    {% endfor %}
 </div>
+
+<form id="chat-form">
+    <div class="input-container">
+        <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
+        <button type="submit" id="chat-message-submit">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+</form>
+
 
 <script>
     const chatSocket = new WebSocket(

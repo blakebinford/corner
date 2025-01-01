@@ -28,31 +28,45 @@ class OrganizerChatConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
+        try:
+            text_data_json = json.loads(text_data)
+            message = text_data_json['message']
 
-        saved_message = await self.save_message(message)
+            saved_message = await self.save_message(message)
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': message,
-                'user': self.user.username,
-                'message_id': saved_message.id,
-                'timestamp': saved_message.timestamp.strftime("%I:%M %p"),
-            }
-        )
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message': message,
+                    'user': self.user.username,
+                    'message_id': saved_message.id,
+                    'timestamp': saved_message.timestamp.strftime("%I:%M %p"),
+                }
+            )
+            print(f"Message sent by {self.user.username}: {message}")  # Debugging
+        except Exception as e:
+            print(f"Error in receive method: {e}")  # Debugging
 
     async def chat_message(self, event):
+        print(f"Broadcasting message: {event['message']} from {event['user']}")
         message = event['message']
-        user = event['user']
+        user = event['user']  # Assuming `event['user']` is the username
         message_id = event['message_id']
         timestamp = event['timestamp']
 
+        # Fetch the user's first and last name from the database
+        user_instance = await database_sync_to_async(User.objects.get)(username=user)
+        first_name = user_instance.first_name
+        last_name = user_instance.last_name
+        user_id = user_instance.id
+
         await self.send(text_data=json.dumps({
             'message': message,
-            'user': user,
+            'user': user,  # Username
+            'first_name': first_name,
+            'last_name': last_name,
+            'user_id': user_id,
             'message_id': message_id,
             'timestamp': timestamp,
         }))
@@ -61,15 +75,22 @@ class OrganizerChatConsumer(AsyncWebsocketConsumer):
     def save_message(self, message):
         room = OrganizerChatRoom.objects.get(competition_id=self.competition_id)
         saved_message = OrganizerChatMessage.objects.create(room=room, user=self.user, message=message)
+        print(f"Message saved: {saved_message.message} by {saved_message.user}")
         return saved_message
 
     @database_sync_to_async
     def is_authorized(self):
-        from competitions.models import Competition #Avoid Circular error
-        competition = Competition.objects.get(pk=self.competition_id)
+        from competitions.models import Competition  # Avoid Circular Import
+        try:
+            competition = Competition.objects.get(pk=self.competition_id)
+        except Competition.DoesNotExist:
+            return False
+
         if self.user.is_authenticated:
             if self.user == competition.organizer:
                 return True
-            if competition.athletecompetition_set.filter(athlete__user=self.user).exists():
+            is_athlete = competition.athletecompetition_set.filter(athlete__user=self.user).exists()
+            print(f"User {self.user.username} is athlete: {is_athlete}")  # Debugging
+            if is_athlete:
                 return True
         return False

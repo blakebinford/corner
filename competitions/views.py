@@ -1,29 +1,95 @@
+import math
+
 from asgiref.sync import async_to_sync
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.forms import modelformset_factory
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from channels.layers import get_channel_layer
-from .models import Competition, EventOrder, AthleteCompetition, DivisionWeightClass, Result
-from .forms import CompetitionForm, EventForm, AthleteCompetitionForm, EventImplementFormSet, ResultForm
-from .filters import CompetitionFilter
+from django.views.generic import FormView, CreateView, UpdateView
+
+from accounts.models import AthleteProfile
+from .models import Competition, EventOrder, AthleteCompetition, DivisionWeightClass, Result, CommentatorNote, Sponsor, \
+    Event, EventBase, EventImplement, ZipCode
+from .forms import CompetitionForm, EventForm, AthleteCompetitionForm, EventImplementFormSet, ResultForm, \
+    SponsorLogoForm, create_event_implement_formset, EventImplementForm, CompetitionFilter
+
 from collections import defaultdict
 from chat.models import OrganizerChatMessage, OrganizerChatRoom
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """
+    Calculate the great-circle distance between two points on a sphere
+    given their longitudes and latitudes.
+    """
+    # Convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+    c = 2 * math.asin(math.sqrt(a))
+
+    # Radius of earth in miles
+    r = 3956
+
+    # Calculate the result
+    return c * r
+
 class CompetitionListView(generic.ListView):
     model = Competition
     template_name = 'competitions/competition_list.html'
     context_object_name = 'competitions'
+
     def get_queryset(self):
         queryset = super().get_queryset()
+
+        # Apply filtering using the filterset
         self.filterset = CompetitionFilter(self.request.GET, queryset=queryset)
+
+        # Return the filtered and sorted queryset
         return self.filterset.qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        zip_code = self.request.GET.get('zip_code')
+
+        if zip_code:
+            try:
+                user_zip_code = ZipCode.objects.get(zip_code=zip_code)
+            except ZipCode.DoesNotExist:
+                # Handle invalid zip code
+                print(f"Invalid zip code provided: {zip_code}")  # Log the invalid zip code
+                return context
+
+            # Calculate distances and add distance attribute to each competition
+            for competition in context['competitions']:
+                try:
+                    competition_zip_code = ZipCode.objects.get(zip_code=competition.zip_code)
+                    distance = haversine_distance(
+                        user_zip_code.latitude, user_zip_code.longitude,
+                        competition_zip_code.latitude, competition_zip_code.longitude
+                    )
+                    competition.distance = distance
+                except ZipCode.DoesNotExist:
+                    # Handle missing zip code for competition
+                    print(f"Missing zip code for competition: {competition.pk}")  # Log the missing zip code
+                    competition.distance = float('inf')  # Set a high distance for sorting
+
+            # Sort the competitions by distance
+            context['competitions'] = sorted(context['competitions'], key=lambda x: x.distance)
+
+        # Add filterset to context
+        queryset = super().get_queryset()
+        self.filterset = CompetitionFilter(self.request.GET, queryset=queryset)
         context['filterset'] = self.filterset
+
         return context
 
 class CompetitionDetailView(generic.DetailView):
@@ -34,6 +100,13 @@ class CompetitionDetailView(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         competition = self.get_object()
+
+        if self.request.user.is_authenticated:
+            context['is_signed_up'] = AthleteCompetition.objects.filter(
+                competition=competition,
+                athlete__user=self.request.user  # Traverse AthleteProfile to User
+            ).exists()
+        return context
 
         context['ordered_events'] = EventOrder.objects.filter(
             competition=competition
@@ -63,7 +136,9 @@ class CompetitionDetailView(generic.DetailView):
             )
 
         context['is_organizer_or_athlete'] = is_organizer_or_athlete
-
+        print(f"Competition: {competition}")
+        print(f"OrganizerChatRoom Exists: {OrganizerChatRoom.objects.filter(competition=competition).exists()}")
+        print(f"Organizer Messages: {organizer_messages}")
         return context
 
 class CompetitionScoreView(LoginRequiredMixin, generic.DetailView):  # New view for score management
@@ -130,8 +205,50 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
     template_name = 'competitions/competition_form.html'
     success_url = reverse_lazy('competitions:competition_list')
 
+    def form_invalid(self, form):
+        print("Form is invalid")
+        print(form.errors)  # Print the form errors to the console
+        return super().form_invalid(form)
+
     def form_valid(self, form):
+        print("Form is valid")
+        print("Tags:", form.cleaned_data.get('tags'))
+        print("Allowed Divisions:", form.cleaned_data.get('allowed_divisions'))
+        print("Allowed Weight Classes:", form.cleaned_data.get('allowed_weight_classes'))
+
         form.instance.organizer = self.request.user
+        competition = form.save()
+
+        return super().form_valid(form)
+
+class SponsorLogoUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+    form_class = SponsorLogoForm
+    template_name = 'competitions/sponsor_logo_form.html'  # Create this template
+    success_url = reverse_lazy('competitions:competition_list')
+
+    def test_func(self):
+        """
+        Checks if the logged-in user is the organizer of the competition.
+        """
+        competition_pk = self.kwargs['competition_pk']
+        competition = get_object_or_404(Competition, pk=competition_pk)
+        return self.request.user == competition.organizer
+
+    def form_valid(self, form):
+        """
+        Handles the form submission for uploading sponsor logos.
+        """
+        competition_pk = self.kwargs['competition_pk']
+        competition = get_object_or_404(Competition, pk=competition_pk)
+
+        if self.request.FILES.getlist('sponsor_logos'):
+            for logo in self.request.FILES.getlist('sponsor_logos'):
+                sponsor = Sponsor.objects.create(
+                    name=logo.name,  # Or a more descriptive name
+                    logo=logo
+                )
+                competition.sponsor_logos.add(sponsor)
+
         return super().form_valid(form)
 
 class CompetitionUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
@@ -144,6 +261,11 @@ class CompetitionUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.Upd
         competition = self.get_object()
         return self.request.user == competition.organizer
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_update'] = True
+        return context
+
 class CompetitionDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView):
     model = Competition
     template_name = 'competitions/competition_confirm_delete.html'
@@ -153,36 +275,158 @@ class CompetitionDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.Del
         competition = self.get_object()
         return self.request.user == competition.organizer
 
-class EventCreateView(LoginRequiredMixin, generic.CreateView):
-    model = EventOrder
+class EventCreateView(CreateView):
+    model = Event
     form_class = EventForm
-    template_name = 'competitions/event_form.html'
+    template_name = 'competitions/event_form.html'  # Create this template
 
-    def get_success_url(self):
-        return reverse_lazy('competitions:competition_detail', kwargs={'pk': self.kwargs['competition_pk']})
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        competition_pk = self.kwargs['competition_pk']
+        competition = get_object_or_404(Competition, pk=competition_pk)
+        context['competition'] = competition
+        context['is_update'] = False
+
+        allowed_division_weight_classes = DivisionWeightClass.objects.filter(
+            division__in=competition.allowed_divisions.all(),
+            weight_class__in=competition.allowed_weight_classes.all()
+        )
+
+        # Create the formset using modelformset_factory
+        EventImplementFormSet = modelformset_factory(
+            EventImplement,
+            form=EventImplementForm,
+            extra=len(allowed_division_weight_classes)  # Set extra to the number of allowed DivisionWeightClass objects
+        )
+
+        # Get the allowed division_weight_class IDs for this competition
+        allowed_division_weight_class_ids = DivisionWeightClass.objects.filter(
+            division__in=competition.allowed_divisions.all(),
+            weight_class__in=competition.allowed_weight_classes.all()
+        ).values_list('id', flat=True)
+
+        if self.request.POST:
+            context['formset'] = EventImplementFormSet(
+                self.request.POST,  # Update the existing formset with POST data
+            )
+        else:
+            # Create initial data for the formset
+            initial_data = [{'division_weight_class': dwc.id} for dwc in allowed_division_weight_classes]
+            context['formset'] = EventImplementFormSet(
+                queryset=EventImplement.objects.none(),  # Use an empty queryset to avoid extra forms
+                initial=initial_data
+            )
+
+        context['event_bases'] = EventBase.objects.all().order_by('name')
+        return context
+
+    def save_event_implements(request, event):
+        implements = []
+        for key, value in request.POST.items():
+            if key.startswith('implement_name_'):
+                parts = key.split('_')
+                weight_class_id = int(parts[2])
+                implement_order = int(parts[3])
+
+                implement_name = value
+                weight = request.POST.get(f'weight_{weight_class_id}_{implement_order}')
+                weight_unit = request.POST.get(f'weight_unit_{weight_class_id}_{implement_order}')
+
+                implements.append(EventImplement(
+                    event=event,
+                    division_weight_class_id=weight_class_id,
+                    implement_name=implement_name,
+                    implement_order=implement_order,
+                    weight=weight,
+                    weight_unit=weight_unit
+                ))
+        EventImplement.objects.bulk_create(implements)
 
     def form_valid(self, form):
-        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
-        event = form.cleaned_data['event']
-        EventOrder.objects.create(competition=competition, event=event, order=form.cleaned_data['order'])
-        return redirect(self.get_success_url())
+        context = self.get_context_data()
+        formset = context['formset']
+        competition = context['competition']
 
+        if formset.is_valid() and form.is_valid():  # Check if both form and formset are valid
+            event = form.save()
+            for form in formset:
+                if form.cleaned_data:  # Check if the form has data
+                    event_implement = form.save(commit=False)
+                    event_implement.event = event  # Explicitly set the event
+                    event_implement.save()
+
+            formset.save()
+
+            EventOrder.objects.create(competition=competition, event=event)
+            return redirect('competitions:competition_detail', pk=competition.pk)
+        else:
+
+            return redirect('competitions:competition_detail', pk=competition.pk)
 
 class EventUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
-    model = EventOrder
+    model = Event
     form_class = EventForm
     template_name = 'competitions/event_form.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        event = self.get_object()
+        event_order = get_object_or_404(EventOrder, event=event)
+        competition = event_order.competition
+        context['competition'] = competition
+        context['is_update'] = True
+
+        queryset = EventImplement.objects.filter(event=event)
+        print("Queryset for Formset:", queryset)
+
+        allowed_division_weight_classes = DivisionWeightClass.objects.filter(
+            division__in=competition.allowed_divisions.all(),
+            weight_class__in=competition.allowed_weight_classes.all()
+        )
+
+        EventImplementFormSet = modelformset_factory(
+            EventImplement,
+            form=EventImplementForm,
+            extra=0,
+            can_delete=True  # Allow deletion of existing objects if needed
+        )
+
+        if self.request.POST:
+            context['formset'] = EventImplementFormSet(self.request.POST, queryset=queryset)
+        else:
+            context['formset'] = EventImplementFormSet(queryset=queryset)
+
+        return context
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+
+        print("Formset Data:", self.request.POST)  # Print the POST data
+        print("Formset Errors Before Validation:", formset.errors)  # Print errors before validation
+
+        if formset.is_valid() and form.is_valid():
+            event = form.save()
+            for form in formset:
+                if form.cleaned_data:
+                    event_implement = form.save(commit=False)
+                    event_implement.event = event
+                    event_implement.save()
+
+            formset.save()
+            return redirect(self.get_success_url())
+        else:
+            print("Formset Errors:", formset.errors)
+            return self.form_invalid(form)
+
     def get_success_url(self):
-        return reverse_lazy('competitions:competition_detail', kwargs={'pk': self.object.competition.pk})
+        event_order = get_object_or_404(EventOrder, event=self.object)
+        return reverse_lazy('competitions:competition_detail', kwargs={'pk': event_order.competition.pk})
 
     def test_func(self):
         event = self.get_object()
-        return self.request.user == event.competition.organizer
-
-    def form_valid(self, form):
-        return super().form_valid(form)
-
+        event_order = get_object_or_404(EventOrder, event=event)
+        return self.request.user == event_order.competition.organizer
 
 class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView):
     model = EventOrder
@@ -334,7 +578,8 @@ def calculate_points_and_rankings(competition_pk, eventorder_pk):
     # 1. Group results by division, weight class, and gender
     grouped_results = defaultdict(list)
     for result in results:
-        key = (result.athlete_competition.athlete.gender, result.athlete_competition.division,
+        key = (result.athlete_competition.athlete.gender,
+               result.athlete_competition.division,
                result.athlete_competition.weight_class)
         grouped_results[key].append(result)
 
@@ -343,45 +588,84 @@ def calculate_points_and_rankings(competition_pk, eventorder_pk):
         # Sort results based on event type within the group
         event_type = event_order.event.weight_type
         if event_type == 'time':
-            # For time-based events, sort by time (ascending)
-            group_results.sort(key=lambda x: x.time if x.time is not None else float('inf'))
+            # For time-based events, extract time and sort in ascending order
+            group_results.sort(key=lambda x: extract_time_from_result(x))  # Use helper function
         elif event_type in ('reps', 'distance', 'height', 'max'):
-            # For other event types, sort by value (descending)
+            # For other event types, sort by value in ascending order (assuming lower is better)
+            group_results.sort(key=lambda x: int(x.value) if x.value and x.value.isdigit() else float('-inf'))
+        else:
+            # For unknown event types, sort by value in descending order (you might need to adjust this)
             group_results.sort(key=lambda x: -int(x.value) if x.value and x.value.isdigit() else float('-inf'))
 
-        # Assign points within the group
+        # Assign points within the group, handling ties
         num_competitors = len(group_results)
-        current_points = num_competitors
-        previous_result = None
+        current_points = -1  # Start from 0, so first place gets 1 point
+        tied_results = []
         for i, result in enumerate(group_results):
-            if previous_result and result.value == previous_result.value:
-                # Tie: assign points for the current position minus 0.5
-                result.points_earned = current_points - 0.5
-                previous_result.points_earned = current_points - 0.5  # Adjust previous result's points
+            if tied_results and result.value == tied_results[-1].value:
+                tied_results.append(result)  # Add to tied group
             else:
-                # Not a tie: assign points for the current position
-                result.points_earned = current_points
-                current_points -= 1
-            previous_result = result
-            result.save()
+                # Process previous tied group (if any)
+                if len(tied_results) > 1:
+                    # Calculate average points for tied results
+                    total_tied_points = sum(range(current_points + 1, current_points + len(tied_results) + 1))  # Add 1 to start from the correct point value
+                    avg_points = total_tied_points / len(tied_results)
+                    for tied_result in tied_results:
+                        tied_result.points_earned = avg_points
+                        tied_result.save()
+                    current_points += len(tied_results)  # Increment points for the next position after the tie
+                else:
+                    # Not a tie, assign points normally
+                    if tied_results:  # Assign points to the single result
+                        tied_results[0].points_earned = current_points + 1  # Add 1 to get the correct point value
+                        tied_results[0].save()
+                    current_points += 1  # Increment for next position
+
+                tied_results = [result]  # Start a new tied group
+
+        # Handle any remaining tied results at the end of the group
+        if len(tied_results) > 1:
+            total_tied_points = sum(range(current_points + 1, current_points + len(tied_results) + 1))  # Add 1 to start from the correct point value
+            avg_points = total_tied_points / len(tied_results)
+            for tied_result in tied_results:
+                tied_result.points_earned = avg_points
+                tied_result.save()
+            current_points += len(tied_results)  # Increment points after the tie
+        else:
+            if tied_results:
+                tied_results[0].points_earned = current_points + 1  # Add 1 to get the correct point value
+                tied_results[0].save()
 
     # After calculating points for the event, update overall rankings
     update_overall_rankings(competition)
 
+def extract_time_from_result(result):
+    """Helper function to extract time from result.value for sorting."""
+    try:
+        time_part = result.value.split('+')[1]  # Assuming format is 'implements+HH:MM:SS'
+        hours, minutes, seconds = map(int, time_part.split(':'))
+        return hours * 3600 + minutes * 60 + seconds  # Return total seconds for easier comparison
+    except (IndexError, ValueError):
+        return float('inf')  # Return infinity for invalid formats, placing them last
+
+
 def update_overall_rankings(competition):
     # 1. Fetch all AthleteCompetition objects for the competition
-    athlete_competitions = AthleteCompetition.objects.filter(competition=competition)
+    athlete_competitions = AthleteCompetition.objects.filter(
+        competition=competition)
 
     # 2. Calculate total points for each athlete
     for athlete_competition in athlete_competitions:
-        total_points = athlete_competition.results.aggregate(total_points=Sum('points_earned'))['total_points'] or 0
+        total_points = athlete_competition.results.aggregate(
+            total_points=Sum('points_earned'))['total_points'] or 0
         athlete_competition.total_points = total_points
         athlete_competition.save()
 
     # 3. Group athletes by gender, division, and weight class
     grouped_athletes = defaultdict(list)
     for athlete_competition in athlete_competitions:
-        key = (athlete_competition.athlete.gender, athlete_competition.division, athlete_competition.weight_class)
+        key = (athlete_competition.athlete.gender,
+               athlete_competition.division, athlete_competition.weight_class)
         grouped_athletes[key].append(athlete_competition)
 
     # 4. Sort and assign ranks within each group
@@ -389,19 +673,41 @@ def update_overall_rankings(competition):
         # Sort athletes by total points (descending)
         group_athletes.sort(key=lambda x: -x.total_points)
 
-        # Assign ranks within the group
+        # Assign ranks within the group, handling ties
         current_rank = 1
-        previous_athlete = None
+        tied_athletes = []
         for athlete_competition in group_athletes:
-            if previous_athlete and athlete_competition.total_points == previous_athlete.total_points:
-                # Tie: assign the same rank as the previous athlete
-                athlete_competition.rank = current_rank
+            if tied_athletes and athlete_competition.total_points == tied_athletes[
+                    -1].total_points:
+                tied_athletes.append(athlete_competition)  # Add to tied group
             else:
-                # Not a tie: assign the current rank
-                athlete_competition.rank = current_rank
-                current_rank += 1
-            previous_athlete = athlete_competition
-            athlete_competition.save()
+                # Process previous tied group (if any)
+                if len(tied_athletes) > 1:
+                    for tied_athlete in tied_athletes:
+                        tied_athlete.rank = current_rank  # Assign same rank to tied athletes
+                        tied_athlete.save()
+                    current_rank += len(tied_athletes)  # Increment rank based on number of tied athletes
+                else:
+                    # Not a tie, assign rank normally
+                    if tied_athletes:
+                        tied_athletes[
+                            0].rank = current_rank  # Assign rank to the single athlete
+                        tied_athletes[0].save()
+                        current_rank += 1
+
+                tied_athletes = [
+                    athlete_competition
+                ]  # Start a new tied group
+
+        # Handle any remaining tied athletes at the end of the group
+        if len(tied_athletes) > 1:
+            for tied_athlete in tied_athletes:
+                tied_athlete.rank = current_rank
+                tied_athlete.save()
+        else:
+            if tied_athletes:
+                tied_athletes[0].rank = current_rank
+                tied_athletes[0].save()
 
 def update_multiple_scores(request, competition_id):
     competition = get_object_or_404(Competition, pk=competition_id)
@@ -438,3 +744,67 @@ def update_multiple_scores(request, competition_id):
         return redirect('competitions:competition_score', pk=competition.pk)
 
     return HttpResponse("Invalid request method")
+
+def athlete_profile(request, athlete_id):
+    athlete = get_object_or_404(AthleteProfile, pk=athlete_id)
+    competition_history = AthleteCompetition.objects.filter(athlete=athlete)
+    print(athlete.__dict__)
+    context = {
+        'athlete': athlete,
+        'competition_history': competition_history
+    }
+    return render(request, 'registration/athlete_profile.html', context)
+
+
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from competitions.models import Competition
+from accounts.models import AthleteProfile
+
+
+@login_required
+def commentator_comp_card(request, competition_id):
+    competition = get_object_or_404(Competition, pk=competition_id)
+
+    # Check if the user is the organizer of this competition
+    if not competition.organizer == request.user:
+        # Handle unauthorized access (e.g., redirect or 403 error)
+        return render(request, 'unauthorized.html')  # Replace 'unauthorized.html' with your unauthorized template
+
+    # Get the athletes registered for the competition, optimized with prefetch_related
+    athletes = AthleteProfile.objects.filter(
+        athletecompetition__competition=competition
+    ).select_related(
+        'user'
+    ).prefetch_related(
+        'athletecompetition_set__competition'
+    )
+
+    if request.method == 'POST':
+        if 'delete_note' in request.POST:
+            note_id = request.POST.get('note_id')
+            note = get_object_or_404(CommentatorNote, pk=note_id, commentator=request.user)
+            note.delete()
+            # Optionally return a success message or redirect
+            return JsonResponse({'status': 'success'})
+        else:
+            athlete_id = request.POST.get('athlete_id')
+            note_text = request.POST.get('note_text')
+            athlete = get_object_or_404(AthleteProfile, pk=athlete_id)
+
+            CommentatorNote.objects.create(
+                competition=competition,
+                athlete=athlete,
+                commentator=request.user,
+                note=note_text
+            )
+
+        # Optionally return a success message or redirect
+        return HttpResponseRedirect(reverse('competitions:commentator_comp_card', kwargs={'competition_id': competition.id}))
+
+    context = {
+        'competition': competition,
+        'athletes': athletes,
+    }
+    return render(request, 'competitions/commentator_compcard.html', context)
+

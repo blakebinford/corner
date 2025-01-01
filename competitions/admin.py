@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Competition, Event, EventOrder, AthleteCompetition, EventImplement,
-    DivisionWeightClass, Tag, Federation, Sponsor, Result
+    DivisionWeightClass, Tag, Federation, Sponsor, Result, ZipCode
 )
 
 class EventOrderInline(admin.TabularInline):
@@ -64,7 +64,10 @@ class EventImplementAdmin(admin.ModelAdmin):
     list_display = ('event', 'division_weight_class', 'implement_name', 'implement_order', 'weight', 'weight_unit')
     list_filter = ('event__competitions', 'division_weight_class__division', 'division_weight_class__weight_class')
 
+@admin.register(DivisionWeightClass)
+class DivisionWeightClassAdmin(admin.ModelAdmin):
+    list_display = ('division', 'weight_class', 'gender')
+    list_filter = ('division',)
 
-
-admin.site.register(DivisionWeightClass)
 admin.site.register(Tag)
+admin.site.register(ZipCode)

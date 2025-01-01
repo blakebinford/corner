@@ -1,52 +1,173 @@
 {% extends 'base.html' %}
-{% load django_bootstrap5 %}
-{% load crispy_forms_tags %} 
+{% load crispy_forms_tags %}
+{% load widget_tweaks %}
+
 {% block content %}
-<div class="container">
-  <div class="row">
-    <div class="col-md-8 offset-md-2">
-      <h2 class="mb-4">{% if object %}Edit{% else %}Create{% endif %} Competition</h2>
-      <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.media }}
-        <div class="mb-3">
-          {{ form.name|as_crispy_field }}
+<div class="container-fluid" style="background: linear-gradient(to bottom, #222222, #444444);">
+  <div class="row align-items-center justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-lg p-5" style="border-radius: 15px; background-color: rgba(255, 255, 255, 0.9);">
+        <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">Create Competition</h2>
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="row">
+            <div class="col-md-6">
+              {{ form.name|as_crispy_field }}
+            </div>
+            <div class="col-md-6">
+              {{ form.event_location_name|as_crispy_field }}
+            </div>
+          </div>
+          <div class="row">
+  <div class="col-md-4">
+    {{ form.comp_date|as_crispy_field }}
+    <div class="form-check mt-2">
+      <input type="checkbox" id="is-multi-day" class="form-check-input" name="is_multi_day">
+      <label for="is-multi-day" class="form-check-label">Multi-day Competition</label>
+    </div>
+  </div>
+  <div class="col-md-4" id="end-date-container" style="display: none;">
+    {{ form.comp_end_date|as_crispy_field }}
+  </div>
+  <div class="col-md-4">
+    {{ form.start_time|as_crispy_field }}
+  </div>
+</div>
+
+          <div class="row">
+            <div class="col-md-12">
+              {{ form.address|as_crispy_field }}
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              {{ form.city|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+              {{ form.state|as_crispy_field }}
+            </div>
+            <div class="col-md-2">
+              {{ form.zip_code|as_crispy_field }}
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4">
+              {{ form.federation|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+              {{ form.signup_price|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+              {{ form.capacity|as_crispy_field }}
+            </div>
+          </div>
+          <div class="row">
+
+          </div>  
+          <div class="row">
+           
+            <div class="col-md-12">
+              {{ form.registration_deadline|as_crispy_field }}
+            </div>
+          </div>
+        <div class="row">
+            <div class="col-md-12">
+              {{ form.image|as_crispy_field }}
+            </div>
+           
         </div>
-        <div class="mb-3">
-          {{ form.comp_date|as_crispy_field }}
-        </div>
-        <div class="mb-3">
-          {{ form.location|as_crispy_field }}
-        </div>
-        <div class="mb-3">
+                    <div class="row">
+                           <div class="row">
+                        <div class="col-md-4">
+                        <p class="text-center"><b>Chose Comp Tags.</b><br>Hold ctrl and click.</p>
+                        {{ form.tags|as_crispy_field }}
+                    </div>
+              <div class="col-md-4">
+                {{ form.allowed_divisions|as_crispy_field }}
+              </div>
+              <div class="col-md-4">
+                {{ form.allowed_weight_classes|as_crispy_field }}
+              </div>
+            </div>
+          </div>
+
           {{ form.description|as_crispy_field }}
-        </div>
-        <div class="mb-3">
-          {{ form.scoring_system|as_crispy_field }}
-        </div>
-        <div class="mb-3">
-          {{ form.status|as_crispy_field }}
-        </div>
-        <div class="mb-3">
-          {{ form.registration_deadline|as_crispy_field }}
-        </div>
-        <div class="mb-3">
-          {{ form.allowed_divisions|as_crispy_field }}
-        </div>
-        <div class="mb-3">
-          {{ form.allowed_weight_classes|as_crispy_field }}
-        </div>
-        <div class="mb-3">
-          {{ form.image|as_crispy_field }}
-        </div>
-        <div class="mb-3">
-          {{ form.tags|as_crispy_field }}
-        </div>
-        <div class="d-grid gap-2">
-          <button type="submit" class="btn btn-primary">Submit</button>
-        </div>
-      </form>
+
+          <div class="form-check">
+            {{ form.liability_waiver_accepted|as_crispy_field }}
+            <label class="form-check-label" for="{{ form.liability_waiver_accepted.id_for_label }}">
+              I agree to the <a href="#">liability waiver</a>
+            </label>
+          </div>
+
+          <div class="d-grid gap-2 col-6 mx-auto">
+             <button type="submit" class="btn btn-primary" style="background-color: #333; border: none;">
+    {% if is_update %} Update Competition {% else %} Create Competition {% endif %}
+  </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </div>
+    <script>
+ document.addEventListener('DOMContentLoaded', function () {
+    const multiDayCheckbox = document.getElementById('is-multi-day');
+    const endDateContainer = document.getElementById('end-date-container');
+
+    multiDayCheckbox.addEventListener('change', function () {
+      if (this.checked) {
+        endDateContainer.style.display = 'block';
+      } else {
+        endDateContainer.style.display = 'none';
+      }
+    });
+  });
+  document.addEventListener('DOMContentLoaded', function() {
+    const federationSelect = document.getElementById('id_federation');
+    const weightClassSelect = document.getElementById('id_allowed_weight_classes');
+
+    federationSelect.addEventListener('change', function() {
+      const federationId = this.value;
+      updateWeightClasses(federationId);
+    });
+
+    function updateWeightClasses(federationId) {
+      // Make an AJAX request to fetch weight classes for the selected federation
+      fetch(`/competitions/get_weight_classes/?federation_id=${federationId}`, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest' // Important for Django to identify AJAX requests
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Clear existing options
+        weightClassSelect.innerHTML = '';
+
+        // Add new options based on the response
+        data.weight_classes.forEach(weightClass => {
+          const option = document.createElement('option');
+          option.value = weightClass.id;
+          option.text = weightClass.name;
+          weightClassSelect.add(option);
+        });
+      })
+      .catch(error => {
+        console.error('Error fetching weight classes:', error);
+      });
+    }
+  });
+
+  $(document).ready(function() {
+    $('#id_tags').multiselect({
+      // Add any options you want to customize the multiselect
+      nonSelectedText: 'Select Tags',
+      enableFiltering: true,
+      includeSelectAllOption: true
+    });
+  });
+</script> 
 {% endblock %}

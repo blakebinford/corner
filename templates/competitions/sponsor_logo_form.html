@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container-fluid" style="background: linear-gradient(to bottom, #222222, #444444);">
+<div class="container-fluid" style="background: linear-gradient(to bottom, #222222, #444444);">
+  <div class="row align-items-center justify-content-center">
+    <div class="col-md-11">
+      <div class="card shadow-lg p-5" style="border-radius: 15px; background-color: rgba(255, 255, 255, 0.9);">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <h2 class="mb-4 text-center">Upload Your Sponsor Logos</h2>
+                    <p class="text-center"><b>Showcase your sponsors in style! Accepted image types: JPG, JPEG, PNG</b></p>
+                    <p><strong>Note:</strong> You can upload multiple images at once. To select multiple files, hold down the Ctrl key (or Cmd key on Mac) while clicking on the files you want to upload.</p> 
+                    <div class="upload-area">
+                        <form method="post" enctype="multipart/form-data"> {## Removed dropzone class and ID #}
+                            {% csrf_token %}
+                            {{ form|crispy }}  {# Render the form fields #}
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </form>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+</div>
+</div>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.contrib.sites.shortcuts import get_current_site
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import generic
 from django.urls import reverse_lazy
@@ -12,8 +12,9 @@ from competitions.models import Competition, AthleteCompetition, EventOrder, Res
 from .forms import CustomUserCreationForm, OrganizerProfileForm, AthleteProfileUpdateForm, \
     UserUpdateForm
 from .tokens import account_activation_token
-from .models import AthleteProfile, OrganizerProfile, User
+from .models import AthleteProfile, OrganizerProfile, User, WeightClass
 from django.contrib import messages
+import re
 
 class SignUpView(generic.CreateView):
     """
@@ -88,20 +89,23 @@ def update_profile(request):
         profile_form = AthleteProfileUpdateForm(request.POST, instance=request.user.athlete_profile)
 
         if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
-            profile = profile_form.save(commit=False)
+            instagram_name = user_form.cleaned_data.get('instagram_name')
+            x_name = user_form.cleaned_data.get('x_name')
+            facebook_name = user_form.cleaned_data.get('facebook_name')
 
-            # Save validated address components
-            profile.address = profile_form.cleaned_data.get('validated_address')
-            profile.city = profile_form.cleaned_data.get('validated_city')
-            profile.state_province = profile_form.cleaned_data.get('validated_state')
-            profile.postal_code = profile_form.cleaned_data.get('validated_zip')
-            profile.country = profile_form.cleaned_data.get('validated_country')
-
-            profile.save()
-
-            messages.success(request, 'Your profile has been updated successfully!')
-            return redirect('profile_update')  # Redirect to the profile page
+            if instagram_name and not re.match(r'^[\w.]+$', instagram_name):
+                messages.error(request,
+                               'Invalid Instagram username. Only letters, numbers, underscores, and periods are allowed.')
+            elif x_name and not re.match(r'^[a-zA-Z][\w_]*$', x_name):
+                messages.error(request,
+                               'Invalid X username. Only letters, numbers, and underscores are allowed, and it cannot start with a number.')
+            elif facebook_name and not re.match(r'^[\w.]+$', facebook_name):
+                messages.error(request, 'Invalid Facebook username. Only letters, numbers, and periods are allowed.')
+            else:
+                user_form.save()
+                profile_form.save()
+                messages.success(request, 'Your profile has been updated successfully!')
+            return redirect('accounts:profile_update')  # Redirect to the profile page
         else:
             messages.error(request, 'Error updating profile. Please check the form.')
     else:
@@ -111,43 +115,16 @@ def update_profile(request):
 
         user_form = UserUpdateForm(instance=request.user)
         profile_form = AthleteProfileUpdateForm(instance=request.user.athlete_profile)
+    context = {  # Define the context dictionary here
+        'user_form': user_form,
+        'profile_form': profile_form,
+        'user': request.user
+    }
 
     return render(request, 'registration/update_profile.html', {
         'user_form': user_form,
-        'profile_form': profile_form
-    })
-
-@login_required
-def update_profile(request):
-    """
-    View for updating the user's athlete profile and user information.
-    """
-    if request.method == 'POST':
-        # Ensure the user has an AthleteProfile before creating the forms
-        if not hasattr(request.user, 'athlete_profile'):
-            AthleteProfile.objects.create(user=request.user)
-
-        user_form = UserUpdateForm(request.POST, instance=request.user)
-        profile_form = AthleteProfileUpdateForm(request.POST, instance=request.user.athlete_profile)
-
-        if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
-            profile_form.save()
-            messages.success(request, 'Your profile has been updated successfully!')
-            return redirect('profile_update')  # Redirect to the profile page
-        else:
-            messages.error(request, 'Error updating profile. Please check the form.')
-    else:
-        # Ensure the user has an AthleteProfile before creating the forms
-        if not hasattr(request.user, 'athlete_profile'):
-            AthleteProfile.objects.create(user=request.user)
-
-        user_form = UserUpdateForm(instance=request.user)
-        profile_form = AthleteProfileUpdateForm(instance=request.user.athlete_profile)
-
-    return render(request, 'registration/update_profile.html', {
-        'user_form': user_form,
-        'profile_form': profile_form
+        'profile_form': profile_form,
+        'user': request.user
     })
 
 class OrganizerProfileUpdateView(generic.UpdateView):
@@ -173,7 +150,12 @@ def activate(request, uidb64, token):
         user.is_active = True
         user.email_verified = True
         user.save()
-        return redirect('login')  # Redirect to login page
+        return redirect('accounts:login')  # Redirect to login page
     else:
         return render(request, 'registration/acc_active_invalid.html')
 
+def get_weight_classes(request):
+    federation_id = request.GET.get('federation_id')
+    weight_classes = WeightClass.objects.filter(federation=federation_id)
+    weight_class_data = [{'id': wc.id, 'name': str(wc)} for wc in weight_classes]
+    return JsonResponse({'weight_classes': weight_class_data})

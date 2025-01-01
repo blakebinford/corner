@@ -27,25 +27,26 @@ TINYMCE_DEFAULT_CONFIG = TINYMCE_DEFAULT_CONFIG
 SECRET_KEY = 'django-insecure-eekryfugq*^)_(j$d@_l_fkgfnt5_dffkb41!%w)07o68lig*a'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['comppodium.onrender.com']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'accounts',
     'django.contrib.auth',
     'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'django_browser_reload',
     'axes',
     'django_cotton',
     'django_bootstrap5',
-    'accounts',
     'competitions',
     'phonenumber_field',
     'tinymce',
@@ -98,8 +99,12 @@ WSGI_APPLICATION = 'ComPodium.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'compodium',
+        'USER': 'blake',
+        'PASSWORD': '758595Aa',
+        'HOST': 'localhost',
+        'PORT': '5432',  # Default PostgreSQL port
     }
 }
 
@@ -145,6 +150,10 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "theme/static"),
 )
+
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 4 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 4 * 1024 * 1024
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

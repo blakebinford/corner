@@ -2,100 +2,102 @@
 {% load multiply %}
 {% load static %}
 {% load timezone %}
+
 {% block content %}
-<link rel="stylesheet" type="text/css" href="{% static 'chat/style.css' %}">
-
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-8">
-            <h2>{{ competition.name }} - Scorecard</h2>
-            <div class="table-responsive">
-                <h3>Leaderboard</h3>
-                <table class="table table-sm table-striped table-bordered align-middle">
-                    <thead class="align-middle text-center">
-                    <tr>
-                        <th>Athlete</th>
-                        <th>Rank</th>
-                        <th>Total Points</th>
-                        {% for event_order in ordered_events %}
-                        <th>{{ event_order.event.name }} <br>
-                            <small class="text-muted">({{ event_order.event.get_weight_type_display }})</small>
-                        </th>
-                        <th>Points</th>
-                        {% endfor %}
-                    </tr>
-                    </thead>
-                    <tbody class="text-center">
-                    {% for group_key, athlete_competitions in grouped_athletes.items %}
-                    <tr>
-                        <td colspan="{{ ordered_events|length|multiply:2|add:3 }}"
-                            style="background-color: #f0f0f0; font-weight: bold; text-align: left; width: 100%;">
-                            {{ group_key.0|capfirst }} {{ group_key.1 }} ({{ group_key.2 }})
-                        </td>
-                    </tr>
-                    {% for athlete_competition in athlete_competitions %}
-                    <tr>
-                        <td>{{ athlete_competition.athlete.user.get_full_name }}</td>
-                        <td class="rank">{{ athlete_competition.rank }}</td>
-                        <td class="total-points">{{ athlete_competition.total_points }}</td>
-                        {% for event_order in ordered_events %}
-                        <td class="result-value" data-athlete="{{ athlete_competition.pk }}"
-                            data-event="{{ event_order.pk }}">
-                            {% for result in athlete_competition.results.all %}
-                            {% if result.event_order == event_order %}
-                            {{ result.value }}
-                            {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td class="points-earned" data-athlete="{{ athlete_competition.pk }}"
-                            data-event="{{ event_order.pk }}">
-                            {% for result in athlete_competition.results.all %}
-                            {% if result.event_order == event_order %}
-                            {{ result.points_earned }}
-                            {% endif %}
-                            {% endfor %}
-                        </td>
-                        {% endfor %}
-                    </tr>
-                    {% endfor %}
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div id="chat-container">
-                <div id="chat-header">
-                    <img src="{{ competition.image.url }}" alt="Competition Thumbnail" class="competition-thumbnail">
-                    <h3>{{ competition.name }}</h3>
-                </div>
-                <div id="chat-box">
-                    {% for message in messages %}
-                    <div class="chat-message {% if message.user == request.user %}sent-by-me{% endif %}" data-message-id="{{ message.id }}">
-                        <div class="user-info">
-                            <div class="user-icon">{{ message.user.username|slice:":1"|upper }}</div>
-                        </div>
-                        <div class="message-content">
-                            <div><span class="username">{{ message.user.username }}</span>: {{ message.message }}</div>
-                            <div class="{% if message.user == request.user %}timestamp-right{% else %}timestamp{% endif %}">
-    {{ message.timestamp|time_ago }}
-</div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p>No messages yet.</p>
-                    {% endfor %}
-                </div>
-
-                <form id="chat-form">
-                    <div class="input-container">
-                        <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
-                    <button type="submit" id="chat-message-submit"><i class="fas fa-paper-plane"></i></button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<div class="container-fluid p-0" style=" margin-left: 10px; margin-right: 10px;">
+  <div class="row">
+    <div class="col-md-9 p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="align-middle text-center">
+            <tr>
+              <th>Athlete</th>
+              <th>Rank</th>
+              <th>Total Points</th>
+              {% for event_order in ordered_events %}
+              <th>{{ event_order.event.name }} <br>
+                <small class="text-muted">({{ event_order.event.get_weight_type_display }})</small>
+              </th>
+              <th>Points</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody class="text-center">
+            {% for group_key, athlete_competitions in grouped_athletes.items %}
+            <tr>
+              <td colspan="{{ ordered_events|length|multiply:2|add:3 }}" style="background-color: #f0f0f0; font-weight: bold; text-align: left; width: 100%;">
+                {{ group_key.0|capfirst }} {{ group_key.1 }} ({{ group_key.2 }})
+              </td>
+            </tr>
+            {% for athlete_competition in athlete_competitions %}
+            <tr>
+              <td class="text-start">
+                <a href="{% url 'competitions:athlete_profile' athlete_competition.athlete.id %}" class="link-offset-2 link-dark link-underline link-underline-opacity-0">
+                  <i class="fa-regular fa-user" style="color: black;"></i>
+                  {{ athlete_competition.athlete.user.first_name|capfirst }} {{ athlete_competition.athlete.user.last_name|capfirst }}
+                </a>
+              </td>
+              <td class="rank">{{ athlete_competition.rank }}</td>
+              <td class="total-points">{{ athlete_competition.total_points }}</td>
+              {% for event_order in ordered_events %}
+              <td class="result-value" data-athlete="{{ athlete_competition.pk }}" data-event="{{ event_order.pk }}">
+                {% for result in athlete_competition.results.all %}
+                {% if result.event_order == event_order %}
+                {{ result.value }}
+                {% endif %}
+                {% endfor %}
+              </td>
+              <td class="points-earned" data-athlete="{{ athlete_competition.pk }}" data-event="{{ event_order.pk }}">
+                {% for result in athlete_competition.results.all %}
+                {% if result.event_order == event_order %}
+                {{ result.points_earned }}
+                {% endif %}
+                {% endfor %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+    <div class="col-md-3 p-0" style="background-color: #f8f9fa;">
+      <div id="chat-container">
+        <div id="chat-header">
+          <h3>{{ competition.name }}</h3>
+        </div>
+        <div id="chat-box">
+          {% for message in messages %}
+          <div class="chat-message {% if message.user == request.user %}sent-by-me{% endif %}" data-message-id="{{ message.id }}">
+            <div class="user-info">
+              <div class="user-icon">{{ message.user.username|slice:":1"|upper }}</div>
+            </div>
+            <div class="message-content">
+              <div>
+                <span class="username">{{ message.user.username }}</span>: {{ message.message }}
+              </div>
+              <div class="{% if message.user == request.user %}timestamp-right{% else %}timestamp{% endif %}">
+                {{ message.timestamp|time_ago }}
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <p>No messages yet.</p>
+          {% endfor %}
+        </div>
+
+        <form id="chat-form">
+          <div class="input-container">
+            <input type="text" id="chat-message-input" autocomplete="off" placeholder="Type your message...">
+            <button type="submit" id="chat-message-submit">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>

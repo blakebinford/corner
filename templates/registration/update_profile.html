@@ -1,175 +1,265 @@
 {% extends 'base.html' %}
 {% load widget_tweaks %}
+{% load lookup_filter %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Update Profile</h2>
-                </div>
-                <div class="card-body">
-                    <form method="post" id="profileForm">
-                        {% csrf_token %}
-                        {{ profile_form.locationiq_token }}
-                        {{ profile_form.validated_address }}
-                        {{ profile_form.validated_city }}
-                        {{ profile_form.validated_state }}
-                        {{ profile_form.validated_zip }}
-                        {{ profile_form.validated_country }}
-
-                        <div class="row">
-                            <div class="col-sm-12 col-md-4">
-                                <h3>User Information</h3>
-                                {% for field in user_form %}
-                                    <div class="mb-3">
-                                        {{ field.label_tag }}
-                                        {% if field.field.required %}
-                                            <span class="required">*</span>
-                                        {% endif %}
-
-                                        {% render_field field class="form-control" %}
-
-                                        {% if field.help_text %}
-                                            <small class="form-text text-muted">{{ field.help_text }}</small>
-                                        {% endif %}
-
-                                        {% for error in field.errors %}
-                                            <div class="invalid-feedback">{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                {% endfor %}
-                            </div>
-
-                            <div class="col-sm-12 col-md-4">
-                                <h3>Athlete Profile: Personal Info</h3>
-                                <div class="mb-3">
-                                    <label for="address_autocomplete">Address</label>
-                                    <input type="text" class="form-control" id="address_autocomplete" placeholder="Start typing your address...">
-                                    <small class="form-text text-muted">Search for your address</small>
-                                </div>
-                                {% for field in profile_form %}
-                                    {% if field.name == 'gender' or field.name == 'nickname' or field.name == 'phone_number' or field.name == 'whatsapp_number' or field.name == 'date_of_birth'%}
-                                        <div class="mb-3">
-                                            {{ field.label_tag }}
-                                            {% if field.field.required %}
-                                                <span class="required">*</span>
-                                            {% endif %}
-
-                                            {% if field.name == 'gender' %}
-                                                {% render_field field class="form-select" %}
-                                            {% elif field.name == 'date_of_birth' %}
-                                                {% render_field field class="form-control" placeholder="mm/dd/yyyy" id="dob" %}
-                                                <small class="form-text text-muted">Enter date in mm/dd/yyyy format</small>
-                                            {% elif field.name == 'phone_number' %}
-                                                {% render_field field class="form-control" id="phone_number" %}
-                                                <small class="form-text text-muted">Enter phone number in (xxx)xxx-xxxx format</small>
-                                            {% elif field.name == 'whatsapp_number' %}
-                                                {% render_field field class="form-control" id="whatsapp_number" %}
-                                                <small class="form-text text-muted">Enter WhatsApp number in (xxx)xxx-xxxx format</small>
-                                            {% else %}
-                                                {% render_field field class="form-control" %}
-                                            {% endif %}
-
-                                            {% if field.help_text %}
-                                                <small class="form-text text-muted">{{ field.help_text }}</small>
-                                            {% endif %}
-
-                                            {% for error in field.errors %}
-                                                <div class="invalid-feedback">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-
-                            <div class="col-sm-12 col-md-4">
-                                <h3>Athlete Profile: Gym/Team Info</h3>
-                                {% for field in profile_form %}
-                                    {% if field.name == 'home_gym' or field.name == 'team_name' or field.name == 'coach' or field.name == 'height' or field.name == 'weight' %}
-                                        <div class="mb-3">
-                                            {{ field.label_tag }}
-                                            {% if field.field.required %}
-                                                <span class="required">*</span>
-                                            {% endif %}
-
-                                            {% if field.field.widget.input_type == 'checkbox' %}
-                                                <div class="form-check">
-                                                    {% render_field field class="form-check-input" %}
-                                                </div>
-                                            {% else %}
-                                                {% render_field field class="form-control" %}
-                                            {% endif %}
-
-                                            {% if field.help_text %}
-                                                <small class="form-text text-muted">{{ field.help_text }}</small>
-                                            {% endif %}
-
-                                            {% for error in field.errors %}
-                                                <div class="invalid-feedback">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary">Update</button>
-                    </form>
-                </div>
+<div class="container-fluid" style="background: linear-gradient(to bottom, #222222, #444444);">
+  <div class="row align-items-center justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-lg p-5" style="border-radius: 15px; background-color: rgba(255, 255, 255, 0.9);">
+        <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">Update Your Profile</h2>
+      <a href="{% url 'competitions:athlete_profile' user.id %}" class="btn btn-primary" style="background-color: #333; border: none;">View Athlete Profile</a>
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'success' %}success{% else %}danger{% endif %} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-        </div>
+          {% endfor %}
+        {% endif %}
+        <form method="post" id="profileForm">
+          {% csrf_token %}
+          <div class="row">
+            <div class="col-md-4">
+              <h3 style="color: #333;">User Information</h3>
+            </div>
+            <div class="col-md-4">
+              <h3 style="color: #333;">Personal Info</h3>
+            </div>
+            <div class="col-md-4">
+              <h3 style="color: #333;">Gym/Team Info</h3>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              {% for field in user_form %}
+                {% if field.name != 'instagram_name' and field.name != 'x_name' and field.name != 'facebook_name' %}
+                  <div class="mb-3">
+                    {{ field.label_tag }}
+                    {% if field.field.required %}
+                      <span class="required">*</span>
+                    {% endif %}
+
+                    {% render_field field class="form-control"  value=user|lookup:field.name %}
+
+                    {% if field.help_text %}
+                      <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+
+                    {% for error in field.errors %}
+                      <div class="invalid-feedback" style="color: red;">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+
+              {% for field in profile_form %}
+                {% if field.name == 'street_number' or field.name == 'city' or field.name == 'state' or field.name == 'zip_code' or field.name == 'gender' or field.name == 'phone_number' or field.name == 'date_of_birth' %}
+                  <div class="mb-3">
+                    {{ field.label_tag }}
+                    {% if field.field.required %}
+                      <span class="required">*</span>
+                    {% endif %}
+
+                    {% if field.name == 'gender' %}
+                      {% render_field field class="form-select" %}
+                    {% elif field.name == 'date_of_birth' %}
+                      {% render_field field class="form-control" placeholder="mm/dd/yyyy" id="dob" %}
+                      <small class="form-text text-muted">Enter date in mm/dd/yyyy format</small>
+                    {% elif field.name == 'phone_number' %}
+                      {% render_field field class="form-control" id="phone_number" %}
+                      <small class="form-text text-muted">Enter phone number in (xxx)xxx-xxxx format</small>
+                    {% else %}
+                      {% render_field field class="form-control" %}
+                    {% endif %}
+
+                    {% if field.help_text %}
+                      <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+
+                    {% for error in field.errors %}
+                      <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <div class="col-md-4">
+
+              {% for field in user_form %}
+                {% if field.name == 'instagram_name' or field.name == 'x_name' or field.name == 'facebook_name' %}
+                  <div class="mb-3">
+                    {{ field.label_tag }}
+                    {% if field.field.required %}
+                      <span class="required">*</span>
+                    {% endif %}
+
+                    {% render_field field class="form-control"  value=user|lookup:field.name %}
+
+                    {% if field.help_text %}
+                      <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+
+                    {% for error in field.errors %}
+                      <div class="invalid-feedback" style="color: red;">{{ error }}</div>
+                    {% endfor %}
+
+                    {% if field.name == 'instagram_name' %}
+                      <span id="instagram-error" class="error-message"></span>
+                    {% elif field.name == 'x_name' %}
+                      <span id="x-error" class="error-message"></span>
+                    {% elif field.name == 'facebook_name' %}
+                      <span id="facebook-error" class="error-message"></span>
+                    {% endif %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+
+              {% for field in profile_form %}
+                {% if field.name != 'street_number' and field.name != 'city' and field.name != 'state' and field.name != 'zip_code' and field.name != 'gender' and field.name != 'phone_number' and field.name != 'whatsapp_number' and field.name != 'date_of_birth' and field.name != 'home_gym' and field.name != 'team_name' and field.name != 'coach' %}
+                  <div class="mb-3">
+                    {{ field.label_tag }}
+                    {% if field.field.required %}
+                      <span class="required">*</span>
+                    {% endif %}
+
+                    {% if field.name == 'gender' %}
+                      {% render_field field class="form-select" %}
+                    {% elif field.name == 'date_of_birth' %}
+                      {% render_field field class="form-control" placeholder="mm/dd/yyyy" id="dob" %}
+                      <small class="form-text text-muted">Enter date in mm/dd/yyyy format</small>
+                    {% elif field.name == 'phone_number' %}
+                      {% render_field field class="form-control" id="phone_number" %}
+                      <small class="form-text text-muted">Enter phone number in (xxx)xxx-xxxx format</small>
+                    {% elif field.name == 'whatsapp_number' %}
+                      {% render_field field class="form-control" id="whatsapp_number" %}
+                      <small class="form-text text-muted">Enter WhatsApp number in (xxx)xxx-xxxx format</small>
+                    {% else %}
+                      {% render_field field class="form-control" %}
+                    {% endif %}
+
+                    {% if field.help_text %}
+                      <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+
+                    {% for error in field.errors %}
+                      <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <div class="col-md-4">
+              {% for field in profile_form %}
+                {% if field.name == 'home_gym' or field.name == 'team_name' or field.name == 'coach' %}
+                  <div class="mb-3">
+                    {{ field.label_tag }}
+                    {% if field.field.required %}
+                      <span class="required">*</span>
+                    {% endif %}
+                    {% if field.field.widget.input_type == 'checkbox' %}
+                      <div class="form-check">
+                        {% render_field field class="form-check-input" %}
+                      </div>
+                    {% else %}
+                      {% render_field field class="form-control" %}
+                    {% endif %}
+
+                    {% if field.help_text %}
+                      <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+
+                    {% for error in field.errors %}
+                      <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="d-grid gap-2 col-6 mx-auto">
+            <button type="submit" class="btn btn-primary" style="background-color: #333; border: none;">Update</button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 </div>
-<script>
-  window.LIQ_API_KEY = 'pk.ce7e46d31aee270ee18995304f27fc39';
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const locationIQToken = 'pk.ce7e46d31aee270ee18995304f27fc39';
-        const addressField = document.getElementById('address_autocomplete');
+<script type="text/javascript">
+  document.addEventListener('DOMContentLoaded', function() {
+    const instagramInput = document.getElementById('id_instagram_name');
+    const xInput = document.getElementById('id_x_name');
+    const facebookInput = document.getElementById('id_facebook_name');
 
-        let autocomplete = new LocationIQ.search.Autocomplete(addressField, {
-            key: locationIQToken,
-            search_button: false, // Disable search button
-            addressdetails: 1, // Request full address details
-            limit: 5, // Limit to 5 suggestions
-
-            // Event handler for when an address is selected
-            onAddressSelect: function(result) {
-                // Extract address details from the result
-                const address = result.address;
-
-                // Populate the hidden fields with the address details
-                document.getElementById('id_validated_address').value = address.road + (address.house_number ? ', ' + address.house_number : '');
-                document.getElementById('id_validated_city').value = address.city || address.town || address.village;
-                document.getElementById('id_validated_state').value = address.state;
-                document.getElementById('id_validated_zip').value = address.postcode;
-                document.getElementById('id_validated_country').value = address.country;
-            }
-        });
-
-        autocomplete.onLoad();
+    instagramInput.addEventListener('blur', function() {
+      validateSocialMediaInput(this, 'instagram');
     });
-    const dobInput = document.getElementById('dob');
 
-    dobInput.addEventListener('input', function(e) {
-      let input = this.value;
-      // Remove non-digits and limit to 8 characters
-      let cleanInput = input.replace(/\D/g, '').substring(0, 8);
+    xInput.addEventListener('blur', function() {
+      validateSocialMediaInput(this, 'x');
+    });
 
-      if (cleanInput.length > 2) {
-        // Add first slash
-        cleanInput = cleanInput.substring(0, 2) + '/' + cleanInput.substring(2);
-      }
-      if (cleanInput.length > 5) {
-        // Add second slash
-        cleanInput = cleanInput.substring(0, 5) + '/' + cleanInput.substring(5);
+    facebookInput.addEventListener('blur', function() {
+      validateSocialMediaInput(this, 'facebook');
+    });
+
+    function validateSocialMediaInput(inputField, platform) {
+      const value = inputField.value;
+      let isValid = true;
+      let errorMessage = '';
+
+      switch (platform) {
+        case 'instagram':
+          if (value && !value.match(/^[\w.]+$/)) {
+            errorMessage = 'Invalid Instagram username. Only letters, numbers, underscores, and periods are allowed.';
+            isValid = false;
+          }
+          break;
+        case 'x':
+          if (value && !value.match(/^[a-zA-Z][\w_]*$/)) {
+            errorMessage = 'Invalid X username. Only letters, numbers, and underscores are allowed, and it cannot start with a number.';
+            isValid = false;
+          }
+          break;
+        case 'facebook':
+          if (value && !value.match(/^[\w.]+$/)) {
+            errorMessage = 'Invalid Facebook username. Only letters, numbers, and periods are allowed.';
+            isValid = false;
+          }
+          break;
       }
 
-      this.value = cleanInput;
-    });
+      const errorSpan = document.getElementById(`${platform}-error`);
+      if (!isValid) {
+        errorSpan.textContent = errorMessage;
+        errorSpan.style.display = 'block';
+      } else {
+        errorSpan.textContent = '';
+        errorSpan.style.display = 'none';
+      }
+    }
+  });
+  const dobInput = document.getElementById('dob');
+
+  dobInput.addEventListener('input', function(e) {
+    let input = this.value;
+    // Remove non-digits and limit to 8 characters
+    let cleanInput = input.replace(/\D/g, '').substring(0, 8);
+
+    if (cleanInput.length > 2) {
+      // Add first slash
+      cleanInput = cleanInput.substring(0, 2) + '/' + cleanInput.substring(2);
+    }
+    if (cleanInput.length > 5) {
+      // Add second slash
+      cleanInput = cleanInput.substring(0, 5) + '/' + cleanInput.substring(5);
+    }
+
+    this.value = cleanInput;
+  });
 
   function formatPhoneNumber(inputField) {
     inputField.addEventListener('input', function(e) {
