@@ -34,6 +34,7 @@ django-widget-tweaks==1.5.0
 environ==1.0
 factory_boy==3.3.1
 Faker==33.1.0
+gunicorn==23.0.0
 hyperlink==21.0.0
 idna==3.10
 incremental==24.7.2
@@ -42,6 +43,7 @@ markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
 msgpack==1.1.0
+packaging==24.2
 phonenumbers==8.13.50
 pillow==11.0.0
 psycopg2-binary==2.9.10
