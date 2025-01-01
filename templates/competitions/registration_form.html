@@ -8,13 +8,13 @@
     <div class="col-md-8">
       <div class="card shadow">
         <div class="card-body">
-          <h2 class="card-title text-center  
+          <h2 class="card-title text-center
  mb-4">Register for {{ competition.name }}</h2>
           <form method="post">
             {% csrf_token %}
-            {{ form.media }} 
+            {{ form.media }}
             <div class="mb-3">
-              {{ form.division|as_crispy_field }} 
+              {{ form.division|as_crispy_field }}
             </div>
             <div class="mb-3">
               {{ form.weight_class|as_crispy_field }}

@@ -27,7 +27,7 @@
                 <td>{{ athlete_competition.athlete.user.get_full_name }}</td>
                 {% for event_order in ordered_events %}
                     <td>
-                        <input type="text" name="result_{{ athlete_competition.pk }}_{{ event_order.pk }}" 
+                        <input type="text" name="result_{{ athlete_competition.pk }}_{{ event_order.pk }}"
                                value="{% for result in athlete_competition.results.all %}{% if result.event_order == event_order %}{{ result.value }}{% endif %}{% endfor %}">
                     </td>
                 {% endfor %}
@@ -42,7 +42,7 @@
               </div>
             </div>
           </div>
-       
+
         </div>
       </div>
     </div>

@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load age_filter %}
+{% load height_filter %}
+
+{% block title %}Athlete Profile - {{ athlete.user.get_full_name|upper }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0" style="background: linear-gradient(45deg, #222222, #555555);">
+  <div class="row align-items-center justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-lg p-5" style="border-radius: 20px; background-color: rgba(255, 255, 255, 0.95); overflow: hidden;">
+        <div class="row">
+          <div class="col-md-4 text-center"> <div style="width: 200px; height: 200px; border-radius: 50%; overflow: hidden; margin: 0 auto;">
+              {% if athlete.user.profile_picture %}
+              <img src="{{ athlete.user.profile_picture.url }}" alt="Profile Picture" class="img-fluid h-100 w-100" style="object-fit: cover;">
+              {% endif %}
+            </div></div>
+          <div class="col-md-8 text-center">
+            <h1 class="mt-3" style="font-weight: 600; color: #333;">{{ athlete.user.first_name|capfirst }}
+              {% if athlete.nickname %}"{{ athlete.nickname|capfirst }}"{% endif %} {{ athlete.user.last_name|capfirst }}</h1>
+            {% if athlete.bio %}
+            <p class="lead text-center" style="color: #555;">{{ athlete.bio }}</p>
+            {% endif %}
+
+            <div class="mt-3">
+              <ul class="list-inline">
+                {% if athlete.user.instagram_name %}
+                <li class="list-inline-item">
+                  <a href="https://www.instagram.com/{{ athlete.user.instagram_name }}/" target="_blank" class="text-decoration-none">
+                    <i class="fab fa-instagram fa-2x me-2"></i>
+                  </a>
+                </li>
+                {% endif %}
+                {% if athlete.user.x_name %}
+                <li class="list-inline-item">
+                  <a href="https://twitter.com/{{ athlete.user.x_name }}/" target="_blank" class="text-decoration-none">
+                    <i class="fab fa-twitter fa-2x me-2"></i>
+                  </a>
+                </li>
+                {% endif %}
+                {% if athlete.user.facebook_name %}
+                <li class="list-inline-item">
+                  <a href="https://www.facebook.com/{{ athlete.user.facebook_name }}/" target="_blank" class="text-decoration-none">
+                    <i class="fab fa-facebook fa-2x me-2"></i>
+                  </a>
+                </li>
+                {% endif %}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-md-12">
+            <ul class="nav nav-tabs" id="myTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="true">Profile</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="competition-history-tab" data-bs-toggle="tab" data-bs-target="#competition-history" type="button" role="tab" aria-controls="competition-history" aria-selected="false">Competition History</button>
+              </li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+              <div class="tab-pane fade show active p-3" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+                <div class="row">
+                  <div class="col-md-6">
+                    <h3 style="color: #333;">Personal Info</h3>
+                    <ul class="list-group list-group-flush">
+                      <li class="list-group-item">
+                        <span class="fw-bold">Location:</span> {{ athlete.city|capfirst }}, {{ athlete.state|capfirst }}
+                      </li>
+                      <li class="list-group-item">
+                        <span class="fw-bold">Gender:</span> {{ athlete.gender|capfirst }}
+                      </li>
+                      <li class="list-group-item">
+                        <span class="fw-bold">DOB:</span> {{ athlete.date_of_birth|date:"F d, Y" }}
+                      </li>
+                      <li class="list-group-item">
+                        <span class="fw-bold">Age:</span>
+                        {% if athlete.date_of_birth %}
+                        {{ athlete.date_of_birth|age }}
+                        {% endif %}
+                      </li>
+                      <li class="list-group-item">
+                        <span class="fw-bold">Height:</span> {{ athlete.height|height }}
+                      </li>
+                      <li class="list-group-item">
+                        <span class="fw-bold">Weight:</span> {{ athlete.weight }} Pounds
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="col-md-6">
+                    <h3 style="color: #333;">Gym & Team</h3>
+                    <ul class="list-group list-group-flush">
+                      <li class="list-group-item">
+                        <span class="fw-bold">Home Gym:</span> {{ athlete.home_gym|capfirst }}
+                      </li>
+                      <li class="list-group-item">
+                        <span class="fw-bold">Team:</span> {{ athlete.team_name|capfirst }}
+                      </li>
+                      <li class="list-group-item">
+                        <span class="fw-bold">Coach:</span> {{ athlete.coach|capfirst }}
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div class="tab-pane fade p-3" id="competition-history" role="tabpanel" aria-labelledby="competition-history-tab">
+                {% if competition_history %}
+                <div class="table-responsive">
+                  <table class="table table-striped">
+                    <thead>
+                      <tr>
+                        <th>Competition Name</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Ranking</th>
+                        <th>Events</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+             
+                      {% for competition in competition_history %}
+                      <tr>
+                        <td><a href="{% url 'competitions:competition_detail' competition.competition.id %}" class="text-decoration-none">{{ competition.competition.name }}</a></td>
+                        <td>
+                          <span class="badge
+                            {% if competition.competition.status == 'upcoming' %}bg-success
+                            {% elif competition.competition.status == 'full' %}bg-secondary
+                            {% elif competition.competition.status == 'completed' %}bg-info
+                            {% elif competition.competition.status == 'limited' %}bg-warning
+                            {% else %}bg-danger
+                            {% endif %}">
+                            {{ competition.competition.status }}
+                          </span>
+                        </td>
+                        <td>{{ competition.competition.comp_date }}</td>
+                        <td><a href="{% url 'competitions:competition_scorecard' competition.competition.id %}" class="text-decoration-none">{{ competition.rank }}</a></td>
+                        <td>
+                          {% for event in competition.competition.events.all %}
+                          {{ event.name }}{% if not forloop.last %}, {% endif %}
+                          {% endfor %}
+                        </td>
+                      </tr>
+                      {% endfor %}
+                       
+                    </tbody>
+                  </table>
+                </div>
+                    {% else %}
+                  <H4 class="text-center">No Competitions Yet</H4> 
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}

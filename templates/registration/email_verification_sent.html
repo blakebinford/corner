@@ -1,7 +1,20 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-  <h2>Email Verification Sent</h2>
-  <p>Please check your email inbox (and spam folder) for a message with a link to activate your account.</p>
-  <p>Once you've clicked the link, you'll be able to log in and start using the Strength Platform.</p>
+<div class="container-fluid vh-100" style="background: linear-gradient(to bottom, #222222, #444444);">
+  <div class="row vh-100 align-items-center justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-lg p-5" style="border-radius: 15px; background-color: rgba(255, 255, 255, 0.9);">
+        <div class="card-body text-center">
+          <i class="fas fa-envelope-open-text display-1 text-primary mb-4"></i>
+          <h2 class="mb-4" style="font-weight: 600;">Verify Your Email</h2>
+          <p class="lead">A verification email has been sent to {{ email }}.</p>
+          <p>Please check your inbox and click the link in the email to activate your account.</p>
+          <p class="small text-muted">Didn't receive the email? Check your spam folder or <a href="#">request a new one</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

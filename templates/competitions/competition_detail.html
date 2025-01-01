@@ -47,12 +47,12 @@
                                 <i class="bi bi-calendar-event"></i> {{ competition.comp_date }}
                             </p>
                             <p class="text-muted">
-                                <i class="bi bi-geo-alt-fill"></i> {{ competition.location }}
+                                <i class="bi bi-geo-alt-fill"></i> {{ competition.city }}, {{ competition.state }}
                             </p>
                             <p class="text-muted"><i class="bi bi-cash"></i> ${{ competition.signup_price }}</p>
                         </div>
                         <div class="col-md-6">
-                            <p><b>Organizer:</b> {{ competition.organizer.get_full_name }}</p>
+                            <p><b>Organizer:</b> {{ competition.organizer.first_name|capfirst }} {{ competition.organizer.last_name|capfirst }}</p>
                             <p><b>Status:</b>
                   <span class="badge
                     {% if competition.status == 'upcoming' %}bg-success
@@ -76,6 +76,11 @@
                         </div>
                     </div>
                     <h4 class="text-center"><b>{{ competition.name }}</b> is brought to you by</h4>
+                    {% if competition.sponsor_logos.exists %}{% else %}
+                        <H6 class="text-center">No sponsors yet! Reach out to the <a href="mailto:{{ competition.organizer.email }}">Competition Director</a> for sponsorship opportunities.
+                        </H6>
+
+                    {% endif %}
                     <div class="main-sponsor-logos mt-3">
                         {% with sponsor_logos=competition.sponsor_logos.all %}
                         {% if sponsor_logos %}
@@ -90,6 +95,7 @@
                         {% endwith %}
                     </div>
                 </div>
+                    {% if competition.description %}<h4 class="text-center"><b>{{ competition.name }}</b> Information</h4>{% endif %}
 
                 <div style="padding-left: 30px; padding-right: 30px;">
                     <p class="card-text comp-description">{{ competition.description|safe }}</p>
@@ -116,21 +122,33 @@
                          aria-labelledby="division-{{ division.id }}-tab">
                         <table class="table table-sm table-striped table-bordered align-middle">
                             <thead class="table-dark align-center">
-                            <tr>
-                                <th class="text-center">Weight Class</th>
-                                {% for event_order in ordered_events %}
-                                <th class="text-center">{{ event_order.event.name|capfirst }}
-                                    <br><span>({{ event_order.event.weight_type|capfirst }})</span>
-                                </th>
-                                {% endfor %}
-                            </tr>
+                                <tr>
+                                    <th class="text-center">Weight Class</th>
+                                    {% for event_order in ordered_events %}
+                                    <th class="text-center">
+                                        {{ event_order.event.name|capfirst }}
+                                        <br><span>({{ event_order.event.weight_type|capfirst }})</span>
+                                       {% if competition.organizer == request.user %}
+                                        <a href="{% url 'competitions:event_update' pk=event_order.event.pk %}" class="btn btn-sm btn-outline-primary" style="margin-left: 5px;">
+                                            <i class="fas fa-edit"></i> <!-- Font Awesome edit icon -->
+                                        </a>
+                                    {% endif %}
+                                    </th>
+                                    {% endfor %}
+                                </tr>
                             </thead>
                             <tbody>
                             {% for weight_class in competition.allowed_weight_classes.all %}
                             {% for div_weight_class in division.divisionweightclass_set.all %}
                             {% if div_weight_class.weight_class == weight_class %}
                             <tr>
-                                <td class="text-capitalize text-center">{{ weight_class.name|capfirst }}<br>
+                                <td class="text-capitalize text-center">
+
+                                    {% if weight_class.weight_d == '+' %}
+                                    {{ weight_class.name }}+
+                                        {% else %}
+                                          {{ weight_class.weight_d|lower }}{{ weight_class.name }}
+                                    {% endif %}
                                     ({{ div_weight_class.get_gender_display|capfirst }})
                                 </td>
                                 {% for event_order in ordered_events %}
@@ -177,40 +195,52 @@
     <div class="row mt-4">
         <div class="col-md-12">
             <div class="d-flex justify-content-center">
-                {% if competition.organizer == request.user %}
-                <a href="{% url 'competitions:competition_update' competition.pk %}" class="btn btn-secondary me-2">Edit
-                    Competition</a>
-                <a href="{% url 'competitions:competition_delete' competition.pk %}" class="btn btn-danger me-2">Delete
-                    Competition</a>
-                <a href="{% url 'competitions:event_create' competition.pk %}" class="btn btn-primary me-2">Add
-                    Event</a>
-                {% endif %}
 
-                {% if user.is_authenticated and user.role == 'athlete' %}
-    {% if not user|is_registered_for_competition:competition.pk %}
-        <a href="{% url 'competitions:athletecompetition_create' competition.pk %}"
-           class="btn btn-success">Register for Competition</a>
-    {% endif %}
-{% endif %}
+
+                {% if user.is_authenticated and not is_signed_up %}
+                 <a href="{% url 'competitions:athletecompetition_create' competition.pk %}"
+                  class="btn btn-success" style="margin-right: 10px;">Register for Competition</a>
+                {% endif %}
 
                 <a href="{% url 'competitions:competition_scorecard' competition.pk %}" class="btn btn-primary">View
                     Scorecard</a>
-                &nbsp;
-                {% if competition.organizer == request.user %}
-                <a href="{% url 'competitions:competition_score' competition.pk %}" class="btn btn-primary">Manage
-                    Scores</a>
-                {% endif %}
-            </div>
         </div>
     </div>
 
-    {% if user.is_authenticated and competition.status != 'completed' and is_organizer_or_athlete %}
-  <div class="container mt-4">
+        
+{% if competition.organizer == request.user %}
+    <h4 class="text-center">Competition Management</h4>
+    <div class="organizer-actions text-center">
     <div class="row">
-        <div class="col-md-12">
+        <div class="col-sm-2" style="padding-top:10px;">
+        <a href="{% url 'competitions:competition_update' competition.pk %}" class="btn btn-secondary me-2">Edit Competition</a>
+        </div>
+    <div class="col-sm-2" style="padding-top:10px;">
+        <a href="{% url 'competitions:competition_delete' competition.pk %}" class="btn btn-danger me-2">Delete Competition</a>
+       </div>
+    <div class="col-sm-2" style="padding-top:10px;">
+        <a href="{% url 'competitions:sponsor_logo_upload' competition.pk %}" class="btn btn-secondary me-2">Upload Sponsor Logos</a>
+      </div>
+   <div class="col-sm-2" style="padding-top:10px;">
+        <a href="{% url 'competitions:event_create' competition.pk %}" class="btn btn-primary me-2">Add Event</a>
+        </div>
+    <div class="col-sm-2" style="padding-top:10px;">
+        <a href="{% url 'competitions:competition_score' competition.pk %}" class="btn btn-primary me-2">Manage Scores</a>
+     </div>
+    <div class="col-sm-2" style="padding-top:10px;">
+        <a href="{% url 'competitions:commentator_comp_card' competition.id %}" class="btn btn-primary me-2">Competition Card</a>
+    </div>
+    </div>
+    </div>
+    
+{% endif %}
+
+    {% if user.is_authenticated and competition.status != 'completed' %}
+<div class="container d-flex justify-content-center mt-5">
+    <div class="col-12 col-md-8 col-lg-8" id="organizer-chat-container">
             <div class="card shadow">
                 <div class="card-body">
-                    <h4 class="card-title text-center mb-4">{{ competition.name }} Athlete Chat</h4>
+        
                     <div class="organizer-chat-container">
                         {% include 'chat/organizer_chat.html' with organizer_messages=organizer_messages competition=competition %}
                     </div>
@@ -218,6 +248,6 @@
             </div>
         </div>
     </div>
-  </div>
+ </div>
     {% endif %}
 {% endblock %}

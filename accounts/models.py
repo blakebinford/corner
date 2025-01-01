@@ -1,13 +1,14 @@
 from django.db import models
 
 from django.contrib.auth.models import AbstractUser
-from django.db.models.enums import Choices
-from django.utils.regex_helper import Choice
+from django.db.models.functions import Cast
+from django.db.models import IntegerField
 from phonenumber_field.modelfields import PhoneNumberField
 from django.db import models
 from django.conf import settings
 from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
+
 
 class User(AbstractUser):
     """
@@ -37,6 +38,13 @@ class User(AbstractUser):
         full_name = '%s %s' % (self.first_name, self.last_name)
         return full_name.strip()
 
+    def save(self, *args, **kwargs):
+        if self.first_name:
+            self.first_name = self.first_name.capitalize()
+        if self.last_name:
+            self.last_name = self.last_name.capitalize()
+        super().save(*args, **kwargs)
+
 class OrganizerProfile(models.Model):
     """
     Profile model for organizers, linked one-to-one with User.
@@ -57,16 +65,72 @@ class AthleteProfile(models.Model):
         ('male', 'Male'),
         ('female', 'Female')
     ])
+    STATE_CHOICES = [
+        ('AL', 'Alabama'),
+        ('AK', 'Alaska'),
+        ('AZ', 'Arizona'),
+        ('AR', 'Arkansas'),
+        ('CA', 'California'),
+        ('CO', 'Colorado'),
+        ('CT', 'Connecticut'),
+        ('DE', 'Delaware'),
+        ('FL', 'Florida'),
+        ('GA', 'Georgia'),
+        ('HI', 'Hawaii'),
+        ('ID', 'Idaho'),
+        ('IL', 'Illinois'),
+        ('IN', 'Indiana'),
+        ('IA', 'Iowa'),
+        ('KS', 'Kansas'),
+        ('KY', 'Kentucky'),
+        ('LA', 'Louisiana'),
+        ('ME', 'Maine'),
+        ('MD', 'Maryland'),
+        ('MA', 'Massachusetts'),
+        ('MI', 'Michigan'),
+        ('MN', 'Minnesota'),
+        ('MS', 'Mississippi'),
+        ('MO', 'Missouri'),
+        ('MT', 'Montana'),
+        ('NE', 'Nebraska'),
+        ('NV', 'Nevada'),
+        ('NH', 'New Hampshire'),
+        ('NJ', 'New Jersey'),
+        ('NM', 'New Mexico'),
+        ('NY', 'New York'),
+        ('NC', 'North Carolina'),
+        ('ND', 'North Dakota'),
+        ('OH', 'Ohio'),
+        ('OK', 'Oklahoma'),
+        ('OR', 'Oregon'),
+        ('PA', 'Pennsylvania'),
+        ('RI', 'Rhode Island'),
+        ('SC', 'South Carolina'),
+        ('SD', 'South Dakota'),
+        ('TN', 'Tennessee'),
+        ('TX', 'Texas'),
+        ('UT', 'Utah'),
+        ('VT', 'Vermont'),
+        ('VA', 'Virginia'),
+        ('WA', 'Washington'),
+        ('WV', 'West Virginia'),
+        ('WI', 'Wisconsin'),
+        ('WY', 'Wyoming'),
+    ]
     nickname = models.CharField(max_length=50, blank=True, help_text=_("Athlete's preferred name or alias"))
-    address = models.CharField(max_length=255, blank=True, help_text=_("Athlete's address"))
+    street_number = models.CharField(max_length=50, blank=True, help_text=_("Street number and name"))
+    city = models.CharField(max_length=100, blank=True, help_text=_("City"))
+    state = models.CharField(max_length=100, blank=True, help_text=_("State"))
+    zip_code = models.CharField(max_length=20, blank=True, help_text=_("Zip code"))
     phone_number = PhoneNumberField(blank=True, help_text=_("Athlete's phone number"))
     home_gym = models.CharField(max_length=100, blank=True, help_text=_("Name of the athlete's primary gym"))
     team_name = models.CharField(max_length=100, blank=True, help_text=_("Name of the athlete's team (if any)"))
     coach = models.CharField(max_length=100, blank=True, help_text=_("Name of the athlete's coach"))
-    height = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True, help_text=_("Athlete's height (in cm or inches)"))
+    height = models.IntegerField(null=True, blank=True, help_text=_("Athlete's height"))
     weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text=_("Athlete's weight (in kg or lbs)"))
     date_of_birth = models.DateField(null=True, blank=True, help_text=_("Athlete's date of birth"))
     whatsapp_number = PhoneNumberField(blank=True, help_text=_("Athlete's WhatsApp number"))
+    bio = models.TextField(blank=True)
 
     def __str__(self):
         return self.user.username
@@ -75,10 +139,22 @@ class WeightClass(models.Model):
     """
     Model to store weight class information.
     """
+    WEIGHT_CHOICES = [
+        ('u', 'u'),
+        ('+', '+')
+    ]
     name = models.CharField(max_length=50)
-
+    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')])  # Add gender field
+    federation = models.ForeignKey('competitions.Federation', on_delete=models.CASCADE)
+    weight_d = models.CharField(max_length=2, choices=WEIGHT_CHOICES)
+    class Meta:
+        unique_together = ('name', 'gender', 'federation')  # Ensure unique name per gender
+        ordering = [
+            # Cast the name field directly to an integer for numerical sorting
+            Cast('name', output_field=IntegerField())
+        ]
     def __str__(self):
-        return self.name  # Add this method
+        return f"{self.name} ({self.gender})"
 
 class Division(models.Model):
     """
@@ -90,6 +166,7 @@ class Division(models.Model):
         ('master', 'Master'),
         ('open','Open'),
         ('adaptive', 'Adaptive'),
+        ('pro', 'Pro')
     ])
 
     def __str__(self):

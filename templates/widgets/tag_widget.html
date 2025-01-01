@@ -1,0 +1,21 @@
+<div class="tag-widget">
+  <div class="available-tags">
+    <h5>Available Tags</h5>
+    <ul>
+      {% for tag in all_tags %}
+      <li data-tag-id="{{ tag.id }}" draggable="true">{{ tag.name }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="selected-tags">
+    <h5>Selected Tags</h5>
+    <ul>
+      {% for tag_id in selected_tags %}
+      <li data-tag-id="{{ tag_id }}">
+        {{ all_tags|get_item:tag_id }} <button type="button" class="btn btn-sm btn-danger remove-tag">Remove</button>
+      </li>
+      {% endfor %}
+    </ul>
+    <input type="hidden" name="{{ widget.name }}" value="">
+  </div>
+</div>

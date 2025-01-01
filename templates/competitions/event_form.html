@@ -1,33 +1,122 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% load django_bootstrap5 %}
 
 {% block content %}
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-md-8">
-        <div class="card shadow">
-          <div class="card-body">  
+<div class="container-fluid" style="background: linear-gradient(to bottom, #222222, #444444);">
+  <div class="row align-items-center justify-content-center">
+    <div class="col-md-11">
+      <div class="card shadow-lg p-5" style="border-radius: 15px; background-color: rgba(255, 255, 255, 0.9);">
+        <h2 class="card-title text-center mb-4">{% if is_update %}
+            Edit Events for {{ competition.name }}
+        {% else %}
+            Create Event for {{ competition.name }}
+        {% endif %}</h2>
+        <form method="post" id="totalForms">  {# Add ID to the form #}
+            {% csrf_token %}
+            {{ form|crispy }}
 
-            <h2 class="card-title text-center mb-4">
-              Create  
- Event for {{ competition.name }} 
-            </h2>
-            <form method="post"> 
-              {% csrf_token %}
-              {{ form.media }} 
-              {% crispy form %} 
-              {{ formset.management_form }} 
-              {% for form in formset %} 
-                {% crispy form %} 
-              {% endfor %}
-              <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-primary">Save</button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <h3>Implements</h3>
+        <div class="form-check">
+    <input class="form-check-input" type="checkbox" id="multiple-implements-checkbox" name="multiple_implements">
+    <label class="form-check-label" for="multiple-implements-checkbox">
+        Does this event have multiple implements per weight class?
+    </label>
+</div>
+
+<div id="implement-count-container" style="display: none;">
+    <label for="implement-count-input">How many implements per weight class?</label>
+    <input type="number" id="implement-count-input" name="implement_count" min="1" class="form-control">
+</div>
+            {{ formset.management_form }}
+            <table class="table" id="implementTable">
+                <thead>
+                    <tr>
+                        <th>Division/Weight Class</th>
+                        <th>Implement Name</th>
+                        <th>Order</th>
+                        <th>Weight</th>
+                        <th>Unit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for form in formset %}
+                        <tr>
+                        
+                            <td>{{ form.division_weight_class }}{{ form.id }}</td>
+                            <td>{{ form.implement_name }}</td>
+                            <td>{{ form.implement_order }}</td>
+                            <td>{{ form.weight }}</td>
+                            <td>{{ form.weight_unit }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <button type="submit" class="btn btn-primary"> {% if is_update %}
+                                                                            Edit Event
+                                                                        {% else %}
+                                                                            Create Event
+                                                                        {% endif %}
+            </button>
+        </form>
       </div>
     </div>
   </div>
+</div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const multipleImplementsCheckbox = document.getElementById('multiple-implements-checkbox');
+        const implementCountContainer = document.getElementById('implement-count-container');
+        const implementCountInput = document.getElementById('implement-count-input');
+        const implementsContainer = document.getElementById('implements-container');
+
+        // Show/hide implement count input based on checkbox
+        multipleImplementsCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                implementCountContainer.style.display = 'block';
+            } else {
+                implementCountContainer.style.display = 'none';
+                implementsContainer.innerHTML = ''; // Clear the container when unchecked
+            }
+        });
+
+        // Generate dynamic implement rows based on input
+        implementCountInput.addEventListener('input', function () {
+            const implementCount = parseInt(this.value) || 0; // Get number of implements per weight class
+            const weightClasses = {{ weight_classes|safe }}; // Pass weight class data from the backend
+            implementsContainer.innerHTML = ''; // Clear the container
+
+            weightClasses.forEach((weightClass) => {
+                for (let i = 0; i < implementCount; i++) {
+                    const implementOrder = i + 1;
+
+                    const row = `
+                        <div class="row mb-2">
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" value="${weightClass.name}" disabled>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" name="implement_name_${weightClass.id}_${implementOrder}" placeholder="Implement Name">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" class="form-control" name="implement_order_${weightClass.id}_${implementOrder}" value="${implementOrder}" readonly>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="number" class="form-control" name="weight_${weightClass.id}_${implementOrder}" placeholder="Weight">
+                            </div>
+                            <div class="col-md-2">
+                                <select class="form-control" name="weight_unit_${weightClass.id}_${implementOrder}">
+                                    <option value="lbs">lbs</option>
+                                    <option value="kg">kg</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                    implementsContainer.innerHTML += row;
+                }
+            });
+        });
+    });
+</script>
+
 {% endblock %}
