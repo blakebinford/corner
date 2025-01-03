@@ -108,25 +108,6 @@ class CompetitionDetailView(generic.DetailView):
                 athlete__user=self.request.user  # Traverse AthleteProfile to User
             ).exists()
 
-        allowed_weight_classes = competition.allowed_weight_classes.all()
-
-        # Prefetch implements filtered by division weight classes
-        ordered_events = EventOrder.objects.filter(
-            competition=competition
-        ).select_related('event').prefetch_related(
-            Prefetch(
-                'event__implements',
-                queryset=EventImplement.objects.filter(
-                    division_weight_class__weight_class__in=allowed_weight_classes
-                ).select_related('division_weight_class')
-            )
-        ).order_by('order')
-
-        context['ordered_events'] = ordered_events
-        context['div_weight_classes'] = DivisionWeightClass.objects.filter(
-            eventimplement__event__competitions=competition
-        ).distinct()
-
         # Fetch messages for the organizer chat room
         try:
             organizer_chat_room = OrganizerChatRoom.objects.get(competition=competition)
@@ -145,9 +126,33 @@ class CompetitionDetailView(generic.DetailView):
             )
 
         context['is_organizer_or_athlete'] = is_organizer_or_athlete
-        print(f"Competition: {competition}")
-        print(f"OrganizerChatRoom Exists: {OrganizerChatRoom.objects.filter(competition=competition).exists()}")
-        print(f"Organizer Messages: {organizer_messages}")
+        # Fetch and organize event implement data
+        division_tables = {}
+        for event in competition.events.all():
+            event_implements = event.implements.select_related('division_weight_class').all()
+            for implement in event_implements:
+                division = implement.division_weight_class.division.name
+                weight_class = implement.division_weight_class.weight_class.name
+                gender = implement.division_weight_class.gender
+
+                if division not in division_tables:
+                    division_tables[division] = []
+
+                # Find or create a row for the weight class and gender
+                row = next(
+                    (r for r in division_tables[division]
+                     if r['weight_class'] == weight_class and r['gender'] == gender),
+                    None
+                )
+                if not row:
+                    row = {'weight_class': weight_class, 'gender': gender}
+                    division_tables[division].append(row)
+
+                # Add the event weight
+                row[event.name] = f"{implement.weight} {implement.weight_unit}"
+
+        context['division_tables'] = division_tables
+        context['events'] = competition.events.all()
         return context
 
 class CompetitionScoreView(LoginRequiredMixin, generic.DetailView):  # New view for score management
@@ -487,19 +492,25 @@ class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteVie
         event = self.get_object()
         return self.request.user == event.competition.organizer
 
+# views.py
 class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
     model = AthleteCompetition
     form_class = AthleteCompetitionForm
     template_name = 'competitions/registration_form.html'
 
-    def get_success_url(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['competition'] = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
-        return context
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+
+        # Filter the fields based on the competition
+        form.fields['weight_class'].queryset = competition.allowed_weight_classes.all()
+        form.fields['division'].queryset = competition.allowed_divisions.all()
+        return form
 
     def form_valid(self, form):
         form.instance.athlete = self.request.user.athlete_profile
         form.instance.competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+
         # Check if competition is full
         competition = form.instance.competition
         if competition.athletecompetition_set.count() >= competition.capacity:

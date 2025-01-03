@@ -171,18 +171,16 @@ class AthleteCompetitionForm(forms.ModelForm):  # New form for AthleteCompetitio
         fields = ['division', 'weight_class',]
 
         def __init__(self, *args, **kwargs):
-            self.request = kwargs.pop('request', None)  # Get the request object
+            competition = kwargs.pop('competition', None)
             super().__init__(*args, **kwargs)
 
-            if self.request and self.request.user.is_authenticated:
-                athlete_profile = self.request.user.athleteprofile
-                self.fields['division'].queryset = Division.objects.filter(
-                    allowed_competitions=self.instance.competition
-                )
-                self.fields['weight_class'].queryset = WeightClass.objects.filter(
-                    divisionweightclass__division__allowed_competitions=self.instance.competition,
-                    divisionweightclass__gender=athlete_profile.gender  # Filter by gender
-                ).distinct()
+            # Filter weight classes based on the competition
+            if competition:
+                self.fields['weight_class'].queryset = competition.allowed_weight_classes.all()
+
+            # Optionally filter divisions as well
+            if competition:
+                self.fields['division'].queryset = competition.allowed_divisions.all()
 
             self.instance.payment_status = 'pending'
 
