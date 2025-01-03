@@ -36,6 +36,7 @@ class DivisionAdmin(admin.ModelAdmin):
 
 @admin.register(WeightClass)
 class WeightClassAdmin(admin.ModelAdmin):
-    list_display = ('name', 'gender', 'federation')
+    list_display = ('name', 'gender', 'federation', 'weight_d')
+    fields = ('name', 'gender', 'federation', 'weight_d')
 
 admin.site.register(User, CustomUserAdmin)

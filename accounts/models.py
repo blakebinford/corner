@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import DecimalField
 
 from django.contrib.auth.models import AbstractUser
 from django.db.models.functions import Cast
@@ -143,16 +144,13 @@ class WeightClass(models.Model):
         ('u', 'u'),
         ('+', '+')
     ]
-    name = models.CharField(max_length=50)
+    name = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')])  # Add gender field
     federation = models.ForeignKey('competitions.Federation', on_delete=models.CASCADE)
     weight_d = models.CharField(max_length=2, choices=WEIGHT_CHOICES)
     class Meta:
-        unique_together = ('name', 'gender', 'federation')  # Ensure unique name per gender
-        ordering = [
-            # Cast the name field directly to an integer for numerical sorting
-            Cast('name', output_field=IntegerField())
-        ]
+        pass
+
     def __str__(self):
         return f"{self.name} ({self.gender})"
 

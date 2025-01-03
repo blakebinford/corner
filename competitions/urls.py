@@ -12,6 +12,8 @@ urlpatterns = [
     path('<int:pk>/update/', views.CompetitionUpdateView.as_view(), name='competition_update'),
     path('<int:pk>/delete/', views.CompetitionDeleteView.as_view(), name='competition_delete'),
 
+    path('get_weight_classes/', views.get_weight_classes, name='get_weight_classes'),
+
     # Event URLs
     path('event/create/<int:competition_pk>/', views.EventCreateView.as_view(), name='event_create'),
     path('event/<int:pk>/update/', EventUpdateView.as_view(), name='event_update'),
