@@ -3,6 +3,7 @@
 import os
 import sys
 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ComPodium.settings.local')
 
 def main():
     """Run administrative tasks."""
@@ -19,4 +20,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    os.environ.setdefault(
+        'DJANGO_SETTINGS_MODULE',
+        'ComPodium.settings.local' if 'runserver' in sys.argv else 'ComPodium.settings.production'
+    )
+    from django.core.management import execute_from_command_line
+    execute_from_command_line(sys.argv)

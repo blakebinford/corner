@@ -1,18 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}{% endblock %}</title>
   {% load static %}
   {% load django_bootstrap5 %}
+  
+  <!-- Bootstrap and Font Awesome -->
   {% bootstrap_css %}
   {% bootstrap_javascript %}
-     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.devbridge-autocomplete/1.4.11/jquery.autocomplete.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">  {# Add your custom CSS file if needed #}
-    <link rel="stylesheet" type="text/css" href="{% static 'chat/style.css' %}">
-    
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.devbridge-autocomplete/1.4.11/jquery.autocomplete.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" 
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" 
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+  
+  <!-- Default CSS -->
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'chat/style.css' %}">
+  
+
     <style>
 .notes-container {
   max-height: 80px; /* Adjust the max height as needed */
@@ -142,19 +151,22 @@ footer {
 }
 
     </style>
+
+  <!-- Customizable Styles -->
+  {% block extra_styles %}
+  {% endblock %}
 </head>
 <body>
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-      <a class="navbar-brand" href="{% url 'home' %}">Competition Corner</a>  
-
+      <a class="navbar-brand" href="{% url 'home' %}">Competition Corner</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav  
- ms-auto">
+        <ul class="navbar-nav ms-auto">
           <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="{% url 'home' %}">Home</a>
           </li>
@@ -162,17 +174,17 @@ footer {
             <a class="nav-link" href="{% url 'competitions:competition_list' %}">Competitions</a>
           </li>
           {% if user.is_authenticated %}
-              <li class="nav-item">
-  <a class="nav-link" href="{% url 'competitions:competition_create' %}">Create Competition</a>
-</li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'competitions:competition_create' %}">Create Competition</a>
+            </li>
             <li class="nav-item">
               <a class="nav-link" href="{% url 'accounts:profile_update' %}">Profile</a>
             </li>
             <li class="nav-item">
-                <form action="{% url 'accounts:logout' %}" method="post" id="logout-form" style="display: none;">
-                  {% csrf_token %}
-                </form>
-                <a class="nav-link" href="#" onclick="document.getElementById('logout-form').submit();">Logout</a>
+              <form action="{% url 'accounts:logout' %}" method="post" id="logout-form" style="display: none;">
+                {% csrf_token %}
+              </form>
+              <a class="nav-link" href="#" onclick="document.getElementById('logout-form').submit();">Logout</a>
             </li>
           {% else %}
             <li class="nav-item">
@@ -183,22 +195,25 @@ footer {
             </li>
           {% endif %}
         </ul>
-      </div>  
-
+      </div>
     </div>
   </nav>
 
- <main class="flex-grow-1"> 
-
-      {% block content %}
-      {% endblock %}
-
+  <!-- Main Content -->
+  <main class="flex-grow-1">
+    {% block content %}
+    {% endblock %}
   </main>
 
+  <!-- Footer -->
   <footer class="bg-dark text-light">
-    <div class="container text-center">
-      <p>&copy; 2024 Competition Corner</p>
+    <div class="container text-center py-3">
+      <p>&copy; {{ year|default:"2024" }} Competition Corner</p>
     </div>
   </footer>
+
+  <!-- Customizable Scripts -->
+  {% block extra_scripts %}
+  {% endblock %}
 </body>
 </html>

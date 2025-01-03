@@ -8,7 +8,7 @@
     <div class="col-md-8">
       <div class="card shadow-lg p-5" style="border-radius: 15px; background-color: rgba(255, 255, 255, 0.9);">
         <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">Update Your Profile</h2>
-      <a href="{% url 'competitions:athlete_profile' user.id %}" class="btn btn-primary" style="background-color: #333; border: none;">View Athlete Profile</a>
+      <a href="{% url 'competitions:athlete_profile' user.id %}" class="btn btn-primary" style="background-color: #333; border: none; margin: 15px;">View Athlete Profile</a>
         {% if messages %}
           {% for message in messages %}
             <div class="alert alert-{% if message.tags == 'success' %}success{% else %}danger{% endif %} alert-dismissible fade show" role="alert">
@@ -17,7 +17,7 @@
             </div>
           {% endfor %}
         {% endif %}
-        <form method="post" id="profileForm">
+        <form method="post" id="profileForm" enctype="multipart/form-data">
           {% csrf_token %}
           <div class="row">
             <div class="col-md-4">
@@ -115,7 +115,17 @@
                   </div>
                 {% endif %}
               {% endfor %}
-
+ <div class="mb-3">
+                <label for="id_profile_picture" class="form-label">Profile Picture</label>
+                {% render_field user_form.profile_picture class="form-control" %}
+                {% if user.profile_picture %}
+                  <img src="{{ user.profile_picture.url }}" alt="Current Profile Picture" class="img-thumbnail mt-3" style="max-width: 150px;">
+                {% endif %}
+                {% for error in user_form.profile_picture.errors %}
+                  <div class="invalid-feedback" style="color: red;">{{ error }}</div>
+                {% endfor %}
+              </div>
+            </div>
               {% for field in profile_form %}
                 {% if field.name != 'street_number' and field.name != 'city' and field.name != 'state' and field.name != 'zip_code' and field.name != 'gender' and field.name != 'phone_number' and field.name != 'whatsapp_number' and field.name != 'date_of_birth' and field.name != 'home_gym' and field.name != 'team_name' and field.name != 'coach' %}
                   <div class="mb-3">
@@ -178,10 +188,10 @@
                 {% endif %}
               {% endfor %}
             </div>
-          </div>
+     
 
           <div class="d-grid gap-2 col-6 mx-auto">
-            <button type="submit" class="btn btn-primary" style="background-color: #333; border: none;">Update</button>
+            <button type="submit" class="btn btn-primary" style="background-color: #333; border: none; padding: 20px;">Update</button>
           </div>
         </form>
       </div>

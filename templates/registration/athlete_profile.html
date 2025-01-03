@@ -5,23 +5,26 @@
 {% block title %}Athlete Profile - {{ athlete.user.get_full_name|upper }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0" style="background: linear-gradient(45deg, #222222, #555555);">
-  <div class="row align-items-center justify-content-center">
-    <div class="col-md-8">
-      <div class="card shadow-lg p-5" style="border-radius: 20px; background-color: rgba(255, 255, 255, 0.95); overflow: hidden;">
+<div class="container-fluid p-3" style="background: linear-gradient(45deg, #222222, #555555);">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+      <div class="card shadow-lg p-4" style="border-radius: 20px; background-color: rgba(255, 255, 255, 0.95);">
         <div class="row">
-          <div class="col-md-4 text-center"> <div style="width: 200px; height: 200px; border-radius: 50%; overflow: hidden; margin: 0 auto;">
+          <div class="col-12 col-md-4 text-center mb-3">
+            <div class="mx-auto" style="width: 150px; height: 150px; border-radius: 50%; overflow: hidden;">
               {% if athlete.user.profile_picture %}
               <img src="{{ athlete.user.profile_picture.url }}" alt="Profile Picture" class="img-fluid h-100 w-100" style="object-fit: cover;">
+              {% else %}
+              <i class="fas fa-user-circle fa-9x text-muted"></i>
               {% endif %}
-            </div></div>
-          <div class="col-md-8 text-center">
+            </div>
+          </div>
+          <div class="col-12 col-md-8 text-center text-md-left">
             <h1 class="mt-3" style="font-weight: 600; color: #333;">{{ athlete.user.first_name|capfirst }}
               {% if athlete.nickname %}"{{ athlete.nickname|capfirst }}"{% endif %} {{ athlete.user.last_name|capfirst }}</h1>
             {% if athlete.bio %}
-            <p class="lead text-center" style="color: #555;">{{ athlete.bio }}</p>
+            <p class="lead" style="color: #555;">{{ athlete.bio }}</p>
             {% endif %}
-
             <div class="mt-3">
               <ul class="list-inline">
                 {% if athlete.user.instagram_name %}
@@ -51,12 +54,12 @@
         </div>
 
         <div class="row mt-4">
-          <div class="col-md-12">
+          <div class="col-12">
             <ul class="nav nav-tabs" id="myTab" role="tablist">
-              <li class="nav-item" role="presentation">
+              <li class="nav-item">
                 <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" aria-controls="profile" aria-selected="true">Profile</button>
               </li>
-              <li class="nav-item" role="presentation">
+              <li class="nav-item">
                 <button class="nav-link" id="competition-history-tab" data-bs-toggle="tab" data-bs-target="#competition-history" type="button" role="tab" aria-controls="competition-history" aria-selected="false">Competition History</button>
               </li>
             </ul>
@@ -64,43 +67,22 @@
               <div class="tab-pane fade show active p-3" id="profile" role="tabpanel" aria-labelledby="profile-tab">
                 <div class="row">
                   <div class="col-md-6">
-                    <h3 style="color: #333;">Personal Info</h3>
+                    <h4 class="text-center text-md-left" style="color: #333;">Personal Info</h4>
                     <ul class="list-group list-group-flush">
-                      <li class="list-group-item">
-                        <span class="fw-bold">Location:</span> {{ athlete.city|capfirst }}, {{ athlete.state|capfirst }}
-                      </li>
-                      <li class="list-group-item">
-                        <span class="fw-bold">Gender:</span> {{ athlete.gender|capfirst }}
-                      </li>
-                      <li class="list-group-item">
-                        <span class="fw-bold">DOB:</span> {{ athlete.date_of_birth|date:"F d, Y" }}
-                      </li>
-                      <li class="list-group-item">
-                        <span class="fw-bold">Age:</span>
-                        {% if athlete.date_of_birth %}
-                        {{ athlete.date_of_birth|age }}
-                        {% endif %}
-                      </li>
-                      <li class="list-group-item">
-                        <span class="fw-bold">Height:</span> {{ athlete.height|height }}
-                      </li>
-                      <li class="list-group-item">
-                        <span class="fw-bold">Weight:</span> {{ athlete.weight }} Pounds
-                      </li>
+                      <li class="list-group-item"><span class="fw-bold">Location:</span> {{ athlete.city|capfirst }}, {{ athlete.state|capfirst }}</li>
+                      <li class="list-group-item"><span class="fw-bold">Gender:</span> {{ athlete.gender|capfirst }}</li>
+                      <li class="list-group-item"><span class="fw-bold">DOB:</span> {{ athlete.date_of_birth|date:"F d, Y" }}</li>
+                      <li class="list-group-item"><span class="fw-bold">Age:</span> {% if athlete.date_of_birth %}{{ athlete.date_of_birth|age }}{% endif %}</li>
+                      <li class="list-group-item"><span class="fw-bold">Height:</span> {{ athlete.height|height }}</li>
+                      <li class="list-group-item"><span class="fw-bold">Weight:</span> {{ athlete.weight|floatformat:0 }} Pounds</li>
                     </ul>
                   </div>
                   <div class="col-md-6">
-                    <h3 style="color: #333;">Gym & Team</h3>
+                    <h4 class="text-center text-md-left" style="color: #333;">Gym & Team</h4>
                     <ul class="list-group list-group-flush">
-                      <li class="list-group-item">
-                        <span class="fw-bold">Home Gym:</span> {{ athlete.home_gym|capfirst }}
-                      </li>
-                      <li class="list-group-item">
-                        <span class="fw-bold">Team:</span> {{ athlete.team_name|capfirst }}
-                      </li>
-                      <li class="list-group-item">
-                        <span class="fw-bold">Coach:</span> {{ athlete.coach|capfirst }}
-                      </li>
+                      <li class="list-group-item"><span class="fw-bold">Home Gym:</span> {{ athlete.home_gym|capfirst }}</li>
+                      <li class="list-group-item"><span class="fw-bold">Team:</span> {{ athlete.team_name|capfirst }}</li>
+                      <li class="list-group-item"><span class="fw-bold">Coach:</span> {{ athlete.coach|capfirst }}</li>
                     </ul>
                   </div>
                 </div>
@@ -119,7 +101,6 @@
                       </tr>
                     </thead>
                     <tbody>
-             
                       {% for competition in competition_history %}
                       <tr>
                         <td><a href="{% url 'competitions:competition_detail' competition.competition.id %}" class="text-decoration-none">{{ competition.competition.name }}</a></td>
@@ -143,12 +124,11 @@
                         </td>
                       </tr>
                       {% endfor %}
-                       
                     </tbody>
                   </table>
                 </div>
-                    {% else %}
-                  <H4 class="text-center">No Competitions Yet</H4> 
+                {% else %}
+                <h4 class="text-center">No Competitions Yet</h4>
                 {% endif %}
               </div>
             </div>

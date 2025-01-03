@@ -3,15 +3,56 @@
 {% block content %}
 <div class="container-fluid vh-100" style="background: linear-gradient(to right, #222222, #444444);">
   <div class="row vh-100 align-items-center justify-content-center">
-    <div class="col-md-7">
-      <div class="p-5 text-light">
-        <h1 class="display-4" style="font-weight: 600; text-shadow: 2px 2px 4px #000;">Welcome to Competition Corner</h1>
-        <p class="lead" style="text-shadow: 2px 2px 4px #000;">Find your next challenge, connect with athletes, and unleash your strength.</p>
-        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-          <a href="{% url 'competitions:competition_list' %}" class="btn btn-lg btn-primary me-md-2" style="background-color: #FFD700; border: none;">Explore Competitions</a>
+    <div class="col-12 col-md-8 text-center">
+      <div class="p-4 text-light">
+        <h1 class="display-4 fw-bold text-shadow-sm">Welcome to Competition Corner</h1>
+        <p class="lead text-shadow-sm">Find your next challenge, connect with athletes, and unleash your strength.</p>
+        <div class="d-grid gap-2">
+          <a href="{% url 'competitions:competition_list' %}" 
+             class="btn btn-lg btn-primary" 
+             style="background-color: #FFD700; border: none;">
+            Explore Competitions
+          </a>
         </div>
       </div>
     </div>
   </div>
 </div>
+<style>
+  .text-shadow-sm {
+    text-shadow: 1px 1px 3px #000;
+  }
+
+  /* Adjust font sizes and spacing for mobile */
+  @media (max-width: 768px) {
+    .display-4 {
+      font-size: 2rem;
+    }
+    .lead {
+      font-size: 1rem;
+    }
+    .btn {
+      font-size: 1rem;
+    }
+    .p-4 {
+      padding: 2rem 1rem;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .display-4 {
+      font-size: 1.5rem;
+    }
+    .lead {
+      font-size: 0.875rem;
+    }
+    .btn {
+      font-size: 0.875rem;
+      padding: 0.75rem 1rem;
+    }
+    .p-4 {
+      padding: 1.5rem 1rem;
+    }
+  }
+</style>
 {% endblock %}

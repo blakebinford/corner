@@ -1,5 +1,8 @@
+
 from django import forms
+from django.shortcuts import redirect, render
 from phonenumber_field.formfields import PhoneNumberField
+from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import User, AthleteProfile, OrganizerProfile
 
@@ -87,6 +90,7 @@ class UserUpdateForm(UserChangeForm):
             'email',
             'first_name',
             'last_name',
+            'profile_picture',
             'instagram_name',
             'x_name',
             'facebook_name',
@@ -142,6 +146,56 @@ class AthleteProfileUpdateForm(forms.ModelForm):
             for field_name, field in self.fields.items():
                 if field_name != 'gender':
                     field.widget.attrs.update({'class': 'form-control'})
+
+        def update_profile(request):
+            """
+            View for updating the user's athlete profile and user information.
+            """
+            if request.method == 'POST':
+                # Ensure the user has an AthleteProfile before creating the forms
+                if not hasattr(request.user, 'athlete_profile'):
+                    AthleteProfile.objects.create(user=request.user)
+
+                # Pass `request.FILES` for handling file uploads
+                user_form = UserUpdateForm(request.POST, request.FILES, instance=request.user)
+                profile_form = AthleteProfileUpdateForm(request.POST, instance=request.user.athlete_profile)
+
+                if user_form.is_valid() and profile_form.is_valid():
+                    instagram_name = user_form.cleaned_data.get('instagram_name')
+                    x_name = user_form.cleaned_data.get('x_name')
+                    facebook_name = user_form.cleaned_data.get('facebook_name')
+
+                    if instagram_name and not re.match(r'^[\w.]+$', instagram_name):
+                        messages.error(request,
+                                       'Invalid Instagram username. Only letters, numbers, underscores, and periods are allowed.')
+                    elif x_name and not re.match(r'^[a-zA-Z][\w_]*$', x_name):
+                        messages.error(request,
+                                       'Invalid X username. Only letters, numbers, and underscores are allowed, and it cannot start with a number.')
+                    elif facebook_name and not re.match(r'^[\w.]+$', facebook_name):
+                        messages.error(request,
+                                       'Invalid Facebook username. Only letters, numbers, and periods are allowed.')
+                    else:
+                        user_form.save()
+                        profile_form.save()
+                        messages.success(request, 'Your profile has been updated successfully!')
+                    return redirect('accounts:profile_update')  # Redirect to the profile page
+                else:
+                    messages.error(request, 'Error updating profile. Please check the form.')
+            else:
+                # Ensure the user has an AthleteProfile before creating the forms
+                if not hasattr(request.user, 'athlete_profile'):
+                    AthleteProfile.objects.create(user=request.user)
+
+                user_form = UserUpdateForm(instance=request.user)
+                profile_form = AthleteProfileUpdateForm(instance=request.user.athlete_profile)
+
+            context = {  # Define the context dictionary here
+                'user_form': user_form,
+                'profile_form': profile_form,
+                'user': request.user
+            }
+
+            return render(request, 'registration/update_profile.html', context)
 
 
 class OrganizerProfileForm(forms.ModelForm):

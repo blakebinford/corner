@@ -85,8 +85,9 @@ def update_profile(request):
         if not hasattr(request.user, 'athlete_profile'):
             AthleteProfile.objects.create(user=request.user)
 
-        user_form = UserUpdateForm(request.POST, instance=request.user)
-        profile_form = AthleteProfileUpdateForm(request.POST, instance=request.user.athlete_profile)
+        # Pass `request.FILES` for handling file uploads
+        user_form = UserUpdateForm(request.POST, request.FILES, instance=request.user)
+        profile_form = AthleteProfileUpdateForm(request.POST, request.FILES, instance=request.user.athlete_profile)
 
         if user_form.is_valid() and profile_form.is_valid():
             instagram_name = user_form.cleaned_data.get('instagram_name')
@@ -100,7 +101,8 @@ def update_profile(request):
                 messages.error(request,
                                'Invalid X username. Only letters, numbers, and underscores are allowed, and it cannot start with a number.')
             elif facebook_name and not re.match(r'^[\w.]+$', facebook_name):
-                messages.error(request, 'Invalid Facebook username. Only letters, numbers, and periods are allowed.')
+                messages.error(request,
+                               'Invalid Facebook username. Only letters, numbers, and periods are allowed.')
             else:
                 user_form.save()
                 profile_form.save()
@@ -115,11 +117,15 @@ def update_profile(request):
 
         user_form = UserUpdateForm(instance=request.user)
         profile_form = AthleteProfileUpdateForm(instance=request.user.athlete_profile)
-    context = {  # Define the context dictionary here
+
+    context = {
         'user_form': user_form,
         'profile_form': profile_form,
-        'user': request.user
+        'user': request.user,
     }
+
+    return render(request, 'registration/update_profile.html', context)
+
 
     return render(request, 'registration/update_profile.html', {
         'user_form': user_form,
