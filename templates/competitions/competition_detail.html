@@ -2,7 +2,8 @@
 {% load static %}
 {% load competition_tags %}
 {% load implement_filters %}
-
+{% load dictkey_filter %}
+{% load weight_filter %}
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
@@ -20,7 +21,7 @@
                             <span class="badge rounded-pill {% if tag.name == 'Pro/Am' %}bg-primary
                             {% elif tag.name == 'Masters Only' %}bg-secondary
                             {% elif tag.name == 'Novice Only' %}bg-success
-                            {% elif tag.name == 'Record Setter' %}bg-danger
+                            {% elif tag.name == 'Record Setter' %}bg-warning
                             {% elif tag.name == 'All-Women' %}bg-warning
                             {% elif tag.name == 'Charity' %}bg-info
                             {% elif tag.name == 'Qualifier' %}bg-dark
@@ -81,62 +82,64 @@
                 </div>
 
                 {% if competition.description %}
-                <h4 class="text-center"><b>{{ competition.name }}</b> Information</h4>
+                <h4 class="text-center"><b>{{ competition.name }}</b>Information</h4>
                 <div class="px-3">
                     <p class="card-text">{{ competition.description|safe }}</p>
                 </div>
                 {% endif %}
 
-                <h3 class="text-center mt-5"><b>Divisions and Events</b></h3>
-            <ul class="nav nav-tabs" id="divisionsTab" role="tablist">
-                {% for division in competition.allowed_divisions.all %}
-                <li class="nav-item">
-                    <button class="nav-link {% if forloop.first %}active{% endif %}" id="division-{{ division.id }}-tab" data-bs-toggle="tab" data-bs-target="#division-{{ division.id }}" type="button" role="tab" aria-controls="division-{{ division.id }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
-                        {{ division.name|capfirst }}
-                    </button>
-                </li>
-                {% endfor %}
-            </ul>
+              <h2 class="text-center">Events</h2>
 
-            <div class="tab-content mt-3" id="divisionsTabContent">
-                {% for division in competition.allowed_divisions.all %}
-                <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="division-{{ division.id }}" role="tabpanel" aria-labelledby="division-{{ division.id }}-tab">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-bordered align-middle">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Weight Class</th>
-                                    {% for event_order in ordered_events %}
-                                    <th>{{ event_order.event.name|capfirst }} ({{ event_order.event.weight_type|capfirst }})</th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                                    <tbody>
-                                    {% for weight_class in competition.allowed_weight_classes.all %}
-                                    <tr>
-                                        <td>{{ weight_class.name }} ({{ weight_class.gender }})</td>
-                                        {% for event_order in ordered_events %}
-                                        <td>
-                                            {% for implement in event_order.event.implements.all %}
-                                                {# Ensure the division_weight_class matches the current weight_class #}
-                                                {% if implement.division_weight_class.weight_class == weight_class %}
-                                                    {{ implement.implement_name|capfirst }}: 
-                                                    {{ implement.weight }} {{ implement.get_weight_unit_display }}
-                                                {% endif %}
-                                            {% endfor %}
-                                        </td>
-                                        {% endfor %}
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-                {% endfor %}
+<div>
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs" role="tablist">
+        {% for division, rows in division_tables.items %}
+            <li class="nav-item">
+                <a class="nav-link {% if forloop.first %}active{% endif %}"
+                   id="{{ division|slugify }}-tab"
+                   data-bs-toggle="tab"
+                   href="#{{ division|slugify }}"
+                   role="tab"
+                   aria-controls="{{ division|slugify }}"
+                   aria-selected="{{ forloop.first|yesno:"true,false" }}">
+                   {{ division }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <!-- Tab content -->
+    <div class="tab-content">
+        {% for division, rows in division_tables.items %}
+            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                 id="{{ division|slugify }}"
+                 role="tabpanel"
+                 aria-labelledby="{{ division|slugify }}-tab">
+                <table class="table table-bordered mt-3">
+                    <thead>
+                        <tr>
+                            <th>Weight Class</th>
+                            {% for event in events %}
+                                <th>{{ event.name|capfirst }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <td>{{ row.weight_class }} ({{ row.gender }})</td>
+                                
+                                {% for event in events %}
+                                    <td>{{ row|get:event.name|capfirst }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            </div>
-        </div>
+        {% endfor %}
     </div>
+</div>
 
     <div class="row mt-4 text-center">
         <div class="col">

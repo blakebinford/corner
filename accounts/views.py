@@ -37,7 +37,7 @@ class SignUpView(generic.CreateView):
         mail_subject = 'Activate your account.'
         message = render_to_string('registration/acc_active_email.html', {
             'user': user,
-            'domain': 'comppodium.onrender.com/',  # Replace with your domain
+            'domain': 'comppodium.onrender.com',  # Replace with your domain
             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
             'token': account_activation_token.make_token(user),
         })
