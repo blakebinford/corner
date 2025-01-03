@@ -9,7 +9,7 @@ class Command(BaseCommand):
     help = 'Import zip code data from a text file'
 
     def handle(self, *args, **options):
-        with open('/home/blake/PycharmProjects/ComPodium/competitions/management/commands/US.txt', 'r') as file:
+        with open('competitions/management/commands/US.txt', 'r') as file:
             reader = csv.reader(file, delimiter='\t')  # Assuming tab-separated values
             next(reader)  # Skip the header row if present
             for row in reader:
