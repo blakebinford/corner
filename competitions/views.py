@@ -3,7 +3,7 @@ from datetime import date
 
 from asgiref.sync import async_to_sync
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Sum, Prefetch
 from django.forms import modelformset_factory
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
@@ -101,13 +101,6 @@ class CompetitionDetailView(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         competition = self.get_object()
-        print("Allowed Weight Classes:", competition.allowed_weight_classes.all())
-
-        male_weight_classes = competition.allowed_weight_classes.filter(gender='Male')
-        female_weight_classes = competition.allowed_weight_classes.filter(gender='Female')
-
-        context['male_weight_classes'] = male_weight_classes
-        context['female_weight_classes'] = female_weight_classes
 
         if self.request.user.is_authenticated:
             context['is_signed_up'] = AthleteCompetition.objects.filter(
@@ -115,37 +108,24 @@ class CompetitionDetailView(generic.DetailView):
                 athlete__user=self.request.user  # Traverse AthleteProfile to User
             ).exists()
 
-        div_gender_weight_classes = {}
-        for division in competition.allowed_divisions.all():
-            div_gender_weight_classes[division] = {
-                'Male': competition.allowed_weight_classes.filter(
-                    divisionweightclass__division=division,
-                    divisionweightclass__gender='Male'
-                ).distinct(),
-                'Female': competition.allowed_weight_classes.filter(
-                    divisionweightclass__division=division,
-                    divisionweightclass__gender='Female'
-                ).distinct()
-            }
-        context['div_gender_weight_classes'] = div_gender_weight_classes
+        allowed_weight_classes = competition.allowed_weight_classes.all()
 
-        event_implements = {}
+        # Prefetch implements filtered by division weight classes
         ordered_events = EventOrder.objects.filter(
             competition=competition
-        ).select_related('event').prefetch_related('event__implements')
+        ).select_related('event').prefetch_related(
+            Prefetch(
+                'event__implements',
+                queryset=EventImplement.objects.filter(
+                    division_weight_class__weight_class__in=allowed_weight_classes
+                ).select_related('division_weight_class')
+            )
+        ).order_by('order')
 
-        for event_order in ordered_events:
-            event_implements[event_order.event.id] = {}
-            for weight_class in competition.allowed_weight_classes.all():
-                implements = event_order.event.implements.filter(
-                    division_weight_class__weight_class=weight_class
-                )
-                event_implements[event_order.event.id][weight_class.id] = implements
-
-        context['male_weight_classes'] = male_weight_classes
-        context['female_weight_classes'] = female_weight_classes
         context['ordered_events'] = ordered_events
-        context['event_implements'] = event_implements
+        context['div_weight_classes'] = DivisionWeightClass.objects.filter(
+            eventimplement__event__competitions=competition
+        ).distinct()
 
         # Fetch messages for the organizer chat room
         try:
