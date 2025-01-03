@@ -87,9 +87,16 @@
               <div class="col-md-4">
                 {{ form.allowed_divisions|as_crispy_field }}
               </div>
-              <div class="col-md-4">
+                               
+                               <div class="row mt-4" id="weight-classes-container" style="display: none;">
+  <div class="col-md-12">
+    <h5 class="text-center">Allowed Weight Classes</h5>
+    <div id="weight-classes-wrapper" class="d-flex flex-wrap justify-content-start">
                 {{ form.allowed_weight_classes|as_crispy_field }}
-              </div>
+      <!-- Weight class checkboxes will be dynamically shown here -->
+    </div>
+  </div>
+</div>
             </div>
           </div>
 
@@ -125,41 +132,72 @@
       }
     });
   });
-  document.addEventListener('DOMContentLoaded', function() {
+ document.addEventListener('DOMContentLoaded', function () {
     const federationSelect = document.getElementById('id_federation');
-    const weightClassSelect = document.getElementById('id_allowed_weight_classes');
+    const weightClassesContainer = document.getElementById('weight-classes-container');
+    const weightClassesWrapper = document.getElementById('weight-classes-wrapper');
 
-    federationSelect.addEventListener('change', function() {
-      const federationId = this.value;
-      updateWeightClasses(federationId);
+    if (!federationSelect || !weightClassesContainer || !weightClassesWrapper) {
+        console.error('Federation select or weight class container not found');
+        return;
+    }
+
+    federationSelect.addEventListener('change', function () {
+        const federationId = this.value;
+
+        if (federationId) {
+            updateWeightClasses(federationId);
+        } else {
+            weightClassesContainer.style.display = 'none';
+            weightClassesWrapper.innerHTML = ''; // Clear existing checkboxes
+        }
     });
 
     function updateWeightClasses(federationId) {
-      // Make an AJAX request to fetch weight classes for the selected federation
-      fetch(`/competitions/get_weight_classes/?federation_id=${federationId}`, {
-        method: 'GET',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest' // Important for Django to identify AJAX requests
-        }
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Clear existing options
-        weightClassSelect.innerHTML = '';
+        fetch(`/competitions/get_weight_classes/?federation_id=${federationId}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest', // Indicate an AJAX request
+            },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                weightClassesWrapper.innerHTML = ''; // Clear existing checkboxes
 
-        // Add new options based on the response
-        data.weight_classes.forEach(weightClass => {
-          const option = document.createElement('option');
-          option.value = weightClass.id;
-          option.text = weightClass.name;
-          weightClassSelect.add(option);
-        });
-      })
-      .catch(error => {
-        console.error('Error fetching weight classes:', error);
-      });
+                if (data.weight_classes && data.weight_classes.length > 0) {
+                    data.weight_classes.forEach((weightClass) => {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'form-check-input me-2';
+                        checkbox.name = 'allowed_weight_classes';
+                        checkbox.value = weightClass.id;
+                        checkbox.id = `id_allowed_weight_classes_${weightClass.id}`;
+
+                        const label = document.createElement('label');
+                        label.className = 'form-check-label me-4';
+                        label.htmlFor = checkbox.id;
+                        label.textContent = weightClass.name;
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'form-check d-inline-block';
+                        wrapper.appendChild(checkbox);
+                        wrapper.appendChild(label);
+
+                        weightClassesWrapper.appendChild(wrapper);
+                    });
+
+                    weightClassesContainer.style.display = 'block';
+                } else {
+                    weightClassesContainer.style.display = 'none';
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching weight classes:', error);
+                weightClassesContainer.style.display = 'none';
+            });
     }
-  });
+});
+
 
   $(document).ready(function() {
     $('#id_tags').multiselect({

@@ -1,4 +1,5 @@
 import math
+from datetime import date
 
 from asgiref.sync import async_to_sync
 from django.contrib.auth.decorators import login_required
@@ -100,23 +101,51 @@ class CompetitionDetailView(generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         competition = self.get_object()
+        print("Allowed Weight Classes:", competition.allowed_weight_classes.all())
+
+        male_weight_classes = competition.allowed_weight_classes.filter(gender='Male')
+        female_weight_classes = competition.allowed_weight_classes.filter(gender='Female')
+
+        context['male_weight_classes'] = male_weight_classes
+        context['female_weight_classes'] = female_weight_classes
 
         if self.request.user.is_authenticated:
             context['is_signed_up'] = AthleteCompetition.objects.filter(
                 competition=competition,
                 athlete__user=self.request.user  # Traverse AthleteProfile to User
             ).exists()
-        return context
 
-        context['ordered_events'] = EventOrder.objects.filter(
+        div_gender_weight_classes = {}
+        for division in competition.allowed_divisions.all():
+            div_gender_weight_classes[division] = {
+                'Male': competition.allowed_weight_classes.filter(
+                    divisionweightclass__division=division,
+                    divisionweightclass__gender='Male'
+                ).distinct(),
+                'Female': competition.allowed_weight_classes.filter(
+                    divisionweightclass__division=division,
+                    divisionweightclass__gender='Female'
+                ).distinct()
+            }
+        context['div_gender_weight_classes'] = div_gender_weight_classes
+
+        event_implements = {}
+        ordered_events = EventOrder.objects.filter(
             competition=competition
-        ).select_related('event').prefetch_related(
-            'event__implements', 'event__implements__division_weight_class'
-        ).order_by('order')
+        ).select_related('event').prefetch_related('event__implements')
 
-        context['div_weight_classes'] = DivisionWeightClass.objects.filter(
-            eventimplement__event__competitions=competition
-        ).distinct()
+        for event_order in ordered_events:
+            event_implements[event_order.event.id] = {}
+            for weight_class in competition.allowed_weight_classes.all():
+                implements = event_order.event.implements.filter(
+                    division_weight_class__weight_class=weight_class
+                )
+                event_implements[event_order.event.id][weight_class.id] = implements
+
+        context['male_weight_classes'] = male_weight_classes
+        context['female_weight_classes'] = female_weight_classes
+        context['ordered_events'] = ordered_events
+        context['event_implements'] = event_implements
 
         # Fetch messages for the organizer chat room
         try:
@@ -205,21 +234,60 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
     template_name = 'competitions/competition_form.html'
     success_url = reverse_lazy('competitions:competition_list')
 
+    def form_valid(self, form):
+        # Set the organizer of the competition to the currently logged-in user
+        form.instance.organizer = self.request.user
+
+        # Save the competition instance without committing to handle many-to-many fields
+        competition = form.save(commit=False)
+
+        # Save the main competition instance
+        competition.save()
+
+        # Handle many-to-many fields explicitly
+        if form.cleaned_data.get('tags'):
+            competition.tags.set(form.cleaned_data['tags'])
+        if form.cleaned_data.get('allowed_divisions'):
+            competition.allowed_divisions.set(form.cleaned_data['allowed_divisions'])
+        if form.cleaned_data.get('allowed_weight_classes'):
+            competition.allowed_weight_classes.set(form.cleaned_data['allowed_weight_classes'])
+
+        # Save the competition again to ensure everything is persisted
+        competition.save()
+
+        # Redirect to the success URL
+        return redirect(self.success_url)
+
     def form_invalid(self, form):
+        # Debugging for form invalid cases
         print("Form is invalid")
-        print(form.errors)  # Print the form errors to the console
+        print(form.errors)  # Print errors to console for debugging
         return super().form_invalid(form)
 
-    def form_valid(self, form):
-        print("Form is valid")
-        print("Tags:", form.cleaned_data.get('tags'))
-        print("Allowed Divisions:", form.cleaned_data.get('allowed_divisions'))
-        print("Allowed Weight Classes:", form.cleaned_data.get('allowed_weight_classes'))
+    def save(self, commit=True):
+        competition = super().save(commit=False)
+        competition.scoring_system = 'strongman'  # Default scoring system
+        if competition.comp_date > date.today():
+            competition.status = 'upcoming'  # Default to upcoming if in the future
+        elif competition.comp_date < date.today():
+            competition.status = 'completed'
 
-        form.instance.organizer = self.request.user
-        competition = form.save()
+        # Handle capacity-based status
+        signed_up_athletes_count = AthleteCompetition.objects.filter(
+            competition=competition,
+            signed_up=True
+        ).count()
+        if signed_up_athletes_count >= competition.capacity:
+            competition.status = 'full'
+        elif signed_up_athletes_count >= 0.9 * competition.capacity:
+            competition.status = 'limited'
 
-        return super().form_valid(form)
+        if commit:
+            competition.save()
+            # Save many-to-many fields
+            self.save_m2m()
+
+        return competition
 
 class SponsorLogoUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     form_class = SponsorLogoForm
@@ -807,4 +875,19 @@ def commentator_comp_card(request, competition_id):
         'athletes': athletes,
     }
     return render(request, 'competitions/commentator_compcard.html', context)
+
+from django.http import JsonResponse
+from accounts.models import WeightClass
+
+def get_weight_classes(request):
+    federation_id = request.GET.get('federation_id')
+    if not federation_id:
+        return JsonResponse({'error': 'Federation ID is required'}, status=400)
+
+    # Fetch weight classes for the selected federation
+    weight_classes = WeightClass.objects.filter(federation_id=federation_id)
+    weight_class_data = [{'id': wc.id, 'name': str(wc)} for wc in weight_classes]
+
+    return JsonResponse({'weight_classes': weight_class_data})
+
 

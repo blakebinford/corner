@@ -5,7 +5,7 @@ from tinymce.models import HTMLField
 from django.conf import settings
 from accounts.models import User, AthleteProfile, Division, WeightClass
 from django.db.models.functions import Substr, Cast, StrIndex, Coalesce
-from django.db.models import IntegerField, Value, Case, When
+from django.db.models import DecimalField, Value, Case, When
 
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -134,26 +134,13 @@ class DivisionWeightClass(models.Model):
     division = models.ForeignKey(Division, on_delete=models.CASCADE)
     weight_class = models.ForeignKey(WeightClass, on_delete=models.CASCADE)
     gender = models.CharField(max_length=10, blank=True, choices=[
-        ('male', 'Male'),
-        ('female', 'Female'),
+        ('Male', 'Male'),
+        ('Female', 'Female'),
     ])
 
     class Meta:
-        unique_together = ['division', 'gender', 'weight_class', ]
-        ordering = [
-            'division__name',
-            'gender',
-            Cast(
-                Coalesce(
-                    Case(
-                        When(weight_class__name__endswith='+', then=Substr('weight_class__name', 1, length=3)),
-                        default='weight_class__name',  # Use the entire name field if it doesn't end with '+'
-                    ),
-                    Value('0')  # Default to '0' (string) if extraction fails
-                ),
-                output_field=IntegerField()
-            )
-        ]
+        pass
+
 
     def __str__(self):
         if self.weight_class.weight_d == 'u':

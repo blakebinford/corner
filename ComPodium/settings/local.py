@@ -16,5 +16,3 @@ DATABASES = {
         default='postgres://blake:758595Aa@localhost:5432/compodium'
     )
 }
-
-print("DATABASES: ", DATABASES)

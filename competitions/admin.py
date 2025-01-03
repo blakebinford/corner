@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Competition, Event, EventOrder, AthleteCompetition, EventImplement,
-    DivisionWeightClass, Tag, Federation, Sponsor, Result, ZipCode
+    DivisionWeightClass, Tag, Federation, Sponsor, Result, ZipCode, EventBase
 )
 
 class EventOrderInline(admin.TabularInline):
@@ -71,3 +71,4 @@ class DivisionWeightClassAdmin(admin.ModelAdmin):
 
 admin.site.register(Tag)
 admin.site.register(ZipCode)
+admin.site.register(EventBase)
