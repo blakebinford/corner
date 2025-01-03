@@ -18,9 +18,9 @@ class User(AbstractUser):
     date_of_birth = models.DateField(null=True, blank=True)
     email_verified = models.BooleanField(default=False)
     profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
-    instagram_name = models.CharField(max_length=35)
-    x_name = models.CharField(max_length=35)
-    facebook_name = models.CharField(max_length=35)
+    instagram_name = models.CharField(max_length=35, blank=True)
+    x_name = models.CharField(max_length=35, blank=True)
+    facebook_name = models.CharField(max_length=35, blank=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
 

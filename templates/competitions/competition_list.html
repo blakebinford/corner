@@ -2,173 +2,110 @@
 {% load crispy_forms_tags %}
 {% load crispy_forms_field %}
 {% load django_bootstrap5 %}
+
 {% block content %}
 <div class="container">
     <div class="row">
-        <div class="col-lg-12">
-            <h2>Upcoming Competitions</h2>
-            <button class="btn btn-outline-primary mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+        <div class="col-12">
+            <h2 class="text-center">Upcoming Competitions</h2>
+            <button class="btn btn-outline-primary w-100 mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
                 <i class="bi bi-funnel-fill"></i> Show Filters
             </button>
             <div class="collapse" id="filterCollapse">
-               <div class="card card-body">
+                <div class="card card-body">
                     <form method="get">
                         {% csrf_token %}
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="">
-                                    {{ filterset.form.zip_code }}
-                                    <label for="{{ filterset.form.zip_code.id_for_label }}"></label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {{ filterset.form.event_base }}
-                                    <label for="{{ filterset.form.event_base.id_for_label }}">{{ filterset.form.event_base.label }}</label>
-                                </div>
-                            </div>
+                        {{ filterset.form.as_p }}
+                        <div class="d-flex justify-content-between mt-3">
+                            <button type="submit" class="btn btn-success w-50 me-2">Apply Filters</button>
+                            <button type="reset" class="btn btn-secondary w-50" onclick="window.location.href='{{ request.path }}'; return false;">Reset Filters</button>
                         </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="">
-                                    <label for="{{ filterset.form.comp_date_after.id_for_label }}">{{ filterset.form.comp_date_after.label }}</label><br>
-                                    {{ filterset.form.comp_date_after }}
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="">
-                                    <label for="{{ filterset.form.comp_date_before.id_for_label }}">{{ filterset.form.comp_date_before.label }}</label>
-                                    <br>
-                                    {{ filterset.form.comp_date_before }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {{ filterset.form.allowed_divisions }}
-                                    <label for="{{ filterset.form.allowed_divisions.id_for_label }}">{{ filterset.form.allowed_divisions.label }}</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {{ filterset.form.allowed_weight_classes }}
-                                    <label for="{{ filterset.form.allowed_weight_classes.id_for_label }}">{{ filterset.form.allowed_weight_classes.label }}</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {{ filterset.form.tags }}
-                                    <label for="{{ filterset.form.tags.id_for_label }}">{{ filterset.form.tags.label }}</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    {{ filterset.form.federation }}
-                                    <label for="{{ filterset.form.federation.id_for_label }}">{{ filterset.form.federation.label }}</label>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-success">Apply Filters</button>
-                        <button type="reset" class="btn btn-secondary" onclick="window.location.href='{{ request.path }}'; return false;">Reset Filters</button>
                     </form>
                 </div>
             </div>
-            </div>
-            <div class="row mt-4">
-                {% for competition in competitions %}<div class="col-lg-4 col-md-6 mb-4"><div class="card position-relative h-100">
-                        <div class="card"> <div class="card-img-top" style="height: 300px; overflow: hidden;">
-                {% if competition.image %}
-                        <a href="{% url 'competitions:competition_detail' competition.pk %}">
-                            <img src="{{ competition.image.url }}" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;" alt="{{ competition.name }} image">
-                            <span class="badge position-absolute top-0 end-0 m-2 
-                                {% if competition.status == 'upcoming' %}bg-success
-                                {% elif competition.status == 'full' %}bg-secondary
-                                {% elif competition.status == 'completed' %}bg-info
-                                {% elif competition.status == 'limited' %}bg-warning
-                                {% else %}bg-danger
-                                {% endif %}">
-                                {{ competition.status }}
-                            </span>
-                        </a>
-                    </div></div>
-                        {% if competition.signup_price > 0 %}
-                        <span class="badge position-absolute top-0 start-0 m-2 bg-dark" style="font-size: .8rem;">
-                            <i class="fas fa-dollar-sign"></i> {{ competition.signup_price }}
-                        </span> 
-                        {% endif %}
-                       {% endif %}
-                        <div class="card-body" style="min-height: 300px;">
-                            <h5 class="card-title text-center text-dark" style="font-size: 1.5rem;">
-                                <a href="{% url 'competitions:competition_detail' competition.pk %}" class="text-decoration-none link-dark">{{ competition.name }} </a>
-                            </h5>
-                            <p class="card-text text-muted text-center" style="font-size: 1rem;">
-                                <i class="bi bi-calendar-event"></i>&nbsp;{{ competition.comp_date }}&nbsp;&nbsp;
-                                <i class="bi bi-geo-alt-fill"></i>&nbsp;{{ competition.city|capfirst }}, {{ competition.state|capfirst }} 
-                            </p>
-                        {% if competition.sponsor_logos.exists %}
-                            <h5 class="text-center fw-bold text-dark">Sponsors</h5>
-                            {% else %}
-                            <h5 class="text-center fw-bold text-dark">Competition Information</h5>
-                            <p class="text-dark" style="font-size: 1rem;">{{ competition.description|safe|truncatewords_html:45 }}</p>
-                        {% endif %}
-                            <div class="sponsor-logos">
-                            
-                                {% with sponsor_logos=competition.sponsor_logos.all %}
-                                  {% if sponsor_logos %}
-                                    <div class="row justify-content-center">
-                                      {% for sponsor in sponsor_logos %}
-                                        {% if sponsor.logo %}  {# Check if sponsor.logo exists #}
-                                          <div class="col-6 col-md-6 mb-3 d-flex align-items-center">
-                                            <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }} logo" class="img-fluid">
-                                          </div>
-                                        {% endif %}
-                                      {% endfor %}
-                                    </div>
-                                  {% endif %}
-                                {% endwith %}
-                         
-                            </div>
-                        </div>
-                        <div class="card-footer" style="max-height: 100px; overflow: hidden;">
-                            <div class="d-flex flex-row bd-highlight mb-6">
-                                <div class="p-2 flex-grow-1 bd-highlight">
-                                    <small class="text-muted">
-                                        <i class="bi bi-person-circle"></i> <b>Organizer:</b> {{ competition.organizer.first_name|capfirst }} {{ competition.organizer.last_name|capfirst }}
-                                        <br>
-                                        {% if competition.tags.exists %}<i class="bi bi-tags-fill"></i>{% endif %}
-                                        {% for tag in competition.tags.all %}
-                                        <span class="badge {% if tag.name == 'Pro/Am' %}bg-primary
-                                        {% elif tag.name == 'Masters Only' %}bg-secondary
-                                        {% elif tag.name == 'Novice Only' %}bg-success
-                                        {% elif tag.name == 'Record Setter' %}bg-danger
-                                        {% elif tag.name == 'All-Women' %}bg-warning
-                                        {% elif tag.name == 'Charity' %}bg-info
-                                        {% elif tag.name == 'Qualifier' %}bg-dark
-                                        {% elif tag.name == 'Championship' %}bg-primary
-                                        {% elif tag.name == 'Highland Games' %}bg-success
-                                        {% elif tag.name == 'Purse' %}bg-success 
-                                        {% endif %}">{{ tag.name }}</span>{% endfor %}</small> 
-                                </div>
-                                <div class="p-2 bd-highlight">  
-                                    {% if competition.federation %}
-                                    <div class="federation-logo">
-                                        <img src="{{ competition.federation.logo.url }}" alt="{{ competition.federation.name }} logo">
-                                    </div>
-                                    {% endif %}
-                                    
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>{% endfor %}
-            </div>
-            {% if not competitions %}
-            <p>No competitions available.</p>
-            {% endif %}
         </div>
+    </div>
+
+    <div class="row mt-4 g-3">
+        {% for competition in competitions %}
+        <div class="col-lg-4 col-md-6 col-sm-12">
+            <div class="card position-relative h-100">
+                <div class="card-img-top" style="height: 250px; overflow: hidden;">
+                    {% if competition.image %}
+                    <a href="{% url 'competitions:competition_detail' competition.pk %}">
+                        <img src="{{ competition.image.url }}" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="{{ competition.name }} image">
+                    </a>
+                    {% endif %}
+                    <span class="badge position-absolute top-0 end-0 m-2 
+                        {% if competition.status == 'upcoming' %}bg-success
+                        {% elif competition.status == 'full' %}bg-secondary
+                        {% elif competition.status == 'completed' %}bg-info
+                        {% elif competition.status == 'limited' %}bg-warning
+                        {% else %}bg-danger
+                        {% endif %}">
+                        {{ competition.status }}
+                    </span>
+                    {% if competition.signup_price > 0 %}
+                    <span class="badge position-absolute top-0 start-0 m-2 bg-dark" style="font-size: .8rem;">
+                        <i class="fas fa-dollar-sign"></i> {{ competition.signup_price }}
+                    </span>
+                    {% endif %}
+                {% if competition.federation %}
+                    <div class="position-absolute bottom-0 end-0 m-2 federation-logo">
+                        <img src="{{ competition.federation.logo.url }}" alt="{{ competition.federation.name }} logo" class="img-fluid" style="max-width: 100px; max-height: 50px;">
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title text-center">
+                        <a href="{% url 'competitions:competition_detail' competition.pk %}" class="text-decoration-none text-dark">{{ competition.name }}</a>
+                    </h5>
+                    <p class="card-text text-center text-muted">
+                        <i class="bi bi-calendar-event"></i> {{ competition.comp_date }}<br>
+                        <i class="bi bi-geo-alt-fill"></i> {{ competition.city|capfirst }}, {{ competition.state|capfirst }}
+                    </p>
+                    {% if competition.sponsor_logos.exists %}
+                    <h5 class="text-center fw-bold text-dark">Sponsors</h5>
+                    <div class="sponsor-logos row">
+                        {% for sponsor in competition.sponsor_logos.all %}
+                        <div class="col-6 col-md-4 mb-3 d-flex justify-content-center align-items-center">
+                            <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }} logo" class="img-fluid">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-dark" style="font-size: 1rem;">{{ competition.description|safe|truncatewords_html:45 }}</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <small class="text-muted">
+                        <i class="bi bi-person-circle"></i> <b>Organizer:</b> {{ competition.organizer.first_name|capfirst }} {{ competition.organizer.last_name|capfirst }}
+                        <br>
+                        {% for tag in competition.tags.all %}
+                        <span class="badge 
+                            {% if tag.name == 'Pro/Am' %}bg-primary
+                            {% elif tag.name == 'Masters Only' %}bg-secondary
+                            {% elif tag.name == 'Novice Only' %}bg-success
+                            {% elif tag.name == 'Record Setter' %}bg-danger
+                            {% elif tag.name == 'All-Women' %}bg-warning
+                            {% elif tag.name == 'Charity' %}bg-info
+                            {% elif tag.name == 'Qualifier' %}bg-dark
+                            {% elif tag.name == 'Championship' %}bg-primary
+                            {% elif tag.name == 'Highland Games' %}bg-success
+                            {% elif tag.name == 'Purse' %}bg-success
+                            {% endif %}">
+                            {{ tag.name }}
+                        </span>
+                        {% endfor %}
+                    </small>
+                    
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% if not competitions %}
+        <p class="text-center">No competitions available.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

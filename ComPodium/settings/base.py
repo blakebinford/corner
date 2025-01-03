@@ -12,9 +12,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from competitions.tinymce import TINYMCE_DEFAULT_CONFIG
-import dj_database_url
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 TINYMCE_DEFAULT_CONFIG = TINYMCE_DEFAULT_CONFIG
 
@@ -22,15 +22,7 @@ TINYMCE_DEFAULT_CONFIG = TINYMCE_DEFAULT_CONFIG
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-eekryfugq*^)_(j$d@_l_fkgfnt5_dffkb41!%w)07o68lig*a'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
-ALLOWED_HOSTS = ['comppodium.onrender.com']
-
-
-# Application definition
 
 INSTALLED_APPS = [
     'accounts',
@@ -74,10 +66,10 @@ ROOT_URLCONF = 'ComPodium.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
+            'debug' : True,
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
@@ -92,9 +84,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ComPodium.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
+#
 
 
 
@@ -133,12 +123,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, "theme/static"),
-)
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),  # This is your app's static directory
+]
 
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 4 * 1024 * 1024
@@ -176,7 +166,6 @@ AXES_LOCK_OUT_BY_COMBINATION_USER_AND_IP = True  # Lock out by username and IP a
 
 PHONENUMBER_DEFAULT_REGION = "US"
 
-LOCATIONIQ_API_KEY = os.environ.get('LOCATIONIQ_API_KEY')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'uploads'
