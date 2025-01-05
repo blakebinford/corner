@@ -21,7 +21,7 @@
                             <span class="badge rounded-pill {% if tag.name == 'Pro/Am' %}bg-primary
                             {% elif tag.name == 'Masters Only' %}bg-secondary
                             {% elif tag.name == 'Novice Only' %}bg-success
-                            {% elif tag.name == 'Record Setter' %}bg-warning
+                            {% elif tag.name == 'Record Breaker' %}bg-warning
                             {% elif tag.name == 'All-Women' %}bg-warning
                             {% elif tag.name == 'Charity' %}bg-info
                             {% elif tag.name == 'Qualifier' %}bg-dark
@@ -75,6 +75,8 @@
                             </div>
                             {% endfor %}
                         </div>
+                    <h6 class="text-center">Want to be a sponsor? Reach out to the <a href="mailto:{{ competition.organizer.email }}">Competition Director</a> for sponsorship opportunities.</h6>
+                    
                     </div>
                     {% else %}
                     <h6 class="text-center">No sponsors yet! Reach out to the <a href="mailto:{{ competition.organizer.email }}">Competition Director</a> for sponsorship opportunities.</h6>
@@ -82,7 +84,7 @@
                 </div>
 
                 {% if competition.description %}
-                <h4 class="text-center"><b>{{ competition.name }}</b>Information</h4>
+                <h4 class="text-center"><b>{{ competition.name }}</b> Information</h4>
                 <div class="px-3">
                     <p class="card-text">{{ competition.description|safe }}</p>
                 </div>
@@ -90,56 +92,65 @@
 
               <h2 class="text-center">Events</h2>
 
-<div>
-    <!-- Nav tabs -->
-    <ul class="nav nav-tabs" role="tablist">
+<div class="container mt-4">
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-pills justify-content-center mb-4" id="divisionTabs" role="tablist">
         {% for division, rows in division_tables.items %}
             <li class="nav-item">
-                <a class="nav-link {% if forloop.first %}active{% endif %}"
-                   id="{{ division|slugify }}-tab"
-                   data-bs-toggle="tab"
-                   href="#{{ division|slugify }}"
-                   role="tab"
-                   aria-controls="{{ division|slugify }}"
+                <a class="nav-link {% if forloop.first %}active{% endif %}" 
+                   id="{{ division|slugify }}-tab" 
+                   data-bs-toggle="tab" 
+                   href="#{{ division|slugify }}" 
+                   role="tab" 
+                   aria-controls="{{ division|slugify }}" 
                    aria-selected="{{ forloop.first|yesno:"true,false" }}">
-                   {{ division }}
+                   {{ division|capfirst }}
                 </a>
             </li>
         {% endfor %}
     </ul>
 
-    <!-- Tab content -->
+    <!-- Tab Content -->
     <div class="tab-content">
         {% for division, rows in division_tables.items %}
-            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
-                 id="{{ division|slugify }}"
-                 role="tabpanel"
+            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                 id="{{ division|slugify }}" 
+                 role="tabpanel" 
                  aria-labelledby="{{ division|slugify }}-tab">
-                <table class="table table-bordered mt-3">
-                    <thead>
-                        <tr>
-                            <th>Weight Class</th>
-                            {% for event in events %}
-                                <th>{{ event.name|capfirst }}</th>
-                            {% endfor %}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                            <tr>
-                                <td>{{ row.weight_class }} ({{ row.gender }})</td>
-                                
-                                {% for event in events %}
-                                    <td>{{ row|get:event.name|capfirst }}</td>
+                 
+                <!-- Card Wrapper -->
+                <div class="card shadow-lg border-0 mb-5">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4 class="mb-0"><i class="bi bi-trophy-fill me-1"></i> {{ division|capfirst }}</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <table class="table table-hover table-striped align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Weight Class</th>
+                                    {% for event in events %}
+                                        <th>{{ event.name|capfirst }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in rows %}
+                                    <tr>
+                                        <td><strong>{{ row.weight_class }} ({{ row.gender }})</strong></td>
+                                        {% for event in events %}
+                                            <td>{{ row|get:event.name|capfirst }}</td>
+                                        {% endfor %}
+                                    </tr>
                                 {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         {% endfor %}
     </div>
 </div>
+
 
     <div class="row mt-4 text-center">
         <div class="col">
@@ -151,26 +162,50 @@
     </div>
 
 {% if competition.organizer == request.user %}
-    <h4 class="text-center">Competition Management</h4>
-    <div class="organizer-actions text-center">
-        <div class="row">
-            <div class="col-sm-2" style="padding-top:10px;">
-                <a href="{% url 'competitions:competition_update' competition.pk %}" class="btn btn-secondary me-2">Edit Competition</a>
+    <div class="container my-5">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-primary text-white text-center">
+                <h4 class="mb-0">Competition Management</h4>
             </div>
-            <div class="col-sm-2" style="padding-top:10px;">
-                <a href="{% url 'competitions:competition_delete' competition.pk %}" class="btn btn-danger me-2">Delete Competition</a>
-            </div>
-            <div class="col-sm-2" style="padding-top:10px;">
-                <a href="{% url 'competitions:sponsor_logo_upload' competition.pk %}" class="btn btn-secondary me-2">Upload Sponsor Logos</a>
-            </div>
-            <div class="col-sm-2" style="padding-top:10px;">
-                <a href="{% url 'competitions:event_create' competition.pk %}" class="btn btn-primary me-2">Add Event</a>
-            </div>
-            <div class="col-sm-2" style="padding-top:10px;">
-                <a href="{% url 'competitions:competition_score' competition.pk %}" class="btn btn-primary me-2">Manage Scores</a>
-            </div>
-            <div class="col-sm-2" style="padding-top:10px;">
-                <a href="{% url 'competitions:commentator_comp_card' competition.id %}" class="btn btn-primary me-2">Competition Card</a>
+            <div class="card-body">
+                <div class="row text-center g-3">
+                    <div class="col-md-4">
+                        <a href="{% url 'competitions:competition_update' competition.pk %}" class="btn btn-outline-primary w-100 py-3">
+                            <i class="bi bi-pencil-square"></i><br>
+                            Edit Competition
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'competitions:competition_delete' competition.pk %}" class="btn btn-outline-danger w-100 py-3">
+                            <i class="bi bi-trash"></i><br>
+                            Delete Competition
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'competitions:sponsor_logo_upload' competition.pk %}" class="btn btn-outline-secondary w-100 py-3">
+                            <i class="bi bi-cloud-upload"></i><br>
+                            Upload Sponsor Logos
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'competitions:event_create' competition.pk %}" class="btn btn-outline-success w-100 py-3">
+                            <i class="bi bi-plus-circle"></i><br>
+                            Add Event
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'competitions:competition_score' competition.pk %}" class="btn btn-outline-info w-100 py-3">
+                            <i class="bi bi-bar-chart"></i><br>
+                            Manage Scores
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'competitions:commentator_comp_card' competition.id %}" class="btn btn-outline-warning w-100 py-3">
+                            <i class="bi bi-card-list"></i><br>
+                            Competition Card
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

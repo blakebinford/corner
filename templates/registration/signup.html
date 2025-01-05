@@ -3,13 +3,14 @@
 {% load crispy_forms_tags %}
 
 {% block content %}
+<div class="container-fluid p-3 d-flex justify-content-center" style="background: linear-gradient(45deg, #222222, #555555);">
+    
 <div class="container py-5" style="background: linear-gradient(45deg, #222222, #555555); min-height: 100vh;">
   <div class="row justify-content-center align-items-center">
     <!-- Tagline Section -->
     <div class="col-lg-6 text-center text-light mb-4 mb-lg-0">
       <h1 class="display-4" style="font-weight: 700;">Compete with the Strongest</h1>
       <p class="lead" style="font-size: 1.2rem;">Join the community of athletes and unleash your power.</p>
-      <img src="{% static 'images/strongman_logo.png' %}" alt="Strongman" class="img-fluid mt-4" style="max-width: 300px;">
     </div>
 
     <!-- Sign Up Form Section -->
@@ -30,5 +31,6 @@
       </div>
     </div>
   </div>
+</div>
 </div>
 {% endblock %}

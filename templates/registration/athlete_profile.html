@@ -5,6 +5,8 @@
 {% block title %}Athlete Profile - {{ athlete.user.get_full_name|upper }}{% endblock %}
 
 {% block content %}
+<div class="container-fluid p-3 d-flex justify-content-center" style="background: linear-gradient(45deg, #222222, #555555);">
+    
 <div class="container-fluid p-3" style="background: linear-gradient(45deg, #222222, #555555);">
   <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
@@ -137,5 +139,6 @@
       </div>
     </div>
   </div>
+</div>
 </div>
 {% endblock content %}

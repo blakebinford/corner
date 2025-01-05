@@ -66,6 +66,7 @@ class AthleteProfile(models.Model):
         ('male', 'Male'),
         ('female', 'Female')
     ])
+
     STATE_CHOICES = [
         ('AL', 'Alabama'),
         ('AK', 'Alaska'),

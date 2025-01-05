@@ -52,18 +52,7 @@ class CustomUserCreationForm(UserCreationForm):
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.email = self.cleaned_data['email']  # Save the email
-        if commit:
-            user.save()
 
-            # Create AthleteProfile if the role is 'athlete'
-            if user.role == 'athlete':
-                AthleteProfile.objects.create(user=user)
-
-        return user
-    def save(self, commit=True):
-        user = super().save(commit=False)  # Don't save the user yet
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
         if commit:
             user.save()
 
@@ -73,13 +62,7 @@ class CustomUserCreationForm(UserCreationForm):
 
         return user
 
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        if commit:
-            user.save()
-            # Create an AthleteProfile for the new user
-            AthleteProfile.objects.create(user=user)
-        return user
+
 
 class UserUpdateForm(UserChangeForm):
     """Form to update user-related information."""

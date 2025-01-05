@@ -74,6 +74,7 @@
                         {% endfor %}
                     </div>
                     {% else %}
+                        <h5 class="text-center fw-bold text-dark">Information</h5>
                     <p class="text-dark" style="font-size: 1rem;">{{ competition.description|safe|truncatewords_html:45 }}</p>
                     {% endif %}
                 </div>
@@ -86,7 +87,7 @@
                             {% if tag.name == 'Pro/Am' %}bg-primary
                             {% elif tag.name == 'Masters Only' %}bg-secondary
                             {% elif tag.name == 'Novice Only' %}bg-success
-                            {% elif tag.name == 'Record Setter' %}bg-warning
+                            {% elif tag.name == 'Record Breaker' %}bg-warning
                             {% elif tag.name == 'All-Women' %}bg-warning
                             {% elif tag.name == 'Charity' %}bg-info
                             {% elif tag.name == 'Qualifier' %}bg-dark

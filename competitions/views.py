@@ -343,7 +343,7 @@ class EventCreateView(CreateView):
         allowed_division_weight_classes = DivisionWeightClass.objects.filter(
             division__in=competition.allowed_divisions.all(),
             weight_class__in=competition.allowed_weight_classes.all()
-        )
+        ).order_by('division__name', 'gender', 'weight_class__name')
 
         # Create the formset using modelformset_factory
         EventImplementFormSet = modelformset_factory(

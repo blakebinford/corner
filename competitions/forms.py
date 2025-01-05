@@ -308,13 +308,6 @@ class CompetitionFilter(django_filters.FilterSet):
         widget=forms.Select(attrs={'class': 'form-control'})
     )
 
-    allowed_weight_classes = django_filters.ModelChoiceFilter(
-        field_name='allowed_weight_classes',
-        queryset=WeightClass.objects.all(),
-        label='Allowed Weight Classes',
-        widget=forms.Select(attrs={'class': 'form-control'})
-    )
-
     tags = django_filters.ModelChoiceFilter(
         field_name='tags',
         queryset=Tag.objects.all(),
@@ -330,7 +323,7 @@ class CompetitionFilter(django_filters.FilterSet):
 
     class Meta:
         model = Competition
-        fields = ['zip_code', 'comp_date_after', 'comp_date_before', 'event_base',  'allowed_divisions', 'allowed_weight_classes', 'tags', 'federation']
+        fields = ['zip_code', 'comp_date_after', 'comp_date_before', 'event_base',  'allowed_divisions', 'tags', 'federation']
 
     def filter_by_zip_code(self, queryset, name, value):
         if value:
