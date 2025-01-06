@@ -76,7 +76,7 @@
                             {% endfor %}
                         </div>
                     <h6 class="text-center">Want to be a sponsor? Reach out to the <a href="mailto:{{ competition.organizer.email }}">Competition Director</a> for sponsorship opportunities.</h6>
-                    
+
                     </div>
                     {% else %}
                     <h6 class="text-center">No sponsors yet! Reach out to the <a href="mailto:{{ competition.organizer.email }}">Competition Director</a> for sponsorship opportunities.</h6>
@@ -93,16 +93,16 @@
               <h2 class="text-center">Events</h2>
 
 <div class="container mt-4">
-    <!-- Tabs Navigation -->
+    <!-- Division Tabs Navigation -->
     <ul class="nav nav-pills justify-content-center mb-4" id="divisionTabs" role="tablist">
         {% for division, rows in division_tables.items %}
             <li class="nav-item">
-                <a class="nav-link {% if forloop.first %}active{% endif %}" 
-                   id="{{ division|slugify }}-tab" 
-                   data-bs-toggle="tab" 
-                   href="#{{ division|slugify }}" 
-                   role="tab" 
-                   aria-controls="{{ division|slugify }}" 
+                <a class="nav-link {% if forloop.first %}active{% endif %}"
+                   id="{{ division|slugify }}-tab"
+                   data-bs-toggle="tab"
+                   href="#{{ division|slugify }}"
+                   role="tab"
+                   aria-controls="{{ division|slugify }}"
                    aria-selected="{{ forloop.first|yesno:"true,false" }}">
                    {{ division|capfirst }}
                 </a>
@@ -110,46 +110,112 @@
         {% endfor %}
     </ul>
 
-    <!-- Tab Content -->
+    <!-- Division Tab Content -->
     <div class="tab-content">
         {% for division, rows in division_tables.items %}
-            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
-                 id="{{ division|slugify }}" 
-                 role="tabpanel" 
+            <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+                 id="{{ division|slugify }}"
+                 role="tabpanel"
                  aria-labelledby="{{ division|slugify }}-tab">
                  
-                <!-- Card Wrapper -->
-                <div class="card shadow-lg border-0 mb-5">
-                    <div class="card-header bg-primary text-white text-center">
-                        <h4 class="mb-0"><i class="bi bi-trophy-fill me-1"></i> {{ division|capfirst }}</h4>
-                    </div>
-                    <div class="card-body p-4">
-                        <table class="table table-hover table-striped align-middle">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Weight Class</th>
-                                    {% for event in events %}
-                                        <th>{{ event.name|capfirst }}</th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in rows %}
-                                    <tr>
-                                        <td><strong>{{ row.weight_class }} ({{ row.gender }})</strong></td>
-                                        {% for event in events %}
-                                            <td>{{ row|get:event.name|capfirst }}</td>
-                                        {% endfor %}
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                <div class="container">
+                    <!-- Gender Cards -->
+                    <div class="row g-4">
+                        <!-- Male Section -->
+                        <div class="col-lg-6">
+                            <div class="card shadow-lg border-0">
+                                <div class="card-header bg-secondary bg-gradient text-white text-center">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-gender-male me-2"></i>Male
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped align-middle">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Weight Class</th>
+                                                {% for event in events %}
+                                                    <th>{{ event.name|capfirst }}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in rows %}
+                                                {% if row.gender == 'Male' %}
+                                                    <tr>
+                                                        <td>
+                                                            <strong>
+                                                                {% if row.weight_class.weight_d == "u" %}
+                                                                    {{ row.weight_class.weight_d }}{{ row.weight_class.name|floatformat:"-1" }}
+                                                                {% else %}
+                                                                    {{ row.weight_class.name|floatformat:"-1" }}{{ row.weight_class.weight_d }}
+                                                                {% endif %}
+                                                            </strong>
+                                                        </td>
+                                                        {% for event in events %}
+                                                            <td>{{ row|get:event.name|capfirst }}</td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                        <!-- Female Section -->
+                        <div class="col-lg-6">
+                            <div class="card shadow-lg border-0">
+                                <div class="card-header bg-warning bg-gradient text-white text-center">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-gender-female me-2"></i>Female
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-striped align-middle">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Weight Class</th>
+                                                {% for event in events %}
+                                                    <th>{{ event.name|capfirst }}</th>
+                                                {% endfor %}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in rows %}
+                                                {% if row.gender == 'Female' %}
+                                                    <tr>
+                                                        <td>
+                                                            <strong>
+                                                                {% if row.weight_class.weight_d == "u" %}
+                                                                    {{ row.weight_class.weight_d }}{{ row.weight_class.name|floatformat:"-1" }}
+                                                                {% else %}
+                                                                    {{ row.weight_class.name|floatformat:"-1" }}{{ row.weight_class.weight_d }}
+                                                                {% endif %}
+                                                            </strong>
+                                                        </td>
+                                                        {% for event in events %}
+                                                            <td>{{ row|get:event.name|capfirst }}</td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         {% endfor %}
     </div>
 </div>
+
 
 
     <div class="row mt-4 text-center">

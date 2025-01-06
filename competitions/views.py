@@ -132,7 +132,7 @@ class CompetitionDetailView(generic.DetailView):
             event_implements = event.implements.select_related('division_weight_class').all()
             for implement in event_implements:
                 division = implement.division_weight_class.division.name
-                weight_class = implement.division_weight_class.weight_class.name
+                weight_class_obj = implement.division_weight_class.weight_class  # Use the full WeightClass object here
                 gender = implement.division_weight_class.gender
 
                 if division not in division_tables:
@@ -141,16 +141,15 @@ class CompetitionDetailView(generic.DetailView):
                 # Find or create a row for the weight class and gender
                 row = next(
                     (r for r in division_tables[division]
-                     if r['weight_class'] == weight_class and r['gender'] == gender),
+                     if r['weight_class'] == weight_class_obj and r['gender'] == gender),
                     None
                 )
                 if not row:
-                    row = {'weight_class': weight_class, 'gender': gender}
+                    row = {'weight_class': weight_class_obj, 'gender': gender}
                     division_tables[division].append(row)
 
                 # Add the event weight
                 row[event.name] = f"{implement.weight} {implement.weight_unit}"
-
         context['division_tables'] = division_tables
         context['events'] = competition.events.all()
         return context
