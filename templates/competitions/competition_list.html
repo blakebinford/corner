@@ -67,7 +67,7 @@
                     {% if competition.sponsor_logos.exists %}
                     <h5 class="text-center fw-bold text-dark">Sponsors</h5>
                     <div class="sponsor-logos row">
-                        {% for sponsor in competition.sponsor_logos.all %}
+                        {% for sponsor in competition.sponsor_logos.all|dictsort:"display_order" %}
                         <div class="col-6 col-md-4 mb-3 d-flex justify-content-center align-items-center">
                             <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }} logo" class="img-fluid">
                         </div>

@@ -1,11 +1,10 @@
-import random
-from django.core.validators import RegexValidator, MinValueValidator
+from django.core.validators import MinValueValidator
 from django.db import models
-from tinymce.models import HTMLField
 from django.conf import settings
+
 from accounts.models import User, AthleteProfile, Division, WeightClass
-from django.db.models.functions import Substr, Cast, StrIndex, Coalesce
-from django.db.models import DecimalField, Value, Case, When
+
+from tinymce.models import HTMLField
 
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -125,6 +124,8 @@ class CommentatorNote(models.Model):
 class Sponsor(models.Model):
     name = models.CharField(max_length=255)
     logo = models.ImageField(upload_to='sponsor_logos/')
+    url = models.URLField(blank=True, null=True)  # Optional URL field
+    display_order = models.PositiveIntegerField(default=0)  # For sorting logos
 
     def __str__(self):
         return self.name

@@ -1,7 +1,7 @@
 from django.urls import path, re_path
 from . import views
 from .consumers import ScoreUpdateConsumer
-from .views import EventUpdateView
+from .views import EventUpdateView, SponsorEditView
 
 app_name = 'competitions'
 
@@ -26,6 +26,7 @@ urlpatterns = [
     path('<int:competition_pk>/athlete/<int:athletecompetition_pk>/event/<int:eventorder_pk>/score/', views.update_score, name='update_score'),
     path('<int:competition_id>/commentator_compcard/', views.commentator_comp_card, name='commentator_comp_card'),
     path('<int:competition_pk>/upload_sponsor_logos/', views.SponsorLogoUploadView.as_view(), name='sponsor_logo_upload'),
+    path('<int:competition_pk>/edit_sponsor_logos/', SponsorEditView.as_view(), name='edit_sponsor_logos'),
 
 
     # AthleteCompetition URLs

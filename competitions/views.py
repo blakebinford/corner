@@ -1,7 +1,7 @@
 import math
 from datetime import date
+from collections import defaultdict
 
-from asgiref.sync import async_to_sync
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Prefetch
 from django.forms import modelformset_factory
@@ -11,17 +11,15 @@ from django.urls import reverse_lazy, reverse
 from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from channels.layers import get_channel_layer
-from django.views.generic import FormView, CreateView, UpdateView
+from django.views.generic import FormView, CreateView, UpdateView, TemplateView
 
-from accounts.models import AthleteProfile
 from .models import Competition, EventOrder, AthleteCompetition, DivisionWeightClass, Result, CommentatorNote, Sponsor, \
     Event, EventBase, EventImplement, ZipCode
 from .forms import CompetitionForm, EventForm, AthleteCompetitionForm, EventImplementFormSet, ResultForm, \
-    SponsorLogoForm, create_event_implement_formset, EventImplementForm, CompetitionFilter
-
-from collections import defaultdict
+    SponsorLogoForm, EventImplementForm, CompetitionFilter, SponsorEditForm
 from chat.models import OrganizerChatMessage, OrganizerChatRoom
 
+from asgiref.sync import async_to_sync
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
@@ -272,6 +270,62 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
             self.save_m2m()
 
         return competition
+
+class SponsorEditView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'competitions/sponsor_edit.html'
+
+    def test_func(self):
+        competition_pk = self.kwargs['competition_pk']
+        competition = get_object_or_404(Competition, pk=competition_pk)
+        return self.request.user == competition.organizer
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        competition_pk = self.kwargs['competition_pk']
+        competition = get_object_or_404(Competition, pk=competition_pk)
+        context['competition'] = competition
+
+        SponsorFormSet = modelformset_factory(
+            Sponsor,
+            form=SponsorEditForm,
+            extra=0,
+            can_delete=True,
+        )
+
+        context['formset'] = SponsorFormSet(queryset=competition.sponsor_logos.all())
+        context['upload_url'] = reverse_lazy('competitions:sponsor_logo_upload',
+                                             kwargs={'competition_pk': competition_pk})
+        return context
+
+    def post(self, request, *args, **kwargs):
+        competition_pk = self.kwargs['competition_pk']
+        competition = get_object_or_404(Competition, pk=competition_pk)
+        SponsorFormSet = modelformset_factory(
+            Sponsor,
+            form=SponsorEditForm,
+            extra=0,
+            can_delete=True,
+        )
+
+        formset = SponsorFormSet(request.POST, request.FILES, queryset=competition.sponsor_logos.all())
+
+        if formset.is_valid():
+            # Save formset changes
+            sponsors = formset.save(commit=False)
+            for sponsor in sponsors:
+                display_order_field = f"display_order_{sponsor.pk}"
+                if display_order_field in request.POST:
+                    sponsor.display_order = int(request.POST[display_order_field])
+                sponsor.save()
+
+                # Handle deletions
+            for deleted_sponsor in formset.deleted_objects:
+                deleted_sponsor.delete()
+
+            return redirect('competitions:competition_detail', pk=competition_pk)
+        else:
+            print("Formset errors:", formset.errors)
+            return self.render_to_response(self.get_context_data(formset=formset))
 
 class SponsorLogoUploadView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     form_class = SponsorLogoForm

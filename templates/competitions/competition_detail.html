@@ -69,9 +69,11 @@
                     {% if competition.sponsor_logos.exists %}
                     <div class="main-sponsor-logos mt-3">
                         <div class="row justify-content-center">
-                            {% for sponsor in competition.sponsor_logos.all %}
+                            {% for sponsor in competition.sponsor_logos.all|dictsort:"display_order" %}
                             <div class="col-6 col-md-3 mb-3">
-                                <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }} logo" class="img-fluid">
+                                <a href="{{ sponsor.url }}" target="_blank">
+                                    <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="img-fluid">
+                                </a>
                             </div>
                             {% endfor %}
                         </div>
@@ -117,7 +119,7 @@
                  id="{{ division|slugify }}"
                  role="tabpanel"
                  aria-labelledby="{{ division|slugify }}-tab">
-                 
+
                 <div class="container">
                     <!-- Gender Cards -->
                     <div class="row g-4">
@@ -248,9 +250,9 @@
                         </a>
                     </div>
                     <div class="col-md-4">
-                        <a href="{% url 'competitions:sponsor_logo_upload' competition.pk %}" class="btn btn-outline-secondary w-100 py-3">
+                        <a href="{% url 'competitions:edit_sponsor_logos' competition.pk %}" class="btn btn-outline-secondary w-100 py-3">
                             <i class="bi bi-cloud-upload"></i><br>
-                            Upload Sponsor Logos
+                            Edit Sponsor Logos
                         </a>
                     </div>
                     <div class="col-md-4">

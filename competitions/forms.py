@@ -7,7 +7,7 @@ from django import forms
 from django.forms import NumberInput, modelformset_factory
 
 from .models import Competition, EventOrder, AthleteCompetition, Event, EventImplement, Result, Tag, \
-    DivisionWeightClass, EventBase, ZipCode, Federation
+    DivisionWeightClass, EventBase, ZipCode, Federation, Sponsor
 from accounts.models import Division, WeightClass
 import bleach
 from tinymce.widgets import TinyMCE
@@ -112,6 +112,22 @@ class CompetitionForm(forms.ModelForm):
             competition.save()
 
         return competition
+
+class SponsorEditForm(forms.ModelForm):
+    class Meta:
+        model = Sponsor
+        fields = ['logo', 'url', 'display_order']
+        widgets = {
+            'logo': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+            }),
+            'url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://example.com'}),
+            'display_order': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['logo'].required = False
 
 class SponsorLogoForm(forms.Form):
     sponsor_logos = MultipleFileField(required=False)

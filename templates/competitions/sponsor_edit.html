@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+    {% block extra_styles %}
+        <style>
+/* Hide the default file input text */
+input[type="file"] {
+    color: transparent;
+    width: auto;
+    overflow: hidden;
+}
+
+/* Style the "Browse" button */
+input[type="file"]::file-selector-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background-color: #0056b3;
+}
+</style>
+
+  {% endblock %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<div class="container-fluid p-3 d-flex justify-content-center" style="background: linear-gradient(45deg, #222222, #555555);">
+
+<div class="container my-5">
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-dark text-white text-center">
+            <h3 class="mb-0"><i class="bi bi-pencil-square"></i> Edit Sponsor Logos for {{ competition.name }}</h3>
+        </div>
+        <div class="card-body">
+        <div class="row">
+            <div class="col-md-9">
+            <p class="text-center">To edit your sponsor logos, use the drag-and-drop functionality to reorder the logos by dragging the handle icon next to each sponsor. </p>
+        </div>
+            <!-- Link to sponsor_logo_form.html -->
+            <div class="text-center col-md-3">
+                <a href="{% url 'competitions:sponsor_logo_upload' competition.pk %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-upload"></i> Upload New Logos
+                </a>
+            </div>
+        </div>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ formset.management_form }}
+                <div id="sortable-container" class="list-group mb-4">
+                    {% for form in formset %}
+                        <div class="list-group-item d-flex flex-wrap align-items-center" data-id="{{ form.instance.pk }}">
+                            <!-- Drag Handle -->
+                            <div class="me-3 mb-2" style="cursor: grab;">
+                                <i class="bi bi-arrows-move fs-5"></i>
+                            </div>
+
+                            <!-- Logo Preview and Upload -->
+                            <div class="flex-shrink-0 me-3 mb-2 text-center">
+                                <div>
+                                    {% if form.instance.logo %}
+                                        <img src="{{ form.instance.logo.url }}" alt="{{ form.instance.name }}" 
+                                             style="max-height: 50px; border-radius: 5px; margin-bottom: 10px;">
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label for="{{ form.logo.id_for_label }}" class="form-label fw-bold">Upload New Logo</label>
+                                    <input type="file" name="{{ form.logo.html_name }}" id="{{ form.logo.id_for_label }}" class="form-control">
+                                    {% for error in form.logo.errors %}
+                                        <div class="text-danger">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+
+                            </div>
+
+                            <!-- Name Field -->
+                            <div class="flex-grow-1 mb-2">
+                                {{ form.id }}
+                                {{ form.name|add_class:"form-control" }}
+                            </div>
+
+                            <!-- URL Field -->
+                            <div class="flex-grow-1 mb-2">
+                                <label class="form-label fw-bold">Website</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-link"></i></span>
+                                    {{ form.url|add_class:"form-control" }}
+                                </div>
+                            </div>
+
+                            <!-- Hidden Display Order Field -->
+                            {{ form.display_order.as_hidden }}
+
+                            <!-- Delete Checkbox -->
+                            <div class="flex-shrink-0 mb-2" style="margin: 10px;">
+                                <label class="form-check-label text-danger">
+                                    <input type="checkbox" name="{{ form.DELETE.html_name }}" class="form-check-input" >
+                                    Delete
+                                </label>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sortableContainer = document.getElementById('sortable-container');
+
+    Sortable.create(sortableContainer, {
+        animation: 150,
+        handle: '.bi-arrows-move', // Restrict dragging to the handle
+        onEnd: function () {
+            // Update display_order fields
+            const items = sortableContainer.querySelectorAll('.list-group-item');
+            items.forEach((item, index) => {
+                const displayOrderInput = item.querySelector('input[name*="display_order"]');
+                if (displayOrderInput) {
+                    displayOrderInput.value = index + 1; // Set display order starting from 1
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
