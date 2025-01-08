@@ -2,6 +2,9 @@ import math
 from datetime import date
 from collections import defaultdict
 
+from django.utils import timezone
+from django.contrib import messages
+from django.core.mail import send_mass_mail
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Prefetch
 from django.forms import modelformset_factory
@@ -9,9 +12,11 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.views import generic
+from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from channels.layers import get_channel_layer
 from django.views.generic import FormView, CreateView, UpdateView, TemplateView
+from django_filters import FilterSet, CharFilter, ChoiceFilter
 
 from .models import Competition, EventOrder, AthleteCompetition, DivisionWeightClass, Result, CommentatorNote, Sponsor, \
     Event, EventBase, EventImplement, ZipCode
@@ -380,6 +385,60 @@ class CompetitionDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.Del
     def test_func(self):
         competition = self.get_object()
         return self.request.user == competition.organizer
+
+class OrganizerCompetitionsView(TemplateView):
+    template_name = "competitions/organizer_competitions.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        organizer = self.request.user
+
+        # Get competitions organized by the user
+        all_competitions = Competition.objects.filter(organizer=organizer)
+        upcoming_competitions = all_competitions.filter(comp_date__gte=timezone.now()).order_by('comp_date')
+        completed_competitions = all_competitions.filter(comp_date__lt=timezone.now()).order_by('-comp_date')
+
+        # Prepare sections
+        sections = [
+            {"title": "Upcoming Competitions", "competitions": upcoming_competitions, "badge_class": "bg-success"},
+            {"title": "Completed Competitions", "competitions": completed_competitions, "badge_class": "bg-secondary"},
+            {"title": "All Competitions", "competitions": all_competitions, "badge_class": "bg-primary"},
+        ]
+
+        context.update({
+            "sections": sections,
+        })
+        return context
+
+class ManageCompetitionView(TemplateView):
+    template_name = 'competitions/manage_competition.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        competition_pk = self.kwargs['competition_pk']
+        competition = get_object_or_404(Competition, pk=competition_pk)
+
+        context['competition'] = competition
+        context['athletes'] = AthleteCompetition.objects.filter(competition=competition)
+        context['events'] = EventOrder.objects.filter(competition=competition).select_related('event')
+        return context
+
+
+class AthleteListView(ListView):
+    model = AthleteCompetition
+    template_name = 'competitions/athlete_list.html'
+    context_object_name = 'athletes'
+
+    def get_queryset(self):
+        competition_pk = self.kwargs['competition_pk']
+        competition = get_object_or_404(Competition, pk=competition_pk)
+        return AthleteCompetition.objects.filter(competition=competition)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        competition_pk = self.kwargs['competition_pk']
+        context['competition'] = get_object_or_404(Competition, pk=competition_pk)
+        return context
 
 class EventCreateView(CreateView):
     model = Event
@@ -934,4 +993,34 @@ def get_weight_classes(request):
 
     return JsonResponse({'weight_classes': weight_class_data})
 
+
+def send_email_to_athletes(request, competition_pk):
+    competition = get_object_or_404(Competition, pk=competition_pk)
+
+    # Check if the user is the organizer
+    if request.user != competition.organizer:
+        messages.error(request, "You are not authorized to send emails for this competition.")
+        return HttpResponseRedirect(
+            reverse('competitions:manage_competition', kwargs={'competition_pk': competition_pk}))
+
+    if request.method == 'POST':
+        subject = request.POST.get('subject')
+        message = request.POST.get('message')
+
+        # Fetch emails of all registered athletes
+        athlete_emails = competition.athletecompetition_set.values_list('athlete__user__email', flat=True)
+
+        # Create a list of tuples for send_mass_mail
+        email_data = [
+            (subject, message, 'no-reply@comppodium.com', [email]) for email in athlete_emails
+        ]
+
+        # Send the emails
+        send_mass_mail(email_data, fail_silently=False)
+        messages.success(request, "Emails sent successfully to all registered athletes.")
+        return HttpResponseRedirect(
+            reverse('competitions:manage_competition', kwargs={'competition_pk': competition_pk}))
+
+    messages.error(request, "Invalid request method.")
+    return HttpResponseRedirect(reverse('competitions:manage_competition', kwargs={'competition_pk': competition_pk}))
 

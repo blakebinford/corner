@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-5">
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-primary text-white text-center">
+            <h3>Participants for {{ competition.name }}</h3>
+        </div>
+        <div class="card-body">
+            {% if athletes %}
+                <ul class="list-group">
+                    {% for athlete in athletes %}
+                        <li class="list-group-item">
+                            {{ athlete.athlete.user.get_full_name }} - {{ athlete.division.name }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-muted">No participants registered yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
