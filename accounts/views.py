@@ -149,15 +149,22 @@ def activate(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
-    except(TypeError, ValueError, OverflowError,
-           User.DoesNotExist):
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
+
     if user is not None and account_activation_token.check_token(user, token):
-        user.is_active = True
-        user.email_verified = True
-        user.save()
-        return redirect('accounts:login')  # Redirect to login page
+        if user.is_active:
+            # User already activated
+            return render(request, 'registration/acc_active_already.html')
+        else:
+            # Activate the user
+            user.is_active = True
+            user.email_verified = True
+            user.save()
+            messages.success(request, 'Your account has been successfully activated!')
+            return redirect('accounts:login')  # Redirect to login page
     else:
+        # Invalid or already used token
         return render(request, 'registration/acc_active_invalid.html')
 
 def get_weight_classes(request):

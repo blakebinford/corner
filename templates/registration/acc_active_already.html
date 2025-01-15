@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5 text-center">
+  <h1 class="display-4">Account Already Activated</h1>
+  <p class="lead">Your account has already been activated. You can log in using your credentials.</p>
+  <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-lg">Go to Login</a>
+</div>
+{% endblock %}

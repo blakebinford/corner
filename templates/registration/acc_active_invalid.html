@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-5 text-center">
+  <h1 class="display-4 text-danger">Invalid Activation Link</h1>
+  <p class="lead">
+    The activation link you used is invalid or has expired. If you believe this is an error, you can request a new activation link.
+  </p>
+  <div class="mt-4">
+    <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg">Sign Up</a>
+    <a href="{% url 'accounts:login' %}" class="btn btn-secondary btn-lg">Go to Login</a>
+  </div>
+</div>
+{% endblock %}
