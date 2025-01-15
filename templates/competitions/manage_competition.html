@@ -94,6 +94,7 @@
                     <thead class="table-dark">
                         <tr>
                             <th>Name</th>
+                            <th>Gender</th>
                             <th>Division</th>
                             <th>Weight Class</th>
                             <th>Registration Date</th>
@@ -103,6 +104,7 @@
                         {% for athlete in athletes %}
                             <tr>
                                 <td>{{ athlete.athlete.user.get_full_name }}</td>
+                                <td>{{ athlete.athlete.gender|capfirst }}</td>
                                 <td>{{ athlete.division.name|capfirst }}</td>
                                 <td>{% if athlete.weight_class.weight_d == "u" %}
                                             {{ athlete.weight_class.weight_d }}{{ athlete.weight_class.name|floatformat:"-1" }}

@@ -3,209 +3,157 @@
 {% load widget_tweaks %}
 
 {% block content %}
-<div class="container-fluid" style="background: linear-gradient(to bottom, #222222, #444444);">
-  <div class="row align-items-center justify-content-center">
+<div class="container py-4" style="background: #f8f9fa;">
+  <div class="row justify-content-center">
     <div class="col-md-8">
-      <div class="card shadow-lg p-5" style="border-radius: 15px; background-color: rgba(255, 255, 255, 0.9);">
-        <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">Create Competition</h2>
-        <form method="post" enctype="multipart/form-data">
-          {% csrf_token %}
+      <div class="card shadow-sm border-0" style="border-radius: 15px; background-color: #ffffff;">
+        <div class="card-body p-4">
+          <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">{{ is_update|yesno:"Update Competition,Create Competition" }}</h2>
+          <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
 
-          <div class="row">
-            <div class="col-md-6">
-              {{ form.name|as_crispy_field }}
-            </div>
-            <div class="col-md-6">
-              {{ form.event_location_name|as_crispy_field }}
-            </div>
-          </div>
-          <div class="row">
-  <div class="col-md-4">
-    {{ form.comp_date|as_crispy_field }}
-    <div class="form-check mt-2">
-      <input type="checkbox" id="is-multi-day" class="form-check-input" name="is_multi_day">
-      <label for="is-multi-day" class="form-check-label">Multi-day Competition</label>
-    </div>
-  </div>
-  <div class="col-md-4" id="end-date-container" style="display: none;">
-    {{ form.comp_end_date|as_crispy_field }}
-  </div>
-  <div class="col-md-4">
-    {{ form.start_time|as_crispy_field }}
-  </div>
-</div>
-
-          <div class="row">
-            <div class="col-md-12">
-              {{ form.address|as_crispy_field }}
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              {{ form.city|as_crispy_field }}
-            </div>
-            <div class="col-md-4">
-              {{ form.state|as_crispy_field }}
-            </div>
-            <div class="col-md-2">
-              {{ form.zip_code|as_crispy_field }}
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-4">
-              {{ form.federation|as_crispy_field }}
-            </div>
-            <div class="col-md-4">
-              {{ form.signup_price|as_crispy_field }}
-            </div>
-            <div class="col-md-4">
-              {{ form.capacity|as_crispy_field }}
-            </div>
-          </div>
-          <div class="row">
-
-          </div>  
-          <div class="row">
-           
-            <div class="col-md-12">
-              {{ form.registration_deadline|as_crispy_field }}
-            </div>
-          </div>
-        <div class="row">
-            <div class="col-md-12">
-              {{ form.image|as_crispy_field }}
-            </div>
-           
-        </div>
-                    <div class="row">
-                           <div class="row">
-                        <div class="col-md-4">
-                        <p class="text-center"><b>Chose Comp Tags.</b><br>Hold ctrl and click.</p>
-                        {{ form.tags|as_crispy_field }}
-                    </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                {{ form.name|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.event_location_name|as_crispy_field }}
+              </div>
               <div class="col-md-4">
+                {{ form.comp_date|as_crispy_field }}
+                <div class="form-check mt-2">
+                  <input type="checkbox" id="is-multi-day" class="form-check-input" name="is_multi_day">
+                  <label for="is-multi-day" class="form-check-label">Multi-day Competition</label>
+                </div>
+              </div>
+              <div class="col-md-4" id="end-date-container" style="display: none;">
+                {{ form.comp_end_date|as_crispy_field }}
+              </div>
+              <div class="col-md-4">
+                {{ form.start_time|as_crispy_field }}
+              </div>
+              <div class="col-md-12">
+                {{ form.address|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.city|as_crispy_field }}
+              </div>
+              <div class="col-md-4">
+                {{ form.state|as_crispy_field }}
+              </div>
+              <div class="col-md-2">
+                {{ form.zip_code|as_crispy_field }}
+              </div>
+              <div class="col-md-4">
+                {{ form.federation|as_crispy_field }}
+              </div>
+              <div class="col-md-4">
+                {{ form.signup_price|as_crispy_field }}
+              </div>
+              <div class="col-md-4">
+                {{ form.capacity|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.registration_deadline|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.image|as_crispy_field }}
+              </div>
+              <div class="col-md-12">
+                <p class="text-center mb-2"><b>Select Tags</b> <small>(Hold Ctrl to select multiple)</small></p>
+                {{ form.tags|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
                 {{ form.allowed_divisions|as_crispy_field }}
               </div>
-                               
-                               <div class="row mt-4" id="weight-classes-container" style="display: none;">
-  <div class="col-md-12">
-    <h5 class="text-center">Allowed Weight Classes</h5>
-    <div id="weight-classes-wrapper" class="d-flex flex-wrap justify-content-start">
-                {{ form.allowed_weight_classes|as_crispy_field }}
-      <!-- Weight class checkboxes will be dynamically shown here -->
-    </div>
-  </div>
-</div>
+              <div class="col-md-6" id="weight-classes-container" style="display: none;">
+                <p class="text-center mb-2"><b>Allowed Weight Classes</b></p>
+                <div id="weight-classes-wrapper" class="d-flex flex-wrap justify-content-start">
+                  {{ form.allowed_weight_classes|as_crispy_field }}
+                </div>
+              </div>
+              <div class="col-md-12">
+                {{ form.description|as_crispy_field }}
+              </div>
+              <div class="col-md-12">
+                <div class="form-check">
+                  {{ form.liability_waiver_accepted|as_crispy_field }}
+                  <label class="form-check-label" for="{{ form.liability_waiver_accepted.id_for_label }}">
+                    I agree to the <a href="#">liability waiver</a>
+                  </label>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {{ form.description|as_crispy_field }}
-
-          <div class="form-check">
-            {{ form.liability_waiver_accepted|as_crispy_field }}
-            <label class="form-check-label" for="{{ form.liability_waiver_accepted.id_for_label }}">
-              I agree to the <a href="#">liability waiver</a>
-            </label>
-          </div>
-
-          <div class="d-grid gap-2 col-6 mx-auto">
-             <button type="submit" class="btn btn-primary" style="background-color: #333; border: none;">
-    {% if is_update %} Update Competition {% else %} Create Competition {% endif %}
-  </button>
-          </div>
-        </form>
+            <div class="d-grid mt-4">
+              <button type="submit" class="btn btn-primary btn-lg" style="background-color: #333; border: none;">
+                {{ is_update|yesno:"Update Competition,Create Competition" }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
 </div>
-    <script>
- document.addEventListener('DOMContentLoaded', function () {
-    const multiDayCheckbox = document.getElementById('is-multi-day');
-    const endDateContainer = document.getElementById('end-date-container');
 
-    multiDayCheckbox.addEventListener('change', function () {
-      if (this.checked) {
-        endDateContainer.style.display = 'block';
-      } else {
-        endDateContainer.style.display = 'none';
-      }
-    });
-  });
- document.addEventListener('DOMContentLoaded', function () {
-    const federationSelect = document.getElementById('id_federation');
-    const weightClassesContainer = document.getElementById('weight-classes-container');
-    const weightClassesWrapper = document.getElementById('weight-classes-wrapper');
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const multiDayCheckbox = document.getElementById('is-multi-day');
+  const endDateContainer = document.getElementById('end-date-container');
 
-    if (!federationSelect || !weightClassesContainer || !weightClassesWrapper) {
-        console.error('Federation select or weight class container not found');
-        return;
+  multiDayCheckbox.addEventListener('change', function () {
+    if (this.checked) {
+      endDateContainer.style.display = 'block';
+    } else {
+      endDateContainer.style.display = 'none';
     }
+  });
 
-    federationSelect.addEventListener('change', function () {
-        const federationId = this.value;
+  const federationSelect = document.getElementById('id_federation');
+  const weightClassesContainer = document.getElementById('weight-classes-container');
+  const weightClassesWrapper = document.getElementById('weight-classes-wrapper');
 
-        if (federationId) {
-            updateWeightClasses(federationId);
-        } else {
-            weightClassesContainer.style.display = 'none';
-            weightClassesWrapper.innerHTML = ''; // Clear existing checkboxes
-        }
-    });
+  if (!federationSelect || !weightClassesContainer || !weightClassesWrapper) return;
 
-    function updateWeightClasses(federationId) {
-        fetch(`/competitions/get_weight_classes/?federation_id=${federationId}`, {
-            method: 'GET',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest', // Indicate an AJAX request
-            },
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                weightClassesWrapper.innerHTML = ''; // Clear existing checkboxes
+  federationSelect.addEventListener('change', function () {
+    const federationId = this.value;
 
-                if (data.weight_classes && data.weight_classes.length > 0) {
-                    data.weight_classes.forEach((weightClass) => {
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.className = 'form-check-input me-2';
-                        checkbox.name = 'allowed_weight_classes';
-                        checkbox.value = weightClass.id;
-                        checkbox.id = `id_allowed_weight_classes_${weightClass.id}`;
+    if (federationId) {
+      fetch(`/competitions/get_weight_classes/?federation_id=${federationId}`)
+        .then((response) => response.json())
+        .then((data) => {
+          weightClassesWrapper.innerHTML = '';
+          if (data.weight_classes && data.weight_classes.length > 0) {
+            data.weight_classes.forEach((weightClass) => {
+              const checkbox = document.createElement('input');
+              checkbox.type = 'checkbox';
+              checkbox.className = 'form-check-input me-2';
+              checkbox.name = 'allowed_weight_classes';
+              checkbox.value = weightClass.id;
+              checkbox.id = `id_allowed_weight_classes_${weightClass.id}`;
 
-                        const label = document.createElement('label');
-                        label.className = 'form-check-label me-4';
-                        label.htmlFor = checkbox.id;
-                        label.textContent = weightClass.name;
+              const label = document.createElement('label');
+              label.className = 'form-check-label me-4';
+              label.htmlFor = checkbox.id;
+              label.textContent = weightClass.name;
 
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'form-check d-inline-block';
-                        wrapper.appendChild(checkbox);
-                        wrapper.appendChild(label);
+              const wrapper = document.createElement('div');
+              wrapper.className = 'form-check d-inline-block';
+              wrapper.appendChild(checkbox);
+              wrapper.appendChild(label);
 
-                        weightClassesWrapper.appendChild(wrapper);
-                    });
-
-                    weightClassesContainer.style.display = 'block';
-                } else {
-                    weightClassesContainer.style.display = 'none';
-                }
-            })
-            .catch((error) => {
-                console.error('Error fetching weight classes:', error);
-                weightClassesContainer.style.display = 'none';
+              weightClassesWrapper.appendChild(wrapper);
             });
+            weightClassesContainer.style.display = 'block';
+          } else {
+            weightClassesContainer.style.display = 'none';
+          }
+        });
+    } else {
+      weightClassesContainer.style.display = 'none';
     }
-});
-
-
-  $(document).ready(function() {
-    $('#id_tags').multiselect({
-      // Add any options you want to customize the multiselect
-      nonSelectedText: 'Select Tags',
-      enableFiltering: true,
-      includeSelectAllOption: true
-    });
   });
-</script> 
+});
+</script>
 {% endblock %}

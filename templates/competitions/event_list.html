@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+  <!-- Competition Header -->
+  <div class="text-center mb-5">
+    <h1 class="display-4">{{ competition.name }}</h1>
+    <p class="text-muted">{{ competition.city|capfirst }}, {{ competition.state|capfirst }}  | {{ competition.comp_date|date:"M d, Y" }}</p>
+    
+    <a href="{% url 'competitions:event_create' competition.pk %}" class="btn btn-primary btn-lg">
+      Add New Event
+    </a>
+  </div>
+
+  <!-- Event List -->
+  <div class="row g-4">
+    {% for event_order in event_orders %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card h-100 shadow border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <span>Event {{ event_order.order }}</span>
+          <span class="fw-bold">{{ event_order.event.name }}</span>
+        </div>
+        <div class="card-body d-flex flex-column justify-content-between">
+          <p class="card-text mb-3">
+            <strong>Event Type:</strong> {{ event_order.event.weight_type|title }}<br>
+            <strong>Event Base:</strong> {{ event_order.event.event_base.name }}
+          </p>
+          <div class="d-grid gap-2">
+            <a href="{% url 'competitions:event_update' event_order.pk %}" class="btn btn-warning btn-sm">Edit</a>
+            <a href="{% url 'competitions:event_scores' competition.pk event_order.pk %}" class="btn btn-success btn-sm">Manage Scores</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="alert alert-info text-center">
+        No events have been added to this competition yet.
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

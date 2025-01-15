@@ -1,7 +1,33 @@
 {% extends 'base.html' %}
 {% load age_filter %}
 {% load height_filter %}
-
+<style>
+.modal-lg {
+    max-width: 90%; /* Make the modal wider for better display */
+}
+.modal-body {
+    max-height: 70vh;
+    overflow-y: auto; /* Ensure scrolling for long content */
+    padding: 1rem;
+}
+.card {
+    margin: 0;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    box-shadow: none;
+}
+.card-title {
+    font-size: 1rem;
+    font-weight: bold;
+}
+.card-text,
+.text-muted {
+    font-size: 0.85rem;
+    margin: 0;
+}
+</style>
+{% block extra_styles %}
+{% endblock %}
 {% block content %}
 <div class="container-fluid">
   <h2 class="text-center"><b>{{ competition.name }} - Commentator Card</b></h2>
@@ -16,23 +42,28 @@
         </tr>
       </thead>
       <tbody>
-        {% for athlete in athletes %}
+      {% for athlete in athletes %}
         <tr class="text-center">
           <td class="text-end" style="padding:0px;">
-            <span style="font-size:1.2rem; color:#2e2d30;">
-              {% if athlete.nickname %}
-              <span class="text-capitalize" style="font-size:1rem; color:#2e2d30;">({{ athlete.nickname }})</span>
-              {% endif %}
-              {{ athlete.user.first_name|upper }}
-            </span>
-            <span style="font-weight: bold; font-size:2rem; color:#2e2d30;">{{ athlete.user.last_name|upper }}</span><br>
-            <a href="{% url 'competitions:athlete_profile' athlete.id %}" class="text-decoration-none">
-              <i class="fa-regular fa-user" style="color: black;"></i>
-            </a>
-            {{ athlete.gender|capfirst }}
-            {{ athlete.date_of_birth|age }}
-            {{ athlete.height|height }}/{{ athlete.weight }} Pounds
-          </td>
+    <span style="font-size:1.2rem; color:#2e2d30;">
+        {% if athlete.nickname %}
+        <span class="text-capitalize" style="font-size:1rem; color:#2e2d30;">({{ athlete.nickname }})</span>
+        {% endif %}
+        {{ athlete.user.first_name|upper }}
+    </span>
+    <span style="font-weight: bold; font-size:2rem; color:#2e2d30;">{{ athlete.user.last_name|upper }}</span><br>
+    <!-- Profile Icon -->
+    <a href="{% url 'competitions:athlete_profile' athlete.id %}" class="text-decoration-none me-2">
+        <i class="fa-regular fa-user" style="color: black;"></i>
+    </a>
+    <a href="#" data-bs-toggle="modal" data-bs-target="#pastPerformancesModal-{{ athlete.id }}" class="text-decoration-none">
+        <i class="fa-solid fa-dumbbell" style="color: blue;"></i>
+    </a>
+    {{ athlete.gender|capfirst }}
+    {{ athlete.date_of_birth|age }}
+    {{ athlete.height|height }}/{{ athlete.weight }} Pounds
+</td>
+
           <td style="padding:0px;">
             <table class="table table-bordered table-sm" style="margin:0px; padding: 0px;">
               <tr>
@@ -69,13 +100,13 @@
               </tr>
             </table>
           </td>
-          <td colspan="2" style="width: 40%; padding:1px;">
+               <td colspan="2" style="width: 40%; padding:1px;">
            <div class="notes-container">
     <ul id="notes-{{ athlete.id }}" class="notes-list" style="list-style-type: none; padding: 0;"> {##}
       {% for note in athlete.commentatornote_set.all %}
         {% if note.competition == competition %}
           <li style="display: flex; justify-content: space-between; align-items: center;">
-  <div style="text-align: left; margin-right: 20px;">-{{ note.note }}</div> 
+  <div style="text-align: left; margin-right: 20px;">-{{ note.note }}</div>
   <a href="#" data-note-id="{{ note.id }}" class="delete-note">
     <i class="fas fa-times" style="color: red; padding-right: 13px;"></i>
   </a>
@@ -108,7 +139,62 @@
             </div>
           </td>
         </tr>
+          <!-- Modal for Past Performances (Place immediately after the row for clarity) -->
+<div class="modal fade" id="pastPerformancesModal-{{ athlete.id }}" tabindex="-1" aria-labelledby="pastPerformancesModalLabel-{{ athlete.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pastPerformancesModalLabel-{{ athlete.id }}">
+                    Past Performances for {{ athlete.user.first_name }} {{ athlete.user.last_name }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if athlete.past_performances %}
+                <div class="row row-cols-1 row-cols-md-2 g-2">
+                    {% for result in athlete.past_performances %}
+                    <div class="col">
+                        <div class="card p-1">
+                            <div class="card-body" style="padding: 0.5rem;">
+                                <h6 class="card-title" style="margin: 0; font-size: 1rem; font-weight: bold;">
+                                    {{ result.event_order.event.event_base.name }}
+                                </h6>
+                                <p class="card-text" style="margin: 0; font-size: 0.9rem;">
+                                    {% if result.weight_type == "max" %}
+                                        {{ result.value }} Pounds
+                                    {% elif result.weight_type == "time" %}
+                                        {{ result.value }} Seconds
+                                    {% elif result.weight_type == "height" %}
+                                        {{ result.value }} Feet
+                                    {% elif result.weight_type == "reps" %}
+                                        {{ result.value }} Reps @ 
+                                        {% with result.event_order.event.implements.first.weight as implement_weight %}
+                                            {{ implement_weight }} {{ result.event_order.event.implements.first.weight_unit }}
+                                        {% endwith %}
+                                    {% else %}
+                                        {{ result.value }}
+                                    {% endif %}
+                                </p>
+                                <p class="text-muted" style="margin: 0; font-size: 0.85rem;">
+                                    {{ result.weight_type|capfirst }} <br>
+                                    {{ result.athlete_competition.competition.name }} 
+                                    ({{ result.athlete_competition.competition.comp_date|date:"m/d/y" }})
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No past performances recorded.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
         {% endfor %}
+      
       </tbody>
     </table>
   </div>

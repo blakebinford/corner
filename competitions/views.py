@@ -1,6 +1,8 @@
 import math
 from datetime import date
 from collections import defaultdict
+from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageEnhance, ImageFilter
+from PIL.ImageChops import overlay
 
 from django.utils import timezone
 from django.contrib import messages
@@ -8,7 +10,7 @@ from django.core.mail import send_mass_mail
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Prefetch
 from django.forms import modelformset_factory
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.views import generic
@@ -18,6 +20,7 @@ from channels.layers import get_channel_layer
 from django.views.generic import FormView, CreateView, UpdateView, TemplateView
 from django_filters import FilterSet, CharFilter, ChoiceFilter
 
+from accounts.models import AthleteProfile, WeightClass
 from .models import Competition, EventOrder, AthleteCompetition, DivisionWeightClass, Result, CommentatorNote, Sponsor, \
     Event, EventBase, EventImplement, ZipCode
 from .forms import CompetitionForm, EventForm, AthleteCompetitionForm, EventImplementFormSet, ResultForm, \
@@ -916,6 +919,75 @@ def update_multiple_scores(request, competition_id):
 
     return HttpResponse("Invalid request method")
 
+@login_required
+def event_list(request, competition_pk):
+    competition = get_object_or_404(Competition, pk=competition_pk)
+    event_orders = EventOrder.objects.filter(competition=competition)
+    return render(request, 'competitions/event_list.html', {
+        'competition': competition,
+        'event_orders': event_orders,
+    })
+
+
+@login_required
+def event_scores(request, competition_pk, eventorder_pk):
+    competition = get_object_or_404(Competition, pk=competition_pk)
+    event_order = get_object_or_404(EventOrder, pk=eventorder_pk)
+    athlete_competitions = AthleteCompetition.objects.filter(competition=competition)
+
+    # Group athletes by gender, then by division, then by weight class
+    grouped_athletes = defaultdict(lambda: defaultdict(list))
+    for athlete_competition in athlete_competitions:
+        gender = athlete_competition.athlete.gender
+        division = athlete_competition.division.name if athlete_competition.division else "Unknown Division"
+        weight_class = athlete_competition.weight_class
+
+        grouped_athletes[gender][division].append({
+            'athlete_competition': athlete_competition,
+            'weight_class': {
+                'name': weight_class.name if weight_class else "Unknown Weight Class",
+                'weight_d': weight_class.weight_d if weight_class else None,
+            },
+            'result': Result.objects.get_or_create(
+                athlete_competition=athlete_competition,
+                event_order=event_order
+            )[0],
+        })
+
+    # Sort grouped athletes
+    grouped_athletes = {
+        gender: {
+            division: sorted(athletes, key=lambda x: x['weight_class']['name'])
+            for division, athletes in divisions.items()
+        }
+        for gender, divisions in sorted(grouped_athletes.items())
+    }
+
+    if request.method == 'POST':
+        for key, value in request.POST.items():
+            if key.startswith('result_'):
+                try:
+                    athlete_competition_id, event_order_id = map(int, key.replace('result_', '').split('_'))
+                    result = Result.objects.get(
+                        athlete_competition_id=athlete_competition_id,
+                        event_order_id=event_order_id
+                    )
+                    result.value = value
+                    result.save()
+                except (ValueError, Result.DoesNotExist):
+                    pass
+        calculate_points_and_rankings(competition.pk, eventorder_pk)
+
+        # Add a success message
+        messages.success(request, "Scores updated successfully!")
+        return redirect('competitions:event_scores', competition_pk=competition_pk, eventorder_pk=eventorder_pk)
+
+    return render(request, 'competitions/event_score_update.html', {
+        'competition': competition,
+        'event_order': event_order,
+        'grouped_athletes': grouped_athletes,
+    })
+
 def athlete_profile(request, athlete_id):
     athlete = get_object_or_404(AthleteProfile, pk=athlete_id)
     competition_history = AthleteCompetition.objects.filter(athlete=athlete)
@@ -926,37 +998,57 @@ def athlete_profile(request, athlete_id):
     }
     return render(request, 'registration/athlete_profile.html', context)
 
-
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from competitions.models import Competition
-from accounts.models import AthleteProfile
-
-
 @login_required
 def commentator_comp_card(request, competition_id):
     competition = get_object_or_404(Competition, pk=competition_id)
 
     # Check if the user is the organizer of this competition
     if not competition.organizer == request.user:
-        # Handle unauthorized access (e.g., redirect or 403 error)
         return render(request, 'unauthorized.html')  # Replace 'unauthorized.html' with your unauthorized template
 
-    # Get the athletes registered for the competition, optimized with prefetch_related
+    # Get all event bases for the current competition
+    current_event_bases = EventBase.objects.filter(
+        event__competitions=competition
+    ).distinct()
+
+    # Get athletes registered for the competition
     athletes = AthleteProfile.objects.filter(
         athletecompetition__competition=competition
     ).select_related(
         'user'
     ).prefetch_related(
-        'athletecompetition_set__competition'
+        'athletecompetition_set__competition',
+        'commentatornote_set'
     )
+
+    # Populate past performances with weight_type
+    athletes_with_performance = []
+    for athlete in athletes:
+        past_performances = (
+            Result.objects.filter(
+                athlete_competition__athlete=athlete,
+                event_order__event__event_base__in=current_event_bases
+            )
+            .select_related(
+                'event_order__event__event_base',
+                'event_order__event',
+                'athlete_competition__competition'
+            )
+            .order_by('event_order__event__event_base__name', '-athlete_competition__competition__comp_date')
+        )
+
+        # Add `weight_type` to the past performances
+        for result in past_performances:
+            result.weight_type = result.event_order.event.weight_type
+
+        athlete.past_performances = past_performances
+        athletes_with_performance.append(athlete)
 
     if request.method == 'POST':
         if 'delete_note' in request.POST:
             note_id = request.POST.get('note_id')
             note = get_object_or_404(CommentatorNote, pk=note_id, commentator=request.user)
             note.delete()
-            # Optionally return a success message or redirect
             return JsonResponse({'status': 'success'})
         else:
             athlete_id = request.POST.get('athlete_id')
@@ -969,18 +1061,13 @@ def commentator_comp_card(request, competition_id):
                 commentator=request.user,
                 note=note_text
             )
-
-        # Optionally return a success message or redirect
         return HttpResponseRedirect(reverse('competitions:commentator_comp_card', kwargs={'competition_id': competition.id}))
 
     context = {
         'competition': competition,
-        'athletes': athletes,
+        'athletes': athletes_with_performance,
     }
     return render(request, 'competitions/commentator_compcard.html', context)
-
-from django.http import JsonResponse
-from accounts.models import WeightClass
 
 def get_weight_classes(request):
     federation_id = request.GET.get('federation_id')
@@ -1024,3 +1111,324 @@ def send_email_to_athletes(request, competition_pk):
     messages.error(request, "Invalid request method.")
     return HttpResponseRedirect(reverse('competitions:manage_competition', kwargs={'competition_pk': competition_pk}))
 
+def ordinal(n):
+    """
+    Convert an integer into its ordinal representation.
+    E.g. 1 => '1st', 2 => '2nd', 3 => '3rd', etc.
+    """
+    try:
+        n = int(n)
+        if 10 <= n % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+        return f"{n}{suffix}"
+    except (ValueError, TypeError):
+        return "N/A"
+
+
+def draw_gradient_text(draw, text, position, font, start_color, end_color):
+    """
+    Draws gradient text on the given ImageDraw object.
+
+    :param draw: ImageDraw object to draw on
+    :param text: Text string to render
+    :param position: (x, y) starting position of the text
+    :param font: Font object for the text
+    :param start_color: RGB tuple for the start of the gradient (e.g., (255, 0, 0))
+    :param end_color: RGB tuple for the end of the gradient (e.g., (150, 0, 0))
+    """
+    x, y = position
+
+    # Calculate text width using textbbox
+    text_bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+
+    # Calculate gradient step for each pixel
+    r_step = (end_color[0] - start_color[0]) / text_width
+    g_step = (end_color[1] - start_color[1]) / text_width
+    b_step = (end_color[2] - start_color[2]) / text_width
+
+    for i, char in enumerate(text):
+        char_width = draw.textbbox((0, 0), char, font=font)[2]  # Get individual character width
+        r = int(start_color[0] + r_step * (x - position[0]))
+        g = int(start_color[1] + g_step * (x - position[0]))
+        b = int(start_color[2] + b_step * (x - position[0]))
+        draw.text((x, y), char, font=font, fill=(r, g, b))
+        x += char_width  # Move x position for the next character
+
+def wrap_text(text, font, max_width):
+    """Wrap text to fit within the specified width."""
+    lines = []
+    words = text.split()
+    while words:
+        line = words.pop(0)
+        while words and font.getbbox(line + " " + words[0])[2] <= max_width:
+            line += " " + words.pop(0)
+        lines.append(line)
+    return lines
+
+def add_gradient_rectangle(draw, x, y, width, height, start_opacity, end_opacity, color):
+    """
+    Adds a gradient rectangle to the given canvas.
+    :param draw: ImageDraw object
+    :param x: X-coordinate of the top-left corner
+    :param y: Y-coordinate of the top-left corner
+    :param width: Width of the rectangle
+    :param height: Height of the rectangle
+    :param start_opacity: Starting opacity (0-255)
+    :param end_opacity: Ending opacity (0-255)
+    :param color: Base color of the gradient
+    """
+    for i in range(height):
+        opacity = start_opacity + int((end_opacity - start_opacity) * (i / height))
+        fill_color = (*color, opacity)
+        draw.line([(x, y + i), (x + width, y + i)], fill=fill_color)
+
+def competition_overlay(request, competition_pk, user_pk):
+    from PIL import Image, ImageDraw, ImageFont, ImageOps
+
+    # Fetch competition and athlete details
+    competition = get_object_or_404(Competition, pk=competition_pk)
+    athlete = get_object_or_404(AthleteProfile, user_id=user_pk)
+    athlete_competition = AthleteCompetition.objects.filter(
+        competition=competition, athlete=athlete
+    ).first()
+    athlete_rank = ordinal(athlete_competition.rank) if athlete_competition and athlete_competition.rank else "N/A"
+    division = athlete_competition.division.name.upper() if athlete_competition else "N/A"
+    weight_class_obj = athlete_competition.weight_class if athlete_competition else None
+    athlete_results = athlete_competition.results.all() if athlete_competition else []
+
+    # Process weight class
+    weight_class = f"{weight_class_obj.weight_d}{weight_class_obj.name}" if weight_class_obj and weight_class_obj.weight_d == "u" else \
+        f"{weight_class_obj.name}{weight_class_obj.weight_d}" if weight_class_obj else "N/A"
+
+    # Fonts and paths
+    profile_photo_path = athlete.user.profile_picture.path
+    trophy_image_path = "competitions/static/competitions/images/trophy-xxl.png"
+    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    output_path = f"/tmp/overlay_{athlete.user.pk}_{competition.pk}.png"
+
+    light_gray = "#d3dade"
+    # Canvas setup
+    # Canvas setup
+    canvas_size = 1080  # Updated for a square canvas
+    border_thickness = 50
+    canvas = Image.new("RGBA", (canvas_size, canvas_size), light_gray)
+
+    # Create dark background
+    gradient = Image.new("RGBA", (canvas_size, canvas_size))
+    draw_gradient = ImageDraw.Draw(gradient)
+    for y in range(canvas_size):
+        color = "black"
+        draw_gradient.line([(0, y), (canvas_size, y)], fill=color)
+    canvas = Image.alpha_composite(canvas, gradient)
+
+    # Inner box setup
+    inner_box_size = canvas_size - 2 * border_thickness
+    inner_box_radius = 30  # Adjusted for rounded corners
+    inner_box = Image.new("RGBA", (inner_box_size, inner_box_size), (255, 255, 255, 0))
+    draw_inner_box = ImageDraw.Draw(inner_box)
+    draw_inner_box.rounded_rectangle(
+        [(0, 0), (inner_box_size, inner_box_size)],
+        radius=inner_box_radius,
+        fill="#242423",
+    )
+    inner_box_x, inner_box_y = border_thickness, border_thickness
+    canvas.paste(inner_box, (inner_box_x, inner_box_y), inner_box)
+
+    # Profile photo
+    profile_photo_height = int(inner_box_size * 0.6)
+    profile_photo = Image.open(profile_photo_path).convert("RGBA")
+    profile_photo = ImageOps.fit(profile_photo, (inner_box_size, profile_photo_height), Image.Resampling.LANCZOS)
+
+    # Create a mask for top-rounded corners
+    mask = Image.new("L", profile_photo.size, 0)
+    draw_mask = ImageDraw.Draw(mask)
+
+    # Top-rounded rectangle
+    corner_radius = 50  # Adjust corner radius as needed
+    width, height = profile_photo.size
+
+    # Apply rounded corners to profile photo
+    mask = Image.new("L", profile_photo.size, 0)
+    draw_mask = ImageDraw.Draw(mask)
+    corner_radius = 30
+    width, height = profile_photo.size
+    draw_mask.rectangle([(0, corner_radius), (width, height)], fill=255)
+    draw_mask.rectangle([(corner_radius, 0), (width - corner_radius, corner_radius)], fill=255)
+    draw_mask.pieslice([(0, 0), (2 * corner_radius, 2 * corner_radius)], 180, 270, fill=255)
+    draw_mask.pieslice([(width - 2 * corner_radius, 0), (width, 2 * corner_radius)], 270, 360, fill=255)
+    profile_photo.putalpha(mask)
+    canvas.paste(profile_photo, (inner_box_x, inner_box_y), profile_photo)
+
+    # Fonts
+    try:
+        competition_font = ImageFont.truetype(font_path, 45)
+        comp_font = ImageFont.truetype(font_path, 25)
+        athlete_font = ImageFont.truetype(font_path, 80)
+        division_font = ImageFont.truetype(font_path, 30)
+        rank_font = ImageFont.truetype(font_path, 80)
+        event_font = ImageFont.truetype(font_path, 30)
+        place_font = ImageFont.truetype(font_path, 30)
+    except OSError:
+        raise OSError(f"Font file not found or invalid: {font_path}")
+
+    draw = ImageDraw.Draw(canvas)
+
+    # Add athlete's last name overlapping the photo
+    last_name_text = athlete.user.last_name.upper()
+    text_x = canvas_size // 2
+    text_y = inner_box_y
+    shadow_offset = 5
+
+    draw.text((text_x + shadow_offset, text_y + shadow_offset), last_name_text, font=athlete_font, fill="black", anchor="mm")
+    draw.text((text_x, text_y), last_name_text, font=athlete_font, fill="white", anchor="mm")
+
+
+
+    # Add rounded rectangle at the bottom of the profile picture
+    rectangle_width = int(inner_box_size * 0.8)
+    rectangle_height = 150
+    rectangle_x = inner_box_x + (inner_box_size - rectangle_width) // 2
+    rectangle_y = inner_box_y + profile_photo_height - rectangle_height // 2
+    draw.rounded_rectangle(
+        [(rectangle_x, rectangle_y), (rectangle_x + rectangle_width, rectangle_y + rectangle_height)],
+        radius=40,
+        fill=(30, 30, 30),
+        outline="white",
+        width=5,
+    )
+
+    if athlete_rank == "1st":
+        circle_fill_color = "#DED831" # Gold
+    elif athlete_rank == "2nd":
+        circle_fill_color = "#b3bcc7"   # Silver
+    elif athlete_rank == "3rd":
+        circle_fill_color = "#c47b3b"  # Bronze
+    else:
+        circle_fill_color = "#7EBDC2"  # Blue
+
+    # Add circle with light blue fill extending outside the rectangle
+    circle_radius = 100
+    circle_x = rectangle_x + circle_radius - 20
+    circle_y = rectangle_y + rectangle_height // 2
+    draw.ellipse(
+        [(circle_x - circle_radius, circle_y - circle_radius),
+         (circle_x + circle_radius, circle_y + circle_radius)],
+        fill=circle_fill_color,
+    )
+
+    # Add "Competition Corner" above the rounded rectangle
+    competition_corner_text = "COMPETITION CORNER"
+    text_x = canvas_size // 2.2
+    text_y = rectangle_y - 15  # Position above the rounded rectangle with padding
+
+    # Draw black outline for the text (thin stroke effect)
+    outline_offset = 2
+    for dx in [-outline_offset, 0, outline_offset]:
+        for dy in [-outline_offset, 0, outline_offset]:
+            if dx != 0 or dy != 0:  # Skip the center position
+                draw.text(
+                    (text_x + dx, text_y + dy),
+                    competition_corner_text,
+                    font=comp_font,
+                    fill="black",
+                    anchor="mm"
+                )
+
+    # Draw the main "Competition Corner" text in white
+    draw.text(
+        (text_x, text_y),
+        competition_corner_text,
+        font=comp_font,
+        fill="white",
+        anchor="mm"
+    )
+
+
+    # Add trophy image inside the circle
+    trophy_image = Image.open(trophy_image_path).convert("RGBA")
+    trophy_size = int(circle_radius * 1.5)
+    trophy_image = ImageOps.fit(trophy_image, (trophy_size, trophy_size), Image.Resampling.LANCZOS)
+    canvas.paste(trophy_image, (circle_x - trophy_size // 2, circle_y - trophy_size // 2), trophy_image)
+
+    # Add "1st Place" in larger bold text
+    text_x = circle_x + circle_radius + 40
+    text_y = rectangle_y + rectangle_height // 2 - 15
+    draw.text((text_x, text_y), f"{athlete_rank.upper()} PLACE", font=rank_font, fill="white", anchor="lm")
+
+    # Add division and weight class in smaller text below
+    draw.text((text_x, text_y + 50), f"{division} - {weight_class}", font=division_font, fill="white", anchor="lm")
+
+    competition_name_text = competition.name.upper()
+    competition_name_y = rectangle_y + rectangle_height + 60  # Position just below the rounded rectangle
+
+    outline_offset = 2
+    for dx in [-outline_offset, 0, outline_offset]:
+        for dy in [-outline_offset, 0, outline_offset]:
+            if dx != 0 or dy != 0:  # Skip the center position
+                draw.text(
+                    (canvas_size // 2 + dx, competition_name_y + dy),
+                    competition_name_text,
+                    font=competition_font,
+                    fill="black",
+                    anchor="mm"
+                )
+
+    # Draw the main competition name text in white
+    draw.text(
+        (canvas_size // 2, competition_name_y),
+        competition_name_text,
+        font=competition_font,
+        fill="white",
+        anchor="mm"
+    )
+    # Add light gray background for event performance
+    event_bg_y = rectangle_y + rectangle_height + 85
+    event_bg_y = competition_name_y + 75  # Add padding below the competition name
+    event_bg_height = canvas_size - event_bg_y - 150
+
+    # Add event performances in rows of 3
+    cols = 5
+    col_width = inner_box_size // cols
+    row_height = 150
+    event_x_start = inner_box_x
+    event_y_start = event_bg_y
+
+    num_events = len(athlete_results)
+
+    for row in range((num_events + cols - 1) // cols):  # Calculate the number of rows
+        # Events in the current row
+        events_in_row = min(cols, num_events - row * cols)
+
+        # Calculate horizontal offset to center the row
+        row_offset = (inner_box_size - (events_in_row * col_width)) // 2
+
+        for col in range(events_in_row):
+            # Calculate the event's index and positions
+            event_index = row * cols + col
+            x_center = event_x_start + row_offset + col * col_width + col_width // 2
+            y_top = event_y_start + row * row_height
+
+            result = athlete_results[event_index]
+
+            # Finishing place (above event name)
+            event_rank = ordinal(result.points_earned)
+            draw.text((x_center, y_top), event_rank, font=place_font, fill="#BB4430", anchor="mm")
+
+            # Event name (below finishing place)
+            event_name = result.event_order.event.name
+            wrapped_event_name = wrap_text(event_name, event_font, col_width - 20)
+            for line_index, line in enumerate(wrapped_event_name):
+                draw.text((x_center, y_top + 50 + (line_index * 40)), line, font=event_font, fill="white", anchor="mm")
+
+            # Draw vertical line separator (not for the last event in the row)
+            if col < events_in_row - 1:
+                line_x = event_x_start + row_offset + (col + 1) * col_width
+                draw.line([(line_x, y_top - 20), (line_x, y_top + 100)], fill="gray", width=3)
+
+    # Save the image
+    canvas.save(output_path)
+    with open(output_path, "rb") as img:
+        return HttpResponse(img.read(), content_type="image/png")

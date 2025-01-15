@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+<div class="container">
+  {% if messages %}
+    <div class="alert alert-success" role="alert">
+      {% for message in messages %}
+        {{ message }}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <h1>{{ competition.name }} - {{ event_order.event.name }}</h1>
+  <h2>Update Scores</h2>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="table-responsive">
+      <table class="table table-sm table-striped table-bordered align-middle">
+        <thead>
+          <tr>
+            <th>Category (Gender & Division)</th>
+            <th>Athlete</th>
+            <th>Weight Class</th>
+            <th>Score</th>
+            <th>Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for gender, divisions in grouped_athletes.items %}
+            {% for division, athletes in divisions.items %}
+              <tr>
+                <td rowspan="{{ athletes|length }}">
+                  {{ gender|capfirst }} - {{ division|capfirst }}
+                </td>
+                <td>
+                  {% if athletes.0.weight_class.weight_d == 'u' %}
+                    {{ athletes.0.weight_class.weight_d }}{{ athletes.0.weight_class.name }}
+                  {% elif athletes.0.weight_class.weight_d == '+' %}
+                    {{ athletes.0.weight_class.name }}{{ athletes.0.weight_class.weight_d }}
+                  {% else %}
+                    {{ athletes.0.weight_class.name }}
+                  {% endif %}
+                </td>
+                <td>{{ athletes.0.athlete_competition.athlete.user.get_full_name }}</td>
+              
+                <td>
+                  <input type="text" 
+                         name="result_{{ athletes.0.athlete_competition.id }}_{{ event_order.id }}" 
+                         value="{{ athletes.0.result.value }}" 
+                         class="form-control form-control-sm"
+                         placeholder="Enter score">
+                </td>
+                <td>{{ athletes.0.result.points_earned }}</td>
+              </tr>
+              {% for athlete in athletes|slice:"1:" %}
+                <tr>
+                  <td>
+                    {% if athlete.weight_class.weight_d == 'u' %}
+                      {{ athlete.weight_class.weight_d }}{{ athlete.weight_class.name }}
+                    {% elif athlete.weight_class.weight_d == '+' %}
+                      {{ athlete.weight_class.name }}{{ athlete.weight_class.weight_d }}
+                    {% else %}
+                      {{ athlete.weight_class.name }}
+                    {% endif %}
+                  </td>
+                  <td>{{ athlete.athlete_competition.athlete.user.get_full_name }}</td>
+                
+                  <td>
+                    <input type="text" 
+                           name="result_{{ athlete.athlete_competition.id }}_{{ event_order.id }}" 
+                           value="{{ athlete.result.value }}" 
+                           class="form-control form-control-sm"
+                           placeholder="Enter score">
+                  </td>
+                  <td>{{ athlete.result.points_earned }}</td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm mt-3">Save Scores</button>
+  </form>
+</div>
+{% endblock %}
