@@ -125,10 +125,12 @@
                           {% endfor %}
                         </td>
                           <td>
-                            <a href="{% url 'competitions:competition_overlay' competition.competition.pk user.pk %}" 
-                               class="btn btn-primary btn-sm">
-                               View Overlay
-                            </a>
+                            {% if competition.competition.status == 'completed' %}
+                                <a href="{% url 'competitions:competition_overlay' competition.competition.pk user.pk %}" 
+                                   class="btn btn-primary btn-sm">
+                                   View Overlay
+                                </a>
+                            {% endif %}
                         </td>
                       </tr>
                       {% endfor %}

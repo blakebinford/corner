@@ -1,7 +1,8 @@
 from django.urls import path, re_path
 from . import views
 from .consumers import ScoreUpdateConsumer
-from .views import EventUpdateView, SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView
+from .views import EventUpdateView, SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
+    CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView
 
 app_name = 'competitions'
 
@@ -31,14 +32,23 @@ urlpatterns = [
     path('competition/<int:competition_pk>/manage/', ManageCompetitionView.as_view(), name='manage_competition'),
     path('competition/<int:competition_pk>/participants/', AthleteListView.as_view(), name='athlete_list'),
     path('<int:competition_pk>/send_email/', views.send_email_to_athletes, name='send_email'),
+    path(
+        'competition/<int:competition_pk>/overlay-image/<int:user_pk>/',
+        views.competition_overlay_image,
+        name='competition_overlay_image',
+    ),
+    path('competitions/<int:competition_pk>/edit_weight_classes/', EditWeightClassesView.as_view(), name='edit_weight_classes'),
+    path('competitions/archived/', ArchivedCompetitionListView.as_view(), name='archived_competition_list'),
     path('competition/<int:competition_pk>/overlay/<int:user_pk>/',
          views.competition_overlay, name='competition_overlay'),
     path('<int:competition_pk>/events/', views.event_list, name='event_list'),
     path('<int:competition_pk>/events/<int:eventorder_pk>/scores/', views.event_scores, name='event_scores'),
+    path('competition/<int:competition_pk>/complete/', CompleteCompetitionView.as_view(), name='complete_competition'),
 
     # AthleteCompetition URLs
     path('<int:competition_pk>/register/', views.AthleteCompetitionCreateView.as_view(), name='athletecompetition_create'),
     path('athletecompetition/<int:pk>/update/', views.AthleteCompetitionUpdateView.as_view(), name='athletecompetition_update'),
     path('athletecompetition/<int:pk>/delete/', views.AthleteCompetitionDeleteView.as_view(), name='athletecompetition_delete'),
     path('athlete/<int:athlete_id>/', views.athlete_profile, name='athlete_profile'),
+
 ]

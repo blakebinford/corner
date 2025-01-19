@@ -127,11 +127,6 @@ def update_profile(request):
     return render(request, 'registration/update_profile.html', context)
 
 
-    return render(request, 'registration/update_profile.html', {
-        'user_form': user_form,
-        'profile_form': profile_form,
-        'user': request.user
-    })
 
 class OrganizerProfileUpdateView(generic.UpdateView):
     """

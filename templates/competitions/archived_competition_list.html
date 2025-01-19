@@ -3,25 +3,11 @@
 {% load crispy_forms_field %}
 {% load django_bootstrap5 %}
 
-{% block extra_styles %}
-<style>
-  .select2-container {
-    width: 40% !important; /* Default width for larger screens */
-  }
-
-  @media (max-width: 768px) {
-    .select2-container {
-      width: 100% !important; /* Full width on smaller screens (e.g., mobile) */
-    }
-  }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container">
     <div class="row">
         <div class="col-12">
-            <h2 class="text-center">Upcoming Competitions</h2>
+            <h2 class="text-center">Archived Competitions</h2>
             <button class="btn btn-outline-primary w-100 mb-3" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
                 <i class="bi bi-funnel-fill"></i> Show Filters
             </button>
@@ -36,12 +22,6 @@
                         </div>
                     </form>
                 </div>
-            </div>
-            <!-- Archived Competitions Button -->
-            <div class="text-center mt-3">
-                <a href="{% url 'competitions:archived_competition_list' %}" class="btn btn-secondary">
-                    <i class="bi bi-archive"></i> View Archived Competitions
-                </a>
             </div>
         </div>
     </div>
@@ -124,15 +104,8 @@
         </div>
         {% endfor %}
         {% if not competitions %}
-        <p class="text-center">No competitions available.</p>
+        <p class="text-center">No archived competitions available.</p>
         {% endif %}
     </div>
 </div>
-<br>
-<script>
-  $(document).ready(function() {
-    $('select').select2(); // Initialize Select2
-  });
-</script>
-
 {% endblock %}

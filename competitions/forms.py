@@ -1,17 +1,43 @@
 import math
 from datetime import date
+import re
+import requests
+import bleach
+from tinymce.widgets import TinyMCE
 
 import django_filters
 from django.db.models import F, ExpressionWrapper, FloatField
 from django import forms
 from django.forms import NumberInput, modelformset_factory
+from django.core.exceptions import ValidationError
 
 from .models import Competition, EventOrder, AthleteCompetition, Event, EventImplement, Result, Tag, \
-    DivisionWeightClass, EventBase, ZipCode, Federation, Sponsor
+    DivisionWeightClass, EventBase, ZipCode, Federation, Sponsor, TshirtSize
 from accounts.models import Division, WeightClass
-import bleach
-from tinymce.widgets import TinyMCE
 
+
+def validate_social_media_url(url, platform):
+    """
+    Validates that the URL is a valid Facebook or Instagram URL and optionally checks its existence.
+    """
+    patterns = {
+        'facebook': r'^https://(www\.)?facebook\.com/.+',
+        'instagram': r'^https://(www\.)?instagram\.com/.+',
+    }
+
+    if platform not in patterns:
+        raise ValueError("Unsupported platform for URL validation.")
+
+    if not re.match(patterns[platform], url):
+        raise ValidationError(f"Enter a valid {platform.capitalize()} URL.")
+
+    # Optionally, check if the URL is accessible
+    try:
+        response = requests.head(url, timeout=5)
+        if response.status_code >= 400:
+            raise ValidationError(f"The provided {platform.capitalize()} URL is not accessible.")
+    except requests.RequestException:
+        raise ValidationError(f"Unable to reach the {platform.capitalize()} URL.")
 
 def sanitize_html(html):
     """Sanitizes HTML input to prevent XSS vulnerabilities."""
@@ -45,6 +71,18 @@ class CompetitionForm(forms.ModelForm):
         queryset=Tag.objects.all(),
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-select'})
     )
+    provides_shirts = forms.BooleanField(
+        required=False,
+        label="Will T-shirts be provided?",
+        help_text="Check this box if you want to collect T-shirt sizes from participants."
+    )
+    allowed_tshirt_sizes = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        choices=TshirtSize.SIZE_CHOICES,  # Use SIZE_CHOICES directly
+        label="Allowed T-shirt Sizes",
+        help_text="Select the sizes athletes can choose from."
+    )
 
     class Meta:
         model = Competition
@@ -52,8 +90,8 @@ class CompetitionForm(forms.ModelForm):
             'name', 'comp_date', 'comp_end_date', 'start_time', 'event_location_name',
             'address', 'city', 'state', 'zip_code', 'federation',
             'signup_price', 'capacity', 'registration_deadline', 'image',
-            'description', 'liability_waiver_accepted',
-            'allowed_divisions', 'allowed_weight_classes', 'tags'
+            'description', 'liability_waiver_accepted', 'provides_shirts', 'allowed_tshirt_sizes',
+            'allowed_divisions', 'allowed_weight_classes', 'tags', 'facebook_url', 'instagram_url',
         ]
         widgets = {
             'comp_date': forms.DateInput(attrs={'type': 'date'}),
@@ -64,7 +102,38 @@ class CompetitionForm(forms.ModelForm):
             'description': TinyMCE(attrs={'cols': 80, 'rows': 30}),
             'state': forms.Select(choices=Competition.STATE_CHOICES),
             'signup_price': NumberInput(attrs={'type': 'number', 'step': '0.01', 'min': '0'}),
+            'facebook_url': forms.URLInput(attrs={'placeholder': 'https://www.facebook.com/...'}),
+            'instagram_url': forms.URLInput(attrs={'placeholder': 'https://www.instagram.com/...'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['allowed_divisions'].queryset = Division.objects.all()
+
+        # Pre-check T-shirt sizes if they exist
+        if self.instance.pk:  # Ensure this runs for existing instances
+            selected_sizes = [tshirt_size.size for tshirt_size in self.instance.allowed_tshirt_sizes.all()]
+            print("Selected Sizes in Init:", selected_sizes)  # Debugging output
+            self.fields['allowed_tshirt_sizes'].initial = selected_sizes
+            print("Initial for allowed_tshirt_sizes:", self.fields['allowed_tshirt_sizes'].initial)
+            self.fields['allowed_tshirt_sizes'].widget.attrs['value'] = selected_sizes
+
+    def clean_allowed_tshirt_sizes(self):
+        if self.cleaned_data.get('provides_shirts') and not self.cleaned_data.get('allowed_tshirt_sizes'):
+            raise forms.ValidationError("You must select at least one T-shirt size if T-shirts are provided.")
+        return self.cleaned_data.get('allowed_tshirt_sizes', [])
+
+    def clean_facebook_url(self):
+        facebook_url = self.cleaned_data.get('facebook_url')
+        if facebook_url:
+            validate_social_media_url(facebook_url, 'facebook')
+        return facebook_url
+
+    def clean_instagram_url(self):
+        instagram_url = self.cleaned_data.get('instagram_url')
+        if instagram_url:
+            validate_social_media_url(instagram_url, 'instagram')
+        return instagram_url
 
     def clean(self):
         cleaned_data = super().clean()
@@ -84,34 +153,54 @@ class CompetitionForm(forms.ModelForm):
             return sanitize_html(description)
         return description
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['allowed_divisions'].queryset = Division.objects.all()
-
     def save(self, commit=True):
         competition = super().save(commit=False)
         competition.scoring_system = 'strongman'  # Set the default scoring system
+
+        # Determine competition status based on date
         if competition.comp_date > date.today():
             competition.status = 'upcoming'  # Default to upcoming if in the future
         elif competition.comp_date < date.today():
             competition.status = 'completed'
-        competition.save()
-            # Count the number of signed-up athletes
-        signed_up_athletes_count = AthleteCompetition.objects.filter(
-            competition=competition,
-            signed_up=True
-        ).count()
 
-        # Compare the count to the capacity to determine 'full' or 'limited' status
-        if signed_up_athletes_count >= competition.capacity:
-            competition.status = 'full'
-        elif signed_up_athletes_count >= 0.9 * competition.capacity:
-            competition.status = 'limited'
+        # Save competition instance before updating ManyToMany fields
+        if commit:
+            competition.save()
+
+        # Handle T-shirt sizes
+        selected_sizes = self.cleaned_data.get('allowed_tshirt_sizes', [])
+        selected_sizes = self.cleaned_data.get('allowed_tshirt_sizes', [])
+        print("Saving Sizes:", selected_sizes)
+        if selected_sizes:
+            tshirt_size_objects = TshirtSize.objects.filter(size__in=selected_sizes)
+            competition.allowed_tshirt_sizes.set(tshirt_size_objects)
+        else:
+            competition.allowed_tshirt_sizes.clear()  # Remove all sizes if none are selected
 
         if commit:
             competition.save()
 
         return competition
+
+class EditWeightClassesForm(forms.Form):
+    weight_classes = forms.ModelMultipleChoiceField(
+        queryset=WeightClass.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        competition = kwargs.pop('competition', None)
+        super().__init__(*args, **kwargs)
+
+        if competition:
+            # Fetch weight classes linked to the competition's federation
+            self.fields['weight_classes'].queryset = WeightClass.objects.filter(
+                federation=competition.federation
+            )
+
+            # Pre-select the currently allowed weight classes
+            self.initial_weight_classes = competition.allowed_weight_classes.all()
 
 class SponsorEditForm(forms.ModelForm):
     class Meta:
@@ -181,24 +270,28 @@ EventImplementFormSet = modelformset_factory(
     can_delete=True
 )
 
-class AthleteCompetitionForm(forms.ModelForm):  # New form for AthleteCompetition
+class AthleteCompetitionForm(forms.ModelForm):
+    liability_waiver = forms.BooleanField(
+        required=True,
+        label="I agree to the liability waiver"
+    )
+
     class Meta:
         model = AthleteCompetition
-        fields = ['division', 'weight_class',]
+        fields = ['division', 'weight_class', 'tshirt_size']
 
-        def __init__(self, *args, **kwargs):
-            competition = kwargs.pop('competition', None)
-            super().__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        competition = kwargs.pop('competition', None)
+        super().__init__(*args, **kwargs)
+        if competition:
+            self.fields['weight_class'].queryset = competition.allowed_weight_classes.all()
+            self.fields['division'].queryset = competition.allowed_divisions.all()
 
-            # Filter weight classes based on the competition
-            if competition:
-                self.fields['weight_class'].queryset = competition.allowed_weight_classes.all()
-
-            # Optionally filter divisions as well
-            if competition:
-                self.fields['division'].queryset = competition.allowed_divisions.all()
-
-            self.instance.payment_status = 'pending'
+            # Add conditional logic for T-shirt sizes
+        if competition.provides_shirts:
+            self.fields['tshirt_size'].queryset = competition.allowed_tshirt_sizes.all()
+        else:
+            self.fields.pop('tshirt_size')
 
 class ResultForm(forms.ModelForm):
     class Meta:
@@ -312,11 +405,12 @@ class CompetitionFilter(django_filters.FilterSet):
         widget=forms.DateInput(attrs={'type': 'date'})
     )
     event_base = django_filters.ModelChoiceFilter(
-        field_name='events__event_base',  # Use the related field 'event_base' in the Event model
+        field_name='events__event_base',
         queryset=EventBase.objects.all(),
         label='Event Base',
-        widget=forms.Select(attrs={'class': 'form-control'})   # Or any other suitable widget
+        widget=forms.Select(attrs={'class': 'form-control', 'placeholder': 'Select an event...'}),
     )
+
     allowed_divisions = django_filters.ModelChoiceFilter(
         field_name='allowed_divisions',
         queryset=Division.objects.all(),

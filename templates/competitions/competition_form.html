@@ -72,15 +72,92 @@
                   {{ form.allowed_weight_classes|as_crispy_field }}
                 </div>
               </div>
+                 
               <div class="col-md-12">
                 {{ form.description|as_crispy_field }}
               </div>
+                <div class="col-md-6">
+                    {{ form.facebook_url|as_crispy_field }}
+                  </div>
+                  <div class="col-md-6">
+                    {{ form.instagram_url|as_crispy_field }}
+                  </div>
+                <div class="col-md-12">
+  <div class="form-check mb-3">
+    {{ form.provides_shirts|as_crispy_field }}
+    <label class="form-check-label" for="{{ form.provides_shirts.id_for_label }}">
+
+    </label>
+  </div>
+
+  <div id="tshirt-sizes-container" style="display: none;">
+    <p class="mb-2"><b>Allowed T-shirt Sizes</b></p>
+    {{ form.allowed_tshirt_sizes.errors }}
+    {{ form.allowed_tshirt_sizes.label_tag }}
+    {% for checkbox in form.allowed_tshirt_sizes %}
+      <div class="form-check">
+        {{ checkbox.tag }}
+        <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+          {{ checkbox.choice_label }}
+        </label>
+      </div>
+    {% endfor %}
+  </div>
+</div>
               <div class="col-md-12">
                 <div class="form-check">
                   {{ form.liability_waiver_accepted|as_crispy_field }}
                   <label class="form-check-label" for="{{ form.liability_waiver_accepted.id_for_label }}">
-                    I agree to the <a href="#">liability waiver</a>
+                    I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#liabilityWaiverModal">liability waiver</a>
                   </label>
+                    
+                    <!-- Modal -->
+<div class="modal fade" id="liabilityWaiverModal" tabindex="-1" aria-labelledby="liabilityWaiverLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="liabilityWaiverLabel">Liability Waiver and Release Form</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>WAIVER AND RELEASE OF LIABILITY</strong></p>
+        <p>
+          In consideration of being allowed to participate in the <strong>{{ competition.name }}</strong> ("the Competition"), I, the undersigned participant, acknowledge and agree to the following:
+        </p>
+        <ol>
+          <li>
+            <strong>Assumption of Risk:</strong> I understand that participating in the Competition involves inherent risks, including but not limited to, physical injury, property damage, and, in extreme cases, death. I voluntarily accept and assume all such risks.
+          </li>
+          <li>
+            <strong>Release of Liability:</strong> I hereby release and discharge the organizer(s), sponsors, volunteers, and any associated entities from any and all claims, demands, damages, or causes of action, whether known or unknown, arising from or related to my participation in the Competition.
+          </li>
+          <li>
+            <strong>Medical Authorization:</strong> I consent to receive medical treatment deemed necessary in the event of an injury or illness during the Competition. I understand that I am responsible for any medical expenses incurred.
+          </li>
+          <li>
+            <strong>Compliance with Rules:</strong> I agree to follow all rules and instructions provided by the Competition organizers and acknowledge that failure to do so may result in disqualification or removal from the event.
+          </li>
+          <li>
+            <strong>Media Release:</strong> I grant permission to the organizers to use my likeness, name, and image in any photographs, videos, or promotional materials without compensation.
+          </li>
+          <li>
+            <strong>Indemnification:</strong> I agree to indemnify and hold harmless the organizers, sponsors, and their agents against any claims or damages arising out of my actions or participation in the Competition.
+          </li>
+          <li>
+            <strong>Understanding of Agreement:</strong> I have read and fully understand this waiver. I voluntarily sign it, acknowledging that it is binding upon me, my heirs, and assigns.
+          </li>
+        </ol>
+        <p>
+          By participating in the Competition, I confirm that I am at least 18 years old or have obtained parental/guardian consent to participate in the event.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
                 </div>
               </div>
             </div>
@@ -97,6 +174,29 @@
   </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const providesShirtsCheckbox = document.getElementById('{{ form.provides_shirts.id_for_label }}');
+  const tshirtSizesContainer = document.getElementById('tshirt-sizes-container');
+
+  // Function to toggle the visibility of the T-shirt sizes container
+  function toggleTshirtSizes() {
+    if (providesShirtsCheckbox.checked) {
+      tshirtSizesContainer.style.display = 'block';
+    } else {
+      tshirtSizesContainer.style.display = 'none';
+    }
+  }
+
+  // Add event listener for changes in the checkbox
+  providesShirtsCheckbox.addEventListener('change', toggleTshirtSizes);
+
+  // Initialize the correct visibility state on page load
+  toggleTshirtSizes();
+});
+</script>
+
+    
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const multiDayCheckbox = document.getElementById('is-multi-day');

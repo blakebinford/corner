@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<div class="container text-center my-5">
+  <h1 class="mb-4">{{ competition.name }}</h1>
+  <p class="lead">Athlete: {{ athlete.user.get_full_name }}</p>
+
+  <!-- Form for Uploading a New Image -->
+<form method="post" enctype="multipart/form-data" class="mb-4">
+  {% csrf_token %}
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="mb-3">
+        <label for="custom-photo" class="form-label">Upload a Custom Photo</label>
+        <div class="input-group">
+          <label class="input-group-text btn btn-primary" for="custom-photo">
+            <i class="bi bi-upload"></i> Browse
+          </label>
+          <input type="file" name="custom_photo" id="custom-photo" class="form-control d-none" accept="image/*" required>
+          <input type="text" id="file-name" class="form-control" placeholder="No file chosen" readonly>
+        </div>
+      </div>
+      <!-- Update Image Button -->
+      <div class="text-center mt-3">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-upload"></i> Update Image
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+
+    
+    <div id="cropper-container" class="mt-4" style="display: none;">
+        <img id="cropper-image" src="#" alt="Image to Crop" class="img-fluid">
+        <button id="crop-btn" class="btn btn-primary mt-3">Crop & Update</button>
+    </div>
+    
+  <!-- Image Preview -->
+  <img src="{% url 'competitions:competition_overlay_image' competition.pk athlete.user.id %}" 
+       alt="Competition Overlay Image" 
+       class="img-fluid shadow-lg rounded mb-4" 
+       style="max-width: 90%; height: auto; max-height: 600px;">
+
+  <!-- Action Buttons -->
+  <div class="d-flex justify-content-center">
+    <a href="{% url 'competitions:competition_overlay_image' competition.pk athlete.user.id %}" 
+       download="competition_overlay_{{ athlete.user.id }}.png" 
+       class="btn btn-success me-3">
+      <i class="bi bi-download"></i> Download Image
+    </a>
+  </div>
+</div>
+    
+    <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('custom-photo');
+    const fileNameDisplay = document.getElementById('file-name');
+
+    fileInput.addEventListener('change', function () {
+      const fileName = this.files[0] ? this.files[0].name : 'No file chosen';
+      fileNameDisplay.value = fileName;
+    });
+  });
+  
+</script>
+
+{% endblock %}

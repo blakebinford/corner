@@ -37,7 +37,7 @@ urlpatterns = [
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('activate/<uidb64>/<token>/', accounts_views.activate, name='activate'),
     path('chat/', include('chat.urls', namespace='chat')),
-    path('', include('django.contrib.auth.urls'))
+    path('', include('django.contrib.auth.urls')),
 
 ]
 

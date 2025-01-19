@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Edit Allowed Weight Classes for {{ competition.name }}</h2>
+    <form method="post" action="">
+        {% csrf_token %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm text-center" style="table-layout: fixed; width: 100%;">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col" style="width: 10%;">Select</th>
+                        <th scope="col" style="width: 25%;">Weight Class</th>
+                        <th scope="col" style="width: 25%;">Gender</th>
+                        <th scope="col" style="width: 40%;">Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for weight_class in form.weight_classes.field.queryset %}
+                    <tr>
+                        <td>
+                            <input 
+                                type="checkbox" 
+                                name="weight_classes" 
+                                value="{{ weight_class.pk }}" 
+                                {% if weight_class in form.initial_weight_classes %}checked{% endif %}
+                            >
+                        </td>
+                        <td>
+                            {% if weight_class.weight_d == 'u' %}
+                                {{ weight_class.weight_d }}{{ weight_class.name|floatformat:0 }}
+                            {% elif weight_class.weight_d == '+' %}
+                                {{ weight_class.name|floatformat:0 }}{{ weight_class.weight_d }}
+                            {% else %}
+                                {{ weight_class.name|floatformat:0 }}
+                            {% endif %}
+                        </td>
+                        <td>{{ weight_class.gender }}</td>
+                        <td>{{ weight_class.get_category_display }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-success">Save Changes</button>
+            <a href="{% url 'competitions:manage_competition' competition.pk %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -145,10 +145,23 @@ class WeightClass(models.Model):
         ('u', 'u'),
         ('+', '+')
     ]
+    CATEGORY_CHOICES = [
+        ('lw', 'LW'),
+        ('mw', 'MW'),
+        ('hw', 'HW'),
+        ('shw', 'SWH'),
+    ]
     name = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')])  # Add gender field
     federation = models.ForeignKey('competitions.Federation', on_delete=models.CASCADE)
     weight_d = models.CharField(max_length=2, choices=WEIGHT_CHOICES)
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default='middleweight',
+        help_text="Weight class category (e.g., lightweight, middleweight)."
+    )
+
     class Meta:
         pass
 

@@ -56,6 +56,18 @@ class Competition(models.Model):
     sponsor_logos = models.ManyToManyField('Sponsor', blank=True)
     signup_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,
                                        validators=[MinValueValidator(0.00)])
+    facebook_url = models.URLField(blank=True, null=True, help_text="Facebook page URL for the competition")
+    instagram_url = models.URLField(blank=True, null=True, help_text="Instagram profile URL for the competition")
+    provides_shirts = models.BooleanField(
+        default=False,
+        help_text="Check this box if T-shirts will be provided to participants."
+    )
+    allowed_tshirt_sizes = models.ManyToManyField(
+        'TshirtSize',
+        blank=True,
+        help_text="Select the T-shirt sizes that athletes can choose from."
+    )
+
     STATE_CHOICES = [
         ('AL', 'Alabama'),
         ('AK', 'Alaska'),
@@ -110,6 +122,21 @@ class Competition(models.Model):
     ]
     def __str__(self):
         return self.name
+
+class TshirtSize(models.Model):
+    SIZE_CHOICES = [
+        ('XS', 'Extra Small'),
+        ('S', 'Small'),
+        ('M', 'Medium'),
+        ('L', 'Large'),
+        ('XL', 'Extra Large'),
+        ('XXL', '2X Large'),
+        ('XXXL', '3X Large'),
+    ]
+    size = models.CharField(max_length=5, choices=SIZE_CHOICES, unique=True)
+
+    def __str__(self):
+        return self.get_size_display()
 
 class CommentatorNote(models.Model):
     competition = models.ForeignKey(Competition, on_delete=models.CASCADE)
@@ -223,7 +250,15 @@ class AthleteCompetition(models.Model):
     division = models.ForeignKey(Division, on_delete=models.CASCADE, null=True, blank=True)
     weight_class = models.ForeignKey(WeightClass, on_delete=models.CASCADE, null=True, blank=True)
     total_points = models.PositiveIntegerField(default=0)
-    rank = models.PositiveIntegerField(null=True, blank=True)  # Allow null for unranked athletes
+    rank = models.PositiveIntegerField(null=True, blank=True)
+    tshirt_size = models.ForeignKey(
+        TshirtSize,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="T-shirt size for the participant (if applicable)."
+    )
+
 
     class Meta:
         unique_together = ('athlete', 'competition')

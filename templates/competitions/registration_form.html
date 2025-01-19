@@ -1,15 +1,24 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% load django_bootstrap5 %}
-
 {% block content %}
 <div class="container mt-5">
   <div class="row justify-content-center">
     <div class="col-md-8">
-      <div class="card shadow">
-        <div class="card-body">
-          <h2 class="card-title text-center
- mb-4">Register for {{ competition.name }}</h2>
+      <div class="card shadow-lg border-0">
+        <div class="card-header bg-primary text-white text-center">
+          <h2 class="mb-0">Register for {{ competition.name }}</h2>
+        </div>
+        <div class="card-body p-4">
+          <!-- Competition Information -->
+          <div class="mb-4">
+            <h4>Competition Information</h4>
+            <p><strong>Name:</strong> {{ competition.name }}</p>
+            <p><strong>Date:</strong> {{ competition.comp_date }}{% if competition.comp_end_date %} - {{ competition.comp_end_date }}{% endif %}</p>
+            <p><strong>Location:</strong> {{ competition.location }}</p>
+            <p><strong>Organizer:</strong> {{ competition.organizer.first_name }} {{ competition.organizer.last_name }}</p>
+          </div>
+
+          <!-- Registration Form -->
           <form method="post">
             {% csrf_token %}
             {{ form.media }}
@@ -19,8 +28,23 @@
             <div class="mb-3">
               {{ form.weight_class|as_crispy_field }}
             </div>
-                     <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary">Register</button>
+                {% if competition.provides_shirts %}
+                <div class="mb-3">
+                  {{ form.tshirt_size|as_crispy_field }}
+                </div>
+                {% endif %}
+            <!-- Liability Waiver -->
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="liability-waiver" name="liability_waiver" required>
+                <label class="form-check-label" for="liability-waiver">
+                  I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#liabilityWaiverModal">liability waiver</a>
+                </label>
+              </div>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary btn-lg">Register</button>
             </div>
           </form>
         </div>
@@ -28,4 +52,62 @@
     </div>
   </div>
 </div>
+
+<!-- Liability Waiver Modal -->
+<div class="modal fade" id="liabilityWaiverModal" tabindex="-1" aria-labelledby="liabilityWaiverLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="liabilityWaiverLabel">Liability Waiver and Release Form</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+     <div class="modal-body">
+        <p><strong>WAIVER AND RELEASE OF LIABILITY</strong></p>
+        <p>
+          In consideration of being allowed to participate in the <strong>{{ competition.name }}</strong> ("the Competition"), I, the undersigned participant, acknowledge and agree to the following:
+        </p>
+        <ol>
+          <li>
+            <strong>Assumption of Risk:</strong> I understand that participating in the Competition involves inherent risks, including but not limited to, physical injury, property damage, and, in extreme cases, death. I voluntarily accept and assume all such risks.
+          </li>
+          <li>
+            <strong>Release of Liability:</strong> I hereby release and discharge the organizer(s), sponsors, volunteers, and any associated entities from any and all claims, demands, damages, or causes of action, whether known or unknown, arising from or related to my participation in the Competition.
+          </li>
+          <li>
+            <strong>Medical Authorization:</strong> I consent to receive medical treatment deemed necessary in the event of an injury or illness during the Competition. I understand that I am responsible for any medical expenses incurred.
+          </li>
+          <li>
+            <strong>Compliance with Rules:</strong> I agree to follow all rules and instructions provided by the Competition organizers and acknowledge that failure to do so may result in disqualification or removal from the event.
+          </li>
+          <li>
+            <strong>Media Release:</strong> I grant permission to the organizers to use my likeness, name, and image in any photographs, videos, or promotional materials without compensation.
+          </li>
+          <li>
+            <strong>Indemnification:</strong> I agree to indemnify and hold harmless the organizers, sponsors, and their agents against any claims or damages arising out of my actions or participation in the Competition.
+          </li>
+          <li>
+            <strong>Understanding of Agreement:</strong> I have read and fully understand this waiver. I voluntarily sign it, acknowledging that it is binding upon me, my heirs, and assigns.
+          </li>
+        </ol>
+        <p>
+          By participating in the Competition, I confirm that I am at least 18 years old or have obtained parental/guardian consent to participate in the event.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Prevent form submission if liability waiver is not checked
+  document.querySelector('form').addEventListener('submit', function(event) {
+    const waiverChecked = document.getElementById('liability-waiver').checked;
+    if (!waiverChecked) {
+      event.preventDefault();
+      alert('You must agree to the liability waiver to register.');
+    }
+  });
+</script>
 {% endblock %}

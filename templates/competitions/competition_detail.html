@@ -38,7 +38,7 @@
                         {% endif %}
                     </div>
                 </div>
-
+                 
                 <div class="card-body">
                     <div class="row mb-3">
                         <div class="col-md-6 mb-3">
@@ -64,7 +64,7 @@
                             </p>
                         </div>
                     </div>
-
+                   
                     <h4 class="text-center"><b>{{ competition.name }}</b> is brought to you by</h4>
                     {% if competition.sponsor_logos.exists %}
                     <div class="main-sponsor-logos mt-3">
@@ -89,6 +89,30 @@
                 <h4 class="text-center"><b>{{ competition.name }}</b> Information</h4>
                 <div class="px-3">
                     <p class="card-text">{{ competition.description|safe }}</p>
+                {% if competition.facebook_url or competition.instagram_url %}
+<div class="card shadow-sm mb-4 border-0">
+  <div class="card-body text-center">
+    <h5 class="card-title">Stay up to Date</h5>
+    <ul class="list-inline">
+      {% if competition.facebook_url %}
+      <li class="list-inline-item">
+        <a href="{{ competition.facebook_url }}" target="_blank" class="btn btn-primary">
+          <i class="bi bi-facebook"></i> Facebook
+        </a>
+      </li>
+      {% endif %}
+      {% if competition.instagram_url %}
+      <li class="list-inline-item">
+        <a href="{{ competition.instagram_url }}" target="_blank" class="btn btn-danger">
+          <i class="bi bi-instagram"></i> Instagram
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
                 </div>
                 {% endif %}
 
@@ -220,14 +244,17 @@
 
 
 
-    <div class="row mt-4 text-center">
-        <div class="col">
-            {% if user.is_authenticated and not is_signed_up %}
-            <a href="{% url 'competitions:athletecompetition_create' competition.pk %}" class="btn btn-success me-2">Register</a>
-            {% endif %}
-            <a href="{% url 'competitions:competition_scorecard' competition.pk %}" class="btn btn-primary">View Scorecard</a>
-        </div>
+<div class="row mt-4 text-center">
+    <div class="col">
+        {% if user.is_authenticated and not is_signed_up and competition.status != 'closed' and competition.status != 'completed' and competition.status != 'full' and competition.status != 'canceled' %}
+        <a href="{% url 'competitions:athletecompetition_create' competition.pk %}" class="btn btn-success me-2">Register</a>
+        {% endif %}
+        <a href="{% url 'competitions:competition_scorecard' competition.pk %}" class="btn btn-primary">View Scorecard</a>
+        <button id="share-button" class="btn btn-primary">
+          <i class="bi bi-share-fill"></i> Share
+        </button>
     </div>
+</div>
 
 {% if competition.organizer == request.user %}
     <div class="container my-5">
@@ -280,4 +307,26 @@
 {% endif %}
 <br>
 </div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const shareButton = document.getElementById('share-button');
+
+    // Check if the Web Share API is supported
+    if (navigator.share) {
+      shareButton.addEventListener('click',
+          () => {
+              navigator.share({
+                  title: "{{ competition.name }}",
+                  text: "Check out this competition: {{ competition.name }}",
+                  url: "{{ request.build_absolute_uri }}",
+        })
+        .then(() => console.log('Content shared successfully'))
+        .catch(err => console.error('Error sharing content:', err));
+      });
+    } else {
+      // Hide the share button if the Web Share API is not supported
+      shareButton.style.display = 'none';
+    }
+  });
+</script>
 {% endblock %}

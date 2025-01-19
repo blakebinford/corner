@@ -1,19 +1,25 @@
+import base64
+import json
 import math
 from datetime import date
-from collections import defaultdict
+from collections import defaultdict, Counter
+from io import BytesIO
+import os
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageEnhance, ImageFilter
 from PIL.ImageChops import overlay
 
 from django.utils import timezone
 from django.contrib import messages
 from django.core.mail import send_mass_mail
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum, Prefetch
+from django.db.models import Sum, Prefetch, Count
 from django.forms import modelformset_factory
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, Http404
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, Http404, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
-from django.views import generic
+from django.views import generic, View
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from channels.layers import get_channel_layer
@@ -22,9 +28,9 @@ from django_filters import FilterSet, CharFilter, ChoiceFilter
 
 from accounts.models import AthleteProfile, WeightClass
 from .models import Competition, EventOrder, AthleteCompetition, DivisionWeightClass, Result, CommentatorNote, Sponsor, \
-    Event, EventBase, EventImplement, ZipCode
+    Event, EventBase, EventImplement, ZipCode, TshirtSize
 from .forms import CompetitionForm, EventForm, AthleteCompetitionForm, EventImplementFormSet, ResultForm, \
-    SponsorLogoForm, EventImplementForm, CompetitionFilter, SponsorEditForm
+    SponsorLogoForm, EventImplementForm, CompetitionFilter, SponsorEditForm, EditWeightClassesForm
 from chat.models import OrganizerChatMessage, OrganizerChatRoom
 
 from asgiref.sync import async_to_sync
@@ -49,19 +55,23 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     # Calculate the result
     return c * r
 
+from django.utils.timezone import now
+
 class CompetitionListView(generic.ListView):
     model = Competition
     template_name = 'competitions/competition_list.html'
     context_object_name = 'competitions'
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        # Get competitions with today's date or in the future
+        queryset = super().get_queryset().filter(comp_date__gte=now().date())
 
         # Apply filtering using the filterset
         self.filterset = CompetitionFilter(self.request.GET, queryset=queryset)
+        filtered_queryset = self.filterset.qs
 
-        # Return the filtered and sorted queryset
-        return self.filterset.qs
+        # Sort the filtered queryset by the closest competition date
+        return filtered_queryset.order_by('comp_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -76,7 +86,8 @@ class CompetitionListView(generic.ListView):
                 return context
 
             # Calculate distances and add distance attribute to each competition
-            for competition in context['competitions']:
+            competitions = context['competitions']
+            for competition in competitions:
                 try:
                     competition_zip_code = ZipCode.objects.get(zip_code=competition.zip_code)
                     distance = haversine_distance(
@@ -90,14 +101,80 @@ class CompetitionListView(generic.ListView):
                     competition.distance = float('inf')  # Set a high distance for sorting
 
             # Sort the competitions by distance
-            context['competitions'] = sorted(context['competitions'], key=lambda x: x.distance)
+            context['competitions'] = sorted(competitions, key=lambda x: x.distance)
 
         # Add filterset to context
-        queryset = super().get_queryset()
-        self.filterset = CompetitionFilter(self.request.GET, queryset=queryset)
+        self.filterset = CompetitionFilter(self.request.GET, queryset=super().get_queryset())
         context['filterset'] = self.filterset
 
         return context
+
+class ArchivedCompetitionListView(ListView):
+    model = Competition
+    template_name = 'competitions/archived_competition_list.html'
+    context_object_name = 'competitions'
+
+    def get_queryset(self):
+        # Get competitions prior to today's date
+        queryset = super().get_queryset().filter(comp_date__lt=now().date())
+
+        # Apply filtering using the filterset
+        self.filterset = CompetitionFilter(self.request.GET, queryset=queryset)
+        filtered_queryset = self.filterset.qs
+
+        # Sort by the most recent past competitions
+        return filtered_queryset.order_by('-comp_date')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        zip_code = self.request.GET.get('zip_code')
+
+        if zip_code:
+            try:
+                user_zip_code = ZipCode.objects.get(zip_code=zip_code)
+            except ZipCode.DoesNotExist:
+                print(f"Invalid zip code provided: {zip_code}")  # Log the invalid zip code
+                return context
+
+            competitions = context['competitions']
+            for competition in competitions:
+                try:
+                    competition_zip_code = ZipCode.objects.get(zip_code=competition.zip_code)
+                    distance = haversine_distance(
+                        user_zip_code.latitude, user_zip_code.longitude,
+                        competition_zip_code.latitude, competition_zip_code.longitude
+                    )
+                    competition.distance = distance
+                except ZipCode.DoesNotExist:
+                    print(f"Missing zip code for competition: {competition.pk}")  # Log the missing zip code
+                    competition.distance = float('inf')  # Set a high distance for sorting
+
+            # Sort the competitions by distance
+            context['competitions'] = sorted(competitions, key=lambda x: x.distance)
+
+        # Add filterset to context
+        self.filterset = CompetitionFilter(self.request.GET, queryset=super().get_queryset())
+        context['filterset'] = self.filterset
+
+        return context
+
+
+class EditWeightClassesView(View):
+    template_name = 'competitions/edit_weight_classes.html'
+
+    def get(self, request, competition_pk):
+        competition = get_object_or_404(Competition, pk=competition_pk)
+        form = EditWeightClassesForm(competition=competition)
+        return render(request, self.template_name, {'form': form, 'competition': competition})
+
+    def post(self, request, competition_pk):
+        competition = get_object_or_404(Competition, pk=competition_pk)
+        form = EditWeightClassesForm(request.POST, competition=competition)
+        if form.is_valid():
+            # Save the selected weight classes
+            competition.allowed_weight_classes.set(form.cleaned_data['weight_classes'])
+            return redirect('competitions:manage_competition', competition.pk)
+        return render(request, self.template_name, {'form': form, 'competition': competition})
 
 class CompetitionDetailView(generic.DetailView):
     model = Competition
@@ -369,7 +446,6 @@ class CompetitionUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.Upd
     model = Competition
     form_class = CompetitionForm
     template_name = 'competitions/competition_form.html'
-    success_url = reverse_lazy('competitions:competition_list')
 
     def test_func(self):
         competition = self.get_object()
@@ -379,6 +455,26 @@ class CompetitionUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.Upd
         context = super().get_context_data(**kwargs)
         context['is_update'] = True
         return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        competition = self.get_object()
+
+        # Fetch the pre-selected T-shirt sizes
+        selected_sizes = [tshirt_size.size for tshirt_size in competition.allowed_tshirt_sizes.all()]
+        initial['allowed_tshirt_sizes'] = selected_sizes
+        print("Initial T-shirt Sizes:", initial['allowed_tshirt_sizes'])  # Debugging output
+        return initial
+
+    def get_form(self, *args, **kwargs):
+        form = super().get_form(*args, **kwargs)
+        print("Competition Instance in Form:", form.instance)  # Debugging output
+        return form
+
+    def get_success_url(self):
+        # Redirect to the competition detail page
+        return reverse('competitions:competition_detail', kwargs={'pk': self.object.pk})
+
 
 class CompetitionDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView):
     model = Competition
@@ -398,8 +494,8 @@ class OrganizerCompetitionsView(TemplateView):
 
         # Get competitions organized by the user
         all_competitions = Competition.objects.filter(organizer=organizer)
-        upcoming_competitions = all_competitions.filter(comp_date__gte=timezone.now()).order_by('comp_date')
-        completed_competitions = all_competitions.filter(comp_date__lt=timezone.now()).order_by('-comp_date')
+        upcoming_competitions = all_competitions.filter(comp_date__gte=timezone.now(), status__in=['upcoming', 'limited', 'full']).order_by('comp_date')
+        completed_competitions = all_competitions.filter(status='completed').order_by('-comp_date')
 
         # Prepare sections
         sections = [
@@ -424,7 +520,41 @@ class ManageCompetitionView(TemplateView):
         context['competition'] = competition
         context['athletes'] = AthleteCompetition.objects.filter(competition=competition)
         context['events'] = EventOrder.objects.filter(competition=competition).select_related('event')
+        context['today'] = date.today()
+
+        # T-shirt size summary
+        allowed_sizes = {size.size: 0 for size in competition.allowed_tshirt_sizes.all()}
+        tshirt_counts = AthleteCompetition.objects.filter(
+            competition=competition, tshirt_size__isnull=False
+        ).values('tshirt_size__size').annotate(count=Count('tshirt_size'))
+
+        for entry in tshirt_counts:
+            size = entry['tshirt_size__size']
+            count = entry['count']
+            if size in allowed_sizes:
+                allowed_sizes[size] = count
+
+        context['tshirt_summary'] = allowed_sizes
         return context
+
+
+class CompleteCompetitionView(LoginRequiredMixin, View):
+    def post(self, request, competition_pk):
+        competition = get_object_or_404(Competition, pk=competition_pk)
+
+        # Ensure the user is the organizer
+        if competition.organizer != request.user:
+            return HttpResponseForbidden("You are not authorized to complete this competition.")
+
+        # Check if the competition date is valid for completion
+        if competition.comp_date <= date.today():
+            competition.status = 'completed'
+            competition.save()
+            messages.success(request, f"The competition '{competition.name}' has been marked as completed.")
+        else:
+            messages.error(request, "You can only complete the competition on or after its scheduled date.")
+
+        return redirect('competitions:manage_competition', competition_pk=competition.pk)
 
 
 class AthleteListView(ListView):
@@ -613,18 +743,32 @@ class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
     form_class = AthleteCompetitionForm
     template_name = 'competitions/registration_form.html'
 
-    def get_form(self, *args, **kwargs):
-        form = super().get_form(*args, **kwargs)
-        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['competition'] = self.get_competition()
+        return kwargs
 
-        # Filter the fields based on the competition
-        form.fields['weight_class'].queryset = competition.allowed_weight_classes.all()
-        form.fields['division'].queryset = competition.allowed_divisions.all()
-        return form
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['competition'] = self.get_competition()
+        return context
+
+    def get_competition(self):
+        """
+        Helper method to retrieve the competition instance based on the URL parameter.
+        """
+        return get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
 
     def form_valid(self, form):
         form.instance.athlete = self.request.user.athlete_profile
-        form.instance.competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        form.instance.competition = self.get_competition()
+
+        if AthleteCompetition.objects.filter(
+                athlete=self.request.user.athlete_profile,
+                competition=form.instance.competition
+        ).exists():
+            messages.warning(self.request, "You are already registered for this competition.")
+            return redirect('competitions:competition_detail', pk=form.instance.competition.pk)
 
         # Check if competition is full
         competition = form.instance.competition
@@ -634,8 +778,10 @@ class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
         # Save the AthleteCompetition object
         athlete_competition = form.save()
 
-        return render(self.request, 'competitions/registration_success.html',
-                      {'competition': competition, 'athlete_competition': athlete_competition})
+        return render(self.request, 'competitions/registration_success.html', {
+            'competition': competition,
+            'athlete_competition': athlete_competition
+        })
 
 class AthleteCompetitionUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
     model = AthleteCompetition
@@ -1185,6 +1331,7 @@ def add_gradient_rectangle(draw, x, y, width, height, start_opacity, end_opacity
         fill_color = (*color, opacity)
         draw.line([(x, y + i), (x + width, y + i)], fill=fill_color)
 
+
 def competition_overlay(request, competition_pk, user_pk):
     from PIL import Image, ImageDraw, ImageFont, ImageOps
 
@@ -1208,6 +1355,13 @@ def competition_overlay(request, competition_pk, user_pk):
     trophy_image_path = "competitions/static/competitions/images/trophy-xxl.png"
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     output_path = f"/tmp/overlay_{athlete.user.pk}_{competition.pk}.png"
+
+    if request.method == "POST" and 'custom_photo' in request.FILES:
+        custom_photo = request.FILES['custom_photo']
+        temp_path = default_storage.save(f"tmp/{custom_photo.name}", ContentFile(custom_photo.read()))
+        profile_photo_path = default_storage.path(temp_path)
+    else:
+        profile_photo_path = athlete.user.profile_picture.path  # Default to profile picture
 
     light_gray = "#d3dade"
     # Canvas setup
@@ -1430,5 +1584,20 @@ def competition_overlay(request, competition_pk, user_pk):
 
     # Save the image
     canvas.save(output_path)
+    if request.method == "POST" and 'custom_photo' in request.FILES:
+        os.remove(profile_photo_path)
+
+    return render(request, 'competitions/competition_overlay.html', {
+        'competition': competition,
+        'athlete': athlete,
+    })
+
+def competition_overlay_image(request, competition_pk, user_pk):
+    from PIL import Image
+
+    competition = get_object_or_404(Competition, pk=competition_pk)
+    athlete = get_object_or_404(AthleteProfile, user_id=user_pk)
+    output_path = f"/tmp/overlay_{athlete.user.pk}_{competition.pk}.png"
+
     with open(output_path, "rb") as img:
         return HttpResponse(img.read(), content_type="image/png")

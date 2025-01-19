@@ -19,7 +19,7 @@
                             {% for competition in section.competitions %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="card h-100 shadow-sm">
-                                        <div class="card-header bg-primary text-white">
+                                        <div class="card-header {{ section.badge_class }} text-white">
                                             <h5 class="card-title mb-0">{{ competition.name }}</h5>
                                         </div>
                                         <div class="card-body">
