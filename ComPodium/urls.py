@@ -38,6 +38,7 @@ urlpatterns = [
     path('activate/<uidb64>/<token>/', accounts_views.activate, name='activate'),
     path('chat/', include('chat.urls', namespace='chat')),
     path('', include('django.contrib.auth.urls')),
+    path('tinymce/', include('tinymce.urls')),
 
 ]
 

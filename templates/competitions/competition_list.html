@@ -48,6 +48,7 @@
 
     <div class="row mt-4 g-3">
         {% for competition in competitions %}
+            {% if competition.approval_status == 'approved' and competition.publication_status == 'published' %}
         <div class="col-lg-4 col-md-6 col-sm-12">
             <div class="card position-relative h-100">
                 <div class="card-img-top" style="height: 250px; overflow: hidden;">
@@ -122,6 +123,7 @@
                 </div>
             </div>
         </div>
+            {% endif %}
         {% endfor %}
         {% if not competitions %}
         <p class="text-center">No competitions available.</p>

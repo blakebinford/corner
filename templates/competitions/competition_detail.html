@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load competition_tags %}
-{% load implement_filters %}
 {% load dictkey_filter %}
 {% load weight_filter %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
@@ -180,7 +180,7 @@
                                                             </strong>
                                                         </td>
                                                         {% for event in events %}
-                                                            <td>{{ row|get:event.name|capfirst }}</td>
+                                                            <td>{{ row|get:event.name|capfirst|safe }}</td>
                                                         {% endfor %}
                                                     </tr>
                                                 {% endif %}
@@ -224,7 +224,7 @@
                                                             </strong>
                                                         </td>
                                                         {% for event in events %}
-                                                            <td>{{ row|get:event.name|capfirst }}</td>
+                                                            <td>{{ row|get:event.name|capfirst|safe }}</td>
                                                         {% endfor %}
                                                     </tr>
                                                 {% endif %}
@@ -283,10 +283,8 @@
                         </a>
                     </div>
                     <div class="col-md-4">
-                        <a href="{% url 'competitions:event_create' competition.pk %}" class="btn btn-outline-success w-100 py-3">
-                            <i class="bi bi-plus-circle"></i><br>
-                            Add Event
-                        </a>
+                        <a href="{% url 'competitions:create_event' competition_pk=competition.pk %}" class="btn btn-outline-success w-100 py-3"><i class="bi bi-cloud-upload"></i><br>Create Event</a>
+
                     </div>
                     <div class="col-md-4">
                         <a href="{% url 'competitions:event_list' competition.pk %}" class="btn btn-outline-info w-100 py-3">

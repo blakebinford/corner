@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg border-0">
+    <div class="card-header bg-primary text-white text-center">
+      <h2 class="mb-0">Save Athlete Profile</h2>
+    </div>
+    <div class="card-body p-4">
+      <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button type="submit" class="btn btn-primary w-100 mt-3">Save Athlete Profile</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

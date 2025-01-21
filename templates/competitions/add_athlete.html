@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg border-0">
+    <div class="card-header bg-primary text-white text-center">
+      <h2 class="mb-0">Add Athlete</h2>
+    </div>
+    <div class="card-body p-4">
+      <!-- Redesigned Email Info Section -->
+      <div class="alert alert-info text-center">
+        <p class="mb-0">
+          If the athlete already has an account, entering their email will link this registration to their account.
+          Otherwise, you will need to create an athlete profile for them.
+        </p>
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        {{ form|crispy }}
+        <button type="submit" class="btn btn-success w-100 mt-3">Add Athlete</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

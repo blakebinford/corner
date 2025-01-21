@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">Manage Implements for {{ event.name }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Division Weight Class</th>
+                     {% if event.has_multiple_implements %}
+                        <th>Implement Name</th>
+                        <th>Implement Order</th>
+                    {% endif %}
+                    <th>Weight</th>
+                    <th>Weight Unit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in formset %}
+                <tr>
+                    <td>
+                        {{ form.division_weight_class.as_hidden }}
+                        {{ form.division_weight_class }}
+                    </td>
+                    <td>
+                        {{ form.implement_name }}
+                    </td>
+                    <td>
+                        {{ form.implement_order }}
+                    </td>
+                    <td>
+                        {{ form.weight }}
+                    </td>
+                    <td>
+                        {{ form.weight_unit }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="text-center mt-3">
+            <button type="submit" class="btn btn-primary">Save Implements</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle dynamic behavior for has_multiple_implements (if needed)
+        const implementNameFields = document.querySelectorAll('td:nth-child(2)');
+        const implementOrderFields = document.querySelectorAll('td:nth-child(3)');
+        
+        // Example: Hide implement order if multiple implements aren't allowed
+        const hasMultipleImplements = {{ event.has_multiple_implements|yesno:"true,false" }};
+        if (!hasMultipleImplements) {
+            implementNameFields.forEach(field => field.style.display = 'none');
+            implementOrderFields.forEach(field => field.style.display = 'none');
+        }
+    });
+</script>
+{% endblock %}

@@ -66,6 +66,7 @@
               <div class="col-md-6">
                 {{ form.allowed_divisions|as_crispy_field }}
               </div>
+            
               <div class="col-md-6" id="weight-classes-container" style="display: none;">
                 <p class="text-center mb-2"><b>Allowed Weight Classes</b></p>
                 <div id="weight-classes-wrapper" class="d-flex flex-wrap justify-content-start">
@@ -106,10 +107,17 @@
 </div>
               <div class="col-md-12">
                 <div class="form-check">
-                  {{ form.liability_waiver_accepted|as_crispy_field }}
-                  <label class="form-check-label" for="{{ form.liability_waiver_accepted.id_for_label }}">
-                    I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#liabilityWaiverModal">liability waiver</a>
-                  </label>
+                    <input 
+                        type="checkbox" 
+                        class="form-check-input" 
+                        id="{{ form.liability_waiver_accepted.id_for_label }}" 
+                        name="{{ form.liability_waiver_accepted.name }}"
+                        {% if form.initial.liability_waiver_accepted or form.data.liability_waiver_accepted %}checked{% endif %}
+                    >
+                    <label class="form-check-label" for="{{ form.liability_waiver_accepted.id_for_label }}">
+                        I agree to the 
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#liabilityWaiverModal">liability waiver</a>
+                    </label>
                     
                     <!-- Modal -->
 <div class="modal fade" id="liabilityWaiverModal" tabindex="-1" aria-labelledby="liabilityWaiverLabel" aria-hidden="true">
@@ -254,6 +262,14 @@ document.addEventListener('DOMContentLoaded', function () {
       weightClassesContainer.style.display = 'none';
     }
   });
+});
+tinymce.init({
+    selector: '#id_description', // Target the description field by its ID
+    height: 400,
+    menubar: true,
+    plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste help wordcount',
+    toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | fullscreen',
+    branding: false,
 });
 </script>
 {% endblock %}

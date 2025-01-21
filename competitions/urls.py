@@ -1,8 +1,9 @@
 from django.urls import path, re_path
 from . import views
 from .consumers import ScoreUpdateConsumer
-from .views import EventUpdateView, SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
-    CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView
+from .views import SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
+    CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView, AthleteCheckInView, \
+    toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView
 
 app_name = 'competitions'
 
@@ -16,8 +17,8 @@ urlpatterns = [
     path('get_weight_classes/', views.get_weight_classes, name='get_weight_classes'),
 
     # Event URLs
-    path('event/create/<int:competition_pk>/', views.EventCreateView.as_view(), name='event_create'),
-    path('event/<int:pk>/update/', EventUpdateView.as_view(), name='event_update'),
+    path('competition/<int:competition_pk>/event/create/', views.create_event, name='create_event'),
+    path('event/<int:event_pk>/implements/assign/', views.assign_implements, name='assign_implements'),
     path('event/<int:pk>/delete/', views.EventDeleteView.as_view(), name='event_delete'),
     path('ws/competitions/<int:competition_pk>/', ScoreUpdateConsumer.as_asgi()),
     path('<int:pk>/score/', views.CompetitionScoreView.as_view(), name='competition_score'),
@@ -44,10 +45,25 @@ urlpatterns = [
     path('<int:competition_pk>/events/', views.event_list, name='event_list'),
     path('<int:competition_pk>/events/<int:eventorder_pk>/scores/', views.event_scores, name='event_scores'),
     path('competition/<int:competition_pk>/complete/', CompleteCompetitionView.as_view(), name='complete_competition'),
+    path('competitions/<int:competition_pk>/checkin/', AthleteCheckInView.as_view(), name='checkin_athletes'),
+    path('competitions/<int:pk>/toggle_publish/', toggle_publish_status, name='toggle_publish_status'),
+    path('<int:competition_pk>/toggle_email_notifications/', views.toggle_email_notifications, name='toggle_email_notifications'),
+    path('competitions/<int:competition_pk>/download_athlete_table/', views.download_athlete_table, name='download_athlete_table'),
+    path('competitions/<int:competition_pk>/add_athlete/', AddAthleteManuallyView.as_view(), name='add_athlete'),
+    path('competitions/<int:competition_pk>/create_athlete_profile/', CreateAthleteProfileView.as_view(),
+         name='create_athlete_profile'),
+    path(
+        'competitions/<int:competition_pk>/combine_weight_classes/',
+        views.CombineWeightClassesView.as_view(),
+        name='combine_weight_classes'
+    ),
+    path('event/<int:event_pk>/edit/', views.update_event, name='update_event'),
+
 
     # AthleteCompetition URLs
     path('<int:competition_pk>/register/', views.AthleteCompetitionCreateView.as_view(), name='athletecompetition_create'),
-    path('athletecompetition/<int:pk>/update/', views.AthleteCompetitionUpdateView.as_view(), name='athletecompetition_update'),
+    path('athletecompetition/<int:pk>/edit/', views.AthleteCompetitionUpdateView.as_view(), name='athletecompetition_update'),
+
     path('athletecompetition/<int:pk>/delete/', views.AthleteCompetitionDeleteView.as_view(), name='athletecompetition_delete'),
     path('athlete/<int:athlete_id>/', views.athlete_profile, name='athlete_profile'),
 

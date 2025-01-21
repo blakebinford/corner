@@ -120,6 +120,33 @@ class Competition(models.Model):
         ('WI', 'Wisconsin'),
         ('WY', 'Wyoming'),
     ]
+    APPROVAL_STATUS_CHOICES = [
+        ('approved', 'Approved'),
+        ('waiting', 'Waiting'),
+    ]
+    approval_status = models.CharField(
+        max_length=10,
+        choices=APPROVAL_STATUS_CHOICES,
+        default='waiting',
+        help_text="Indicates if the competition is approved by the admin."
+    )
+
+    # Publication Status
+    PUBLICATION_STATUS_CHOICES = [
+        ('published', 'Published'),
+        ('unpublished', 'Unpublished'),
+    ]
+    publication_status = models.CharField(
+        max_length=12,
+        choices=PUBLICATION_STATUS_CHOICES,
+        default='unpublished',
+        help_text="Indicates if the competition is published by the organizer."
+    )
+    email_notifications = models.BooleanField(
+        default=False,
+        help_text="Send an email to the organizer every time an athlete signs up."
+    )
+
     def __str__(self):
         return self.name
 
@@ -188,7 +215,7 @@ class EventBase(models.Model):
 
 
 class Event(models.Model):
-    name = models.CharField(max_length=80, unique=True)
+    name = models.CharField(max_length=80, unique=False)
     competitions = models.ManyToManyField(Competition, through='EventOrder', related_name='events')
     event_base = models.ForeignKey(EventBase, on_delete=models.SET_NULL, null=True)
     weight_type = models.CharField(max_length=20, choices=[
@@ -198,6 +225,14 @@ class Event(models.Model):
         ('height', 'Height'),
         ('reps', 'Reps'),
     ])
+    has_multiple_implements = models.BooleanField(
+        default=False,
+        help_text="Check if the event has multiple implements."
+    )
+    number_of_implements = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Number of implements if the event has multiple implements."
+    )
 
     def __str__(self):
         return self.name
@@ -258,6 +293,13 @@ class AthleteCompetition(models.Model):
         blank=True,
         help_text="T-shirt size for the participant (if applicable)."
     )
+    weigh_in = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Athlete's weight (lbs) recorded at the competition weigh-in."
+    )
 
 
     class Meta:
@@ -273,6 +315,7 @@ class Result(models.Model):
     athlete_competition = models.ForeignKey(AthleteCompetition, on_delete=models.CASCADE, related_name='results')
     event_order = models.ForeignKey(EventOrder, on_delete=models.CASCADE)
     points_earned = models.PositiveIntegerField(default=0)
+    event_rank = models.PositiveIntegerField(null=True, blank=True)
     time = models.DurationField(null=True, blank=True)
     value = models.CharField(
         max_length=255,

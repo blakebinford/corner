@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{% endblock %}</title>
+  <title>{% block title %}Atlas Competition{% endblock %}</title>
   {% load static %}
   {% load django_bootstrap5 %}
   
@@ -18,7 +18,8 @@
         crossorigin="anonymous" referrerpolicy="no-referrer">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
-
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/5/tinymce.min.js" referrerpolicy="origin"></script>
+<script src="https://cdn.tiny.cloud/1/wt5rkmgimgwn43tf9f6glmxs7ybeega6ebcz7emqmxb8gmth/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
   <!-- Default CSS -->
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   <link rel="stylesheet" href="{% static 'chat/style.css' %}">
@@ -170,7 +171,7 @@ footer {
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-      <a class="navbar-brand" href="{% url 'home' %}">Competition Corner</a>
+      <a class="navbar-brand" href="{% url 'home' %}">Atlas Competition</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
               aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -224,7 +225,7 @@ footer {
   <!-- Footer -->
   <footer class="bg-dark text-light">
     <div class="container text-center py-3">
-      <p>&copy; {{ year|default:"2024" }} Competition Corner</p>
+      <p>&copy; {{ year|default:"2025" }} Atlas Competition</p>
     </div>
   </footer>
 

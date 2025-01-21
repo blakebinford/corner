@@ -1,29 +1,38 @@
-% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% load django_bootstrap5 %}
-
 {% block content %}
 <div class="container mt-5">
   <div class="row justify-content-center">
     <div class="col-md-8">
-      <div class="card shadow">
-        <div class="card-body">
-          <h2 class="card-title text-center  
- mb-4">Register for {{ competition.name }}</h2>
+      <div class="card shadow-lg border-0">
+        <!-- Header Section -->
+        <div class="card-header bg-primary text-white text-center">
+          <h2 class="mb-0">Edit Athlete Registration</h2>
+        </div>
+        <div class="card-body p-4">
+          <!-- Athlete Information -->
+          <div class="mb-4 text-center">
+            <h4 class="text-muted">Athlete Information</h4>
+            <p class="fw-bold">{{ athlete_competition.athlete.user.get_full_name }}</p>
+          </div>
+          <!-- Form Section -->
           <form method="post">
             {% csrf_token %}
-            {{ form.media }} 
+            {{ form.media }}
             <div class="mb-3">
-              {{ form.division|as_crispy_field }} 
+              {{ form.division|as_crispy_field }}
             </div>
             <div class="mb-3">
               {{ form.weight_class|as_crispy_field }}
             </div>
+            
             <div class="mb-3">
-              {{ form.payment_status|as_crispy_field }}
+              {{ form.tshirt_size|as_crispy_field }}
             </div>
+        
+            <!-- Submit Button -->
             <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary">Register</button>
+              <button type="submit" class="btn btn-success btn-lg">Save Changes</button>
             </div>
           </form>
         </div>

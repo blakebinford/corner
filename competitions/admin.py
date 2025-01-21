@@ -15,18 +15,34 @@ class AthleteCompetitionInline(admin.TabularInline):
 
 @admin.register(Competition)
 class CompetitionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'comp_date', 'location', 'organizer', 'status', 'image',)
-    list_filter = ('status', 'comp_date')
-    search_fields = ('name', 'location')
-    filter_horizontal = ('allowed_divisions', 'allowed_weight_classes', 'sponsor_logos')
+    list_display = ('name', 'comp_date', 'city', 'state', 'publication_status', 'organizer', 'status', )
+    list_filter = ('status', 'comp_date', 'publication_status')
+    search_fields = ('name', 'city', 'state', 'organizer__username', 'organizer__email')
+
     inlines = [EventOrderInline, AthleteCompetitionInline]
 
     def get_tags(self, obj):
         return ", ".join([tag.name for tag in obj.tags.all()])
 
     get_tags.short_description = 'Tags'
+    filter_horizontal = ('allowed_divisions', 'allowed_weight_classes', 'sponsor_logos', 'tags')
 
-    filter_horizontal = ('tags',)
+
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Make 'approval_status' editable only for superusers in the admin panel.
+        """
+        if not request.user.is_superuser:
+            return ['approval_status']
+        return []
+
+    def save_model(self, request, obj, form, change):
+        """
+        Ensure only approved competitions can be published.
+        """
+        if obj.publication_status == 'published' and obj.approval_status != 'approved':
+            raise ValueError("A competition must be approved before it can be published.")
+        super().save_model(request, obj, form, change)
 
 @admin.register(Federation)
 class FederationAdmin(admin.ModelAdmin):

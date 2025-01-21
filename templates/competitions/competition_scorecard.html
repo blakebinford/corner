@@ -4,28 +4,35 @@
 {% load timezone %}
 
 {% block content %}
-<div class="container-fluid p-0" style=" margin-left: 10px; margin-right: 10px;">
+<div class="container-fluid p-0" style="margin-left: 10px; margin-right: 10px;">
   <div class="row">
     <div class="col-md-9 p-0">
       <div class="table-responsive">
         <table class="table table-sm table-bordered align-middle">
           <thead class="align-middle text-center">
+            <!-- Multi-row Header -->
             <tr>
-              <th>Athlete</th>
-              <th>Rank</th>
-              <th>Total Points</th>
+              <th rowspan="2">Athlete</th>
+              <th rowspan="2">Rank</th>
+              <th rowspan="2">Total Points</th>
               {% for event_order in ordered_events %}
-              <th>{{ event_order.event.name }} <br>
+              <th colspan="3">{{ event_order.event.name }} <br>
                 <small class="text-muted">({{ event_order.event.get_weight_type_display }})</small>
               </th>
+              {% endfor %}
+            </tr>
+            <tr>
+              {% for event_order in ordered_events %}
+              <th>Result</th>
               <th>Points</th>
+              <th>Event Rank</th>
               {% endfor %}
             </tr>
           </thead>
           <tbody class="text-center">
             {% for group_key, athlete_competitions in grouped_athletes.items %}
             <tr>
-              <td colspan="{{ ordered_events|length|multiply:2|add:3 }}" style="background-color: #f0f0f0; font-weight: bold; text-align: left; width: 100%;">
+              <td colspan="{{ ordered_events|length|multiply:3|add:3 }}" style="background-color: #f0f0f0; font-weight: bold; text-align: left; width: 100%;">
                 {{ group_key.0|capfirst }} {{ group_key.1 }} ({{ group_key.2 }})
               </td>
             </tr>
@@ -51,6 +58,13 @@
                 {% for result in athlete_competition.results.all %}
                 {% if result.event_order == event_order %}
                 {{ result.points_earned }}
+                {% endif %}
+                {% endfor %}
+              </td>
+              <td class="event-rank" data-athlete="{{ athlete_competition.pk }}" data-event="{{ event_order.pk }}">
+                {% for result in athlete_competition.results.all %}
+                {% if result.event_order == event_order %}
+                {{ result.event_rank }}
                 {% endif %}
                 {% endfor %}
               </td>

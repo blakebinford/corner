@@ -6,14 +6,13 @@ import bleach
 from tinymce.widgets import TinyMCE
 
 import django_filters
-from django.db.models import F, ExpressionWrapper, FloatField
 from django import forms
 from django.forms import NumberInput, modelformset_factory
 from django.core.exceptions import ValidationError
 
 from .models import Competition, EventOrder, AthleteCompetition, Event, EventImplement, Result, Tag, \
     DivisionWeightClass, EventBase, ZipCode, Federation, Sponsor, TshirtSize
-from accounts.models import Division, WeightClass
+from accounts.models import User, Division, WeightClass, AthleteProfile
 
 
 def validate_social_media_url(url, platform):
@@ -83,7 +82,11 @@ class CompetitionForm(forms.ModelForm):
         label="Allowed T-shirt Sizes",
         help_text="Select the sizes athletes can choose from."
     )
-
+    description = forms.CharField(
+        widget=TinyMCE(attrs={'cols': 80, 'rows': 30}),
+        required=False,
+        label="Description",
+    )
     class Meta:
         model = Competition
         fields = [
@@ -221,61 +224,106 @@ class SponsorEditForm(forms.ModelForm):
 class SponsorLogoForm(forms.Form):
     sponsor_logos = MultipleFileField(required=False)
 
-class EventForm(forms.ModelForm):
+class EventCreationForm(forms.ModelForm):
+    """
+    Form for creating and editing an event, including details for multiple implements.
+    """
+    has_multiple_implements = forms.BooleanField(required=False, label="Multiple Implements?")
+    number_of_implements = forms.IntegerField(
+        required=False,
+        min_value=1,
+        label="How Many Implements?",
+        widget=forms.NumberInput(attrs={'placeholder': 'Enter number of implements'})
+    )
+
     class Meta:
         model = Event
-        fields = ['name', 'event_base', 'weight_type', ]
-
-class EventImplementForm(forms.ModelForm):
-    class Meta:
-        model = EventImplement
-        fields = ['id', 'division_weight_class', 'implement_name', 'implement_order', 'weight', 'weight_unit']
+        fields = ['name', 'event_base', 'weight_type', 'has_multiple_implements', 'number_of_implements']
+        widgets = {
+            'number_of_implements': forms.NumberInput(attrs={'min': 1}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # You might need to adjust the queryset based on your specific needs
-        self.fields['division_weight_class'].queryset = DivisionWeightClass.objects.all()
+        # Ensure the checkbox value reflects the instance value
+        if self.instance and self.instance.pk:
+            self.fields['has_multiple_implements'].initial = self.instance.has_multiple_implements
 
-def create_event_implement_formset(competition, extra=1):
+    def clean(self):
+        """
+        Validate form data to ensure correct implement details when multiple implements are selected.
+        """
+        cleaned_data = super().clean()
+        has_multiple = cleaned_data.get('has_multiple_implements')
+        num_implements = cleaned_data.get('number_of_implements')
+
+        if has_multiple and not num_implements:
+            raise forms.ValidationError("Please specify the number of implements.")
+        return cleaned_data
+
+
+
+
+class EventImplementForm(forms.ModelForm):
     """
-    Function to create an EventImplementFormSet with one form per DivisionWeightClass.
+    Form for assigning implements to weight classes within an event.
     """
-    formset_class = forms.formset_factory(EventImplementForm, extra=extra)
-    initial_data = []
-    allowed_division_weight_classes = DivisionWeightClass.objects.filter(
-        division__in=competition.allowed_divisions.all(),
-        weight_class__in=competition.allowed_weight_classes.all()
-    ).order_by(
-        'weight_class__name',  # Sort by division name first
-        'gender',          # Then sort by gender
-        'division__name'  # Finally, sort by the extracted numeric weight class
-    )
-    for division_weight_class in allowed_division_weight_classes:
-        initial_data.append({'division_weight_class': division_weight_class.id})
+    class Meta:
+        model = EventImplement
+        fields = ['division_weight_class', 'implement_name', 'implement_order', 'weight', 'weight_unit']
+        widgets = {
+            'implement_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Implement Name'}),
+            'implement_order': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Order'}),
+            'weight': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Weight'}),
+            'weight_unit': forms.Select(attrs={'class': 'form-select'}),
+        }
 
 
-    formset = formset_class(initial=initial_data)
-
-    # Set the queryset for the division_weight_class field in each form
-    for form in formset:
-        form.fields['division_weight_class'].queryset = allowed_division_weight_classes
-
-    return formset
-
+# Formset for EventImplement, auto-managing the number of forms based on competition weight classes
 EventImplementFormSet = modelformset_factory(
     EventImplement,
     form=EventImplementForm,
-    fields=('id', 'division_weight_class', 'implement_name', 'implement_order', 'weight', 'weight_unit'),
     extra=0,
     can_delete=True
 )
 
-class AthleteCompetitionForm(forms.ModelForm):
-    liability_waiver = forms.BooleanField(
-        required=True,
-        label="I agree to the liability waiver"
-    )
+class ManualAthleteAddForm(forms.Form):
+    email = forms.EmailField(required=True, label="Athlete Email")
+    division = forms.ModelChoiceField(queryset=Division.objects.none(), required=True, label="Division")
+    weight_class = forms.ModelChoiceField(queryset=WeightClass.objects.none(), required=True, label="Weight Class")
+    tshirt_size = forms.ModelChoiceField(queryset=TshirtSize.objects.none(), required=False, label="T-shirt Size")
 
+    def __init__(self, *args, **kwargs):
+        competition = kwargs.pop('competition', None)
+        super().__init__(*args, **kwargs)
+
+        if competition:
+            self.fields['division'].queryset = competition.allowed_divisions.all()
+            self.fields['weight_class'].queryset = competition.allowed_weight_classes.all()
+            if competition.provides_shirts:
+                self.fields['tshirt_size'].queryset = competition.allowed_tshirt_sizes.all()
+            else:
+                self.fields.pop('tshirt_size', None)
+
+class AthleteProfileForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=30, required=True, label="First Name")
+    last_name = forms.CharField(max_length=150, required=True, label="Last Name")
+
+    class Meta:
+        model = AthleteProfile
+        fields = ['first_name', 'last_name', 'gender', 'date_of_birth']
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control',
+                'placeholder': 'YYYY-MM-DD'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+class AthleteCompetitionForm(forms.ModelForm):
     class Meta:
         model = AthleteCompetition
         fields = ['division', 'weight_class', 'tshirt_size']
@@ -288,10 +336,31 @@ class AthleteCompetitionForm(forms.ModelForm):
             self.fields['division'].queryset = competition.allowed_divisions.all()
 
             # Add conditional logic for T-shirt sizes
-        if competition.provides_shirts:
-            self.fields['tshirt_size'].queryset = competition.allowed_tshirt_sizes.all()
-        else:
-            self.fields.pop('tshirt_size')
+            if competition.provides_shirts:
+                self.fields['tshirt_size'].queryset = competition.allowed_tshirt_sizes.all()
+            else:
+                self.fields.pop('tshirt_size', None)
+
+class CombineWeightClassesForm(forms.Form):
+    from_weight_class = forms.ModelChoiceField(
+        queryset=WeightClass.objects.none(),
+        label="From Weight Class",
+        required=True
+    )
+    to_weight_class = forms.ModelChoiceField(
+        queryset=WeightClass.objects.none(),
+        label="To Weight Class",
+        required=True
+    )
+
+    def __init__(self, *args, **kwargs):
+        competition = kwargs.pop('competition', None)
+        super().__init__(*args, **kwargs)
+        if competition:
+            allowed_weight_classes = competition.allowed_weight_classes.all()
+            self.fields['from_weight_class'].queryset = allowed_weight_classes
+            self.fields['to_weight_class'].queryset = allowed_weight_classes
+
 
 class ResultForm(forms.ModelForm):
     class Meta:
@@ -473,3 +542,4 @@ class CompetitionFilter(django_filters.FilterSet):
 
         # If no zip code is provided, return the queryset as-is
         return queryset
+

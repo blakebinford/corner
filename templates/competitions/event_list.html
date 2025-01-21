@@ -7,8 +7,8 @@
   <div class="text-center mb-5">
     <h1 class="display-4">{{ competition.name }}</h1>
     <p class="text-muted">{{ competition.city|capfirst }}, {{ competition.state|capfirst }}  | {{ competition.comp_date|date:"M d, Y" }}</p>
-    
-    <a href="{% url 'competitions:event_create' competition.pk %}" class="btn btn-primary btn-lg">
+      <a href="{% url 'competitions:competition_scorecard' competition.pk %}" class="btn btn-success btn-lg">View Scorecard</a>
+    <a href="{% url 'competitions:create_event' competition.pk %}" class="btn btn-primary btn-lg">
       Add New Event
     </a>
   </div>
@@ -28,7 +28,7 @@
             <strong>Event Base:</strong> {{ event_order.event.event_base.name }}
           </p>
           <div class="d-grid gap-2">
-            <a href="{% url 'competitions:event_update' event_order.pk %}" class="btn btn-warning btn-sm">Edit</a>
+            <a href="{% url 'competitions:update_event' event_order.pk %}" class="btn btn-warning btn-sm">Edit</a>
             <a href="{% url 'competitions:event_scores' competition.pk event_order.pk %}" class="btn btn-success btn-sm">Manage Scores</a>
           </div>
         </div>
