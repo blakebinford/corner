@@ -6,11 +6,15 @@ from datetime import date
 from collections import defaultdict, Counter
 from io import BytesIO
 import os
+from urllib import response
+
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageEnhance, ImageFilter
 from PIL.ImageChops import overlay
 from itertools import groupby
 
 from django.utils import timezone
+from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.utils.timezone import now
 from django.contrib import messages
 from django.core.mail import send_mass_mail, send_mail
@@ -37,6 +41,7 @@ from .models import Competition, EventOrder, AthleteCompetition, DivisionWeightC
 from .forms import CompetitionForm, AthleteCompetitionForm, EventImplementFormSet, ResultForm, \
     SponsorLogoForm, EventImplementForm, CompetitionFilter, SponsorEditForm, EditWeightClassesForm, \
     ManualAthleteAddForm, AthleteProfileForm, CombineWeightClassesForm, EventCreationForm
+from accounts.forms import CustomDivisionForm, CustomWeightClassForm
 from asgiref.sync import async_to_sync
 
 def haversine_distance(lat1, lon1, lat2, lon2):
@@ -301,7 +306,7 @@ class CompetitionDetailView(generic.DetailView):
             for row in rows:
                 for event in competition.events.all():
                     if event.name in row:
-                        row[event.name] = '<br>'.join(row[event.name])
+                        row[event.name] = ''.join(row[event.name])
 
         context['division_tables'] = division_tables
         context['events'] = competition.events.all()
@@ -455,7 +460,6 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
     model = Competition
     form_class = CompetitionForm
     template_name = 'competitions/competition_form.html'
-    success_url = reverse_lazy('competitions:competition_list')
 
     def form_valid(self, form):
         # Set the organizer of the competition to the currently logged-in user
@@ -479,7 +483,8 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
         competition.save()
 
         # Redirect to the success URL
-        return redirect(self.success_url)
+
+        return HttpResponseRedirect(reverse('competitions:assign_weight_classes', kwargs={'pk': competition.pk}))
 
     def form_invalid(self, form):
         # Debugging for form invalid cases
@@ -508,9 +513,115 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
         if commit:
             competition.save()
             # Save many-to-many fields
-            self.save_m2m()
+
 
         return competition
+
+@method_decorator(login_required, name="dispatch")
+class AssignWeightClassesView(View):
+    template_name = "competitions/assign_weight_classes.html"
+
+    def get(self, request, *args, **kwargs):
+        competition_id = self.kwargs.get("pk")
+        competition = get_object_or_404(Competition, pk=competition_id)
+
+        allowed_divisions = competition.allowed_divisions.all()
+        division_weight_classes = {
+            division: WeightClass.objects.filter(federation=competition.federation)
+            for division in allowed_divisions
+        }
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "competition": competition,
+                "division_weight_classes": division_weight_classes,
+            },
+        )
+
+    def post(self, request, *args, **kwargs):
+        competition_id = self.kwargs.get("pk")
+        competition = get_object_or_404(Competition, pk=competition_id)
+
+        # Clear all existing DivisionWeightClass entries for this competition
+        DivisionWeightClass.objects.filter(division__in=competition.allowed_divisions.all()).delete()
+
+        for key, weight_class_ids in request.POST.lists():
+            if key.startswith("division_"):
+                division_id = key.replace("division_", "")
+                division = get_object_or_404(Division, pk=division_id)
+
+                for weight_class_id in weight_class_ids:
+                    weight_class = get_object_or_404(WeightClass, pk=weight_class_id)
+                    DivisionWeightClass.objects.create(
+                        division=division, weight_class=weight_class, gender=weight_class.gender
+                    )
+
+        messages.success(
+            request, "Weight classes were successfully assigned to the competition!"
+        )
+        return redirect("competitions:manage_competition", competition_pk=competition.pk)
+
+class CustomDivisionCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = Division
+    form_class = CustomDivisionForm
+    template_name = "competitions/custom_division_form.html"
+
+    def form_valid(self, form):
+        # Get the competition instance
+        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+
+        # Assign the competition to the division being created
+        form.instance.competition = competition
+
+        # Save the form (create the division)
+        response = super().form_valid(form)
+
+        # Add the newly created division to the competition's allowed divisions
+        competition.allowed_divisions.add(form.instance)
+
+        return response
+
+    def get_success_url(self):
+        return reverse('competitions:manage_competition', kwargs={'competition_pk': self.kwargs['competition_pk']})
+
+    def test_func(self):
+        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        return self.request.user == competition.organizer
+
+class CustomWeightClassCreateView(CreateView):
+    model = WeightClass
+    form_class = CustomWeightClassForm
+    template_name = "competitions/custom_weight_class_form.html"
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        kwargs['competition'] = competition
+        return kwargs
+
+    def form_valid(self, form):
+        # Save the WeightClass instance
+        weight_class = form.save(commit=False)
+        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        weight_class.competition = competition
+        weight_class.federation = competition.federation
+        weight_class.is_custom = True
+        weight_class.save()
+
+        # Get the division ID and create the DivisionWeightClass
+        division_id = form.cleaned_data.get('division')  # This should now be the ID
+        division = get_object_or_404(Division,
+                                     pk=division_id.id)  # Ensure it uses .id or directly access it as an object
+        DivisionWeightClass.objects.create(
+            division=division,
+            weight_class=weight_class,
+            gender=weight_class.gender
+        )
+        print(f"Associated WeightClass '{weight_class}' with Division '{division}'")
+
+        return redirect('competitions:manage_competition', competition_pk=self.kwargs['competition_pk'])
 
 class SponsorEditView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'competitions/sponsor_edit.html'
@@ -955,6 +1066,13 @@ class CreateAthleteProfileView(LoginRequiredMixin, generic.CreateView):
         messages.success(self.request, "Athlete profile successfully created and linked to the competition!")
         return redirect('competitions:manage_competition', competition_pk=competition.pk)
 
+from django import forms
+from competitions.models import Division, DivisionWeightClass
+
+import logging
+
+logger = logging.getLogger(__name__)
+
 class CombineWeightClassesView(LoginRequiredMixin, UserPassesTestMixin, generic.FormView):
     template_name = "competitions/combine_weight_classes.html"
     form_class = CombineWeightClassesForm
@@ -963,35 +1081,57 @@ class CombineWeightClassesView(LoginRequiredMixin, UserPassesTestMixin, generic.
         kwargs = super().get_form_kwargs()
         competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
         kwargs['competition'] = competition
+        print("Form kwargs initialized:", kwargs)
         return kwargs
 
     def form_valid(self, form):
+        print("Form is valid")
         competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
-        from_weight_class = form.cleaned_data['from_weight_class']
-        to_weight_class = form.cleaned_data['to_weight_class']
+        division = form.cleaned_data['division']
+        from_dwc = form.cleaned_data['from_weight_class']
+        to_dwc = form.cleaned_data['to_weight_class']
 
-        # Ensure the "from" and "to" classes are different
-        if from_weight_class == to_weight_class:
+        print(f"Division: {division}")
+        print(f"From Weight Class: {from_dwc}")
+        print(f"To Weight Class: {to_dwc}")
+
+        if from_dwc == to_dwc:
+            print("Cannot combine the same weight class")
             messages.error(self.request, "You cannot combine a weight class with itself.")
             return redirect('competitions:combine_weight_classes', competition_pk=competition.pk)
 
-        # Update the athletes
-        AthleteCompetition.objects.filter(
-            competition=competition,
-            weight_class=from_weight_class
-        ).update(weight_class=to_weight_class)
+        try:
+            competition.allowed_weight_classes.remove(from_dwc.weight_class)
+            competition.allowed_weight_classes.add(to_dwc.weight_class)
+            from_dwc.delete()
+            print("Combination successful")
+            messages.success(
+                self.request,
+                f"Successfully combined {from_dwc.weight_class} into {to_dwc.weight_class}."
+            )
+        except Exception as e:
+            print(f"Error during combination: {e}")
+            messages.error(self.request, "An error occurred. Please try again.")
 
-        messages.success(
-            self.request,
-            f"All athletes from {from_weight_class} have been moved to {to_weight_class}."
-        )
         return redirect('competitions:manage_competition', competition_pk=competition.pk)
+
+    def form_invalid(self, form):
+        print("Form is invalid")
+        print("Errors:", form.errors)
+        return super().form_invalid(form)
 
     def test_func(self):
         competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        print(f"Test function called. Organizer: {competition.organizer}")
         return self.request.user == competition.organizer
 
-
+def get_division_weight_classes(request, division_id):
+    division = get_object_or_404(Division, id=division_id)
+    weight_classes = DivisionWeightClass.objects.filter(division=division)
+    return JsonResponse(
+        [{'id': dwc.id, 'text': str(dwc.weight_class)} for dwc in weight_classes],
+        safe=False
+    )
 class AthleteCompetitionDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView):
     model = AthleteCompetition
     template_name = 'competitions/athletecompetition_confirm_delete.html'
@@ -1054,10 +1194,14 @@ def assign_implements(request, event_pk):
 
     # Get allowed DivisionWeightClasses
     allowed_division_weight_classes = DivisionWeightClass.objects.filter(
-        division__in=competition.allowed_divisions.all(),
-        weight_class__in=competition.allowed_weight_classes.all()
+        division__in=competition.allowed_divisions.all()
     )
 
+    if competition.allowed_weight_classes.exists():
+        allowed_division_weight_classes = allowed_division_weight_classes.filter(
+            weight_class__in=competition.allowed_weight_classes.all()
+        )
+    print("Allowed DivisionWeightClasses:", allowed_division_weight_classes)
     # Prepare initial data for the formset
     initial_data = []
     existing_implements = EventImplement.objects.filter(event=event)
@@ -1077,12 +1221,14 @@ def assign_implements(request, event_pk):
                         'weight': existing_implement.weight,
                         'weight_unit': existing_implement.weight_unit,
                     })
+                    print("Initial Data:", initial_data)
                 else:
                     # New implement data
                     initial_data.append({
                         'division_weight_class': dwc.id,
                         'implement_order': implement_order,
                     })
+                    print("Initial Data:", initial_data)
     else:
         for dwc in allowed_division_weight_classes:
             existing_implement = existing_implements.filter(
@@ -1580,7 +1726,7 @@ def send_email_to_athletes(request, competition_pk):
 
         # Create a list of tuples for send_mass_mail
         email_data = [
-            (subject, message, 'no-reply@comppodium.com', [email]) for email in athlete_emails
+            (subject, message, 'no-reply@Atlascompetition.com', [email]) for email in athlete_emails
         ]
 
         # Send the emails

@@ -1,164 +1,194 @@
 {% extends 'base.html' %}
 {% load widget_tweaks %}
+{% block extra_styles %}
+    <style>
+  /* Default side navigation button styles */
+  #profile-tabs .nav-link {
+    color: #231F20;
+    border: none;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
 
+  /* Hover effect for side navigation buttons */
+  #profile-tabs .nav-link:hover {
+    background-color: #DED831;
+    color: #DED831;
+  }
+
+  /* Active state for side navigation buttons */
+  #profile-tabs .nav-link.active {
+    background-color: #DED831;
+    color: #231F20;
+
+    border: 1px solid #231F20;
+  }
+</style>
+{% endblock %}
 {% block content %}
-<div class="container-fluid p-3 d-flex justify-content-center" style="background: linear-gradient(45deg, #222222, #555555);">
-<div class="container py-5" style="background: linear-gradient(45deg, #222222, #555555); min-height: 100vh;">
-  <div class="card shadow border-0">
-    <div class="card-header bg-primary text-white text-center">
-      <h2 class="mb-0">Update Profile</h2>
-    </div>
-    <div class="card-body">
- <!-- View Athlete Profile -->
-      <div class="text-center mb-4">
-        <a href="{% url 'competitions:athlete_profile' user.id %}" class="btn btn-secondary">
-          <i class="bi bi-person-circle"></i> View Athlete Profile
-        </a>
-      </div>
-      <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <!-- Row 1: User Info -->
-        <div class="row g-3 mb-3">
-          <div class="col-md-6">
-            <h5>User Information</h5>
-            {% for field in user_form %}
-              {% if field.name not in "password1,password2,instagram_name,x_name,facebook_name,profile_picture" %}
-                <div class="mb-2">
-                  {{ field.label_tag }}
-                  {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-                  {% render_field field class="form-control form-control-sm" %}
-                  {% for error in field.errors %}
-                    <div class="invalid-feedback d-block">{{ error }}</div>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            {% endfor %}
-          <h6 class="mt-3">Password</h6>
-            {% if user.has_usable_password %}
-              <p>Your password is set. <a href="{% url 'accounts:password_reset' %}">Change Password</a></p>
-            {% else %}
-              <p class="text-danger">No password set. <a href="{% url 'accounts:password_reset' %}">Set Password</a></p>
-            {% endif %}
-          </div>
-          <div class="col-md-6">
-            <h5>Profile Picture</h5>
-            <label for="id_profile_picture" class="form-label">Upload Picture</label>
-            {% render_field user_form.profile_picture class="form-control form-control-sm" %}
-            {% if user.profile_picture %}
-              <img src="{{ user.profile_picture.url }}" alt="Current Profile Picture" class="img-thumbnail mt-2" style="max-width: 150px;">
-            {% endif %}
-            {% for error in user_form.profile_picture.errors %}
-              <div class="invalid-feedback d-block">{{ error }}</div>
-            {% endfor %}
-          </div>
+<div class="container-fluid py-5" style="background-color: #231F20; min-height: 100vh;">
+  <div class="row justify-content-center">
+    <!-- Sidebar Navigation -->
+    <div class="col-lg-3">
+      <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; color: #231F20;">
+        <div class="card-body p-4">
+          <h5 class="text-center text-dark mb-3" style="font-weight: 600;">Navigation</h5>
+          <nav class="nav flex-column nav-pills" id="profile-tabs">
+            <a class="nav-link active d-flex align-items-center" href="#" data-target="#user-info" style="color: #231F20;">
+              <i class="bi bi-person me-2"></i> User Information
+            </a>
+            <a class="nav-link d-flex align-items-center" href="#" data-target="#profile-picture" style="color: #231F20;">
+              <i class="bi bi-image me-2"></i> Profile Picture
+            </a>
+            <a class="nav-link d-flex align-items-center" href="#" data-target="#personal-info" style="color: #231F20;">
+              <i class="bi bi-file-person me-2"></i> Personal Information
+            </a>
+            <a class="nav-link d-flex align-items-center" href="#" data-target="#social-media" style="color: #231F20;">
+              <i class="bi bi-instagram me-2"></i> Social Media
+            </a>
+            <a class="nav-link d-flex align-items-center" href="#" data-target="#gym-info" style="color: #231F20;">
+              <i class="bi bi-house me-2"></i> Gym Information
+            </a>
+          </nav>
         </div>
+      </div>
+    </div>
 
-        <!-- Row 2: Personal Info -->
-         <div class="row g-3 mb-3">
-            <div class="col-md-4">
-              <h5>Personal Information</h5>
-              {% for field in profile_form %}
-                {% if field.name == "date_of_birth" %}
-                  <div class="mb-2">
+    <!-- Profile Form -->
+    <div class="col-lg-9 d-flex justify-content-center">
+      <div class="card shadow-sm border-0" style="border-radius: 12px; width: 75%; max-width: 1200px;  color: #000;">
+        <div class="card-header d-flex justify-content-between align-items-center" style=" border-radius: 12px 12px 0 0;">
+          <h4 class="mb-0 text-center" id="section-title">Update Profile</h4>
+          <!-- View Profile Button -->
+          <a href="{% url 'competitions:athlete_profile' user.pk %}" class="btn btn-sm" style="background-color: #DED831; color: #231F20;">
+            <i class="bi bi-eye"></i> View Profile
+          </a>
+        </div>
+        <div class="card-body p-4">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- User Information Section -->
+            <div class="section collapse show" id="user-info">
+              <h5 class="text-light mb-3">User Information</h5>
+              {% for field in user_form %}
+                {% if field.name not in "password1,password2,instagram_name,x_name,facebook_name,profile_picture" %}
+                  <div class="mb-3">
                     {{ field.label_tag }}
-                    {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-                    {% render_field field type="date" class="form-control form-control-sm" %}
+                    {% render_field field class="form-control form-control-sm text-dark bg-light" %}
                     {% for error in field.errors %}
-                      <div class="invalid-feedback d-block">{{ error }}</div>
-                    {% endfor %}
-                  </div>
-                {% elif field.name in "gender,phone_number" %}
-                  <div class="mb-2">
-                    {{ field.label_tag }}
-                    {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-                    {% render_field field class="form-control form-control-sm" %}
-                    {% for error in field.errors %}
-                      <div class="invalid-feedback d-block">{{ error }}</div>
+                      <div class="invalid-feedback d-block text-danger">{{ error }}</div>
                     {% endfor %}
                   </div>
                 {% endif %}
               {% endfor %}
             </div>
-          <div class="col-md-4">
-            <h5>Address</h5>
-            {% for field in profile_form %}
-              {% if field.name in "street_number,city" %}
-                <div class="mb-2">
-                  {{ field.label_tag }}
-                  {% render_field field class="form-control form-control-sm" %}
-                  {% for error in field.errors %}
-                    <div class="invalid-feedback d-block">{{ error }}</div>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-          <div class="col-md-4">
-            <h5>&nbsp;</h5> <!-- Empty heading for alignment -->
-            {% for field in profile_form %}
-              {% if field.name in "state,zip_code" %}
-                <div class="mb-2">
-                  {{ field.label_tag }}
-                  {% render_field field class="form-control form-control-sm" %}
-                  {% for error in field.errors %}
-                    <div class="invalid-feedback d-block">{{ error }}</div>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-        </div>
 
-        <!-- Row 3: Social Media & Gym Info -->
-        <div class="row g-3">
-          <div class="col-md-6">
-            <h5>Social Media</h5>
-            {% for field in user_form %}
-              {% if field.name in "instagram_name,x_name,facebook_name" %}
-                <div class="mb-2">
-                  {{ field.label_tag }}
-                  <div class="input-group input-group-sm">
-                    {% if field.name == "instagram_name" %}
-                      <span class="input-group-text">www.instagram.com/</span>
-                    {% elif field.name == "x_name" %}
-                      <span class="input-group-text">www.twitter.com/</span>
-                    {% elif field.name == "facebook_name" %}
-                      <span class="input-group-text">www.facebook.com/</span>
-                    {% endif %}
-                    {% render_field field class="form-control" %}
+            <!-- Profile Picture Section -->
+            <div class="section collapse" id="profile-picture">
+              <h5 class="text-light mb-3">Profile Picture</h5>
+              <label for="id_profile_picture" class="form-label text-light">Upload New Picture</label>
+              {% render_field user_form.profile_picture class="form-control form-control-sm text-dark bg-light" %}
+              {% if user.profile_picture %}
+                <img src="{{ user.profile_picture.url }}" alt="Profile Picture" class="img-thumbnail mt-2" style="max-width: 150px;">
+              {% endif %}
+            </div>
+
+            <!-- Personal Information Section -->
+            <div class="section collapse" id="personal-info">
+              <h5 class="text-light mb-3">Personal Information</h5>
+              {% for field in profile_form %}
+                {% if field.name in "date_of_birth,gender,phone_number,street_number,city,state,zip_code" %}
+                  <div class="mb-3">
+                    {{ field.label_tag }}
+                    {% render_field field class="form-control form-control-sm text-dark bg-light" %}
+                    {% for error in field.errors %}
+                      <div class="invalid-feedback d-block text-danger">{{ error }}</div>
+                    {% endfor %}
                   </div>
-                  {% for error in field.errors %}
-                    <div class="invalid-feedback d-block">{{ error }}</div>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-          <div class="col-md-6">
-            <h5>Gym & Team Info</h5>
-            {% for field in profile_form %}
-              {% if field.name in "home_gym,team_name,coach" %}
-                <div class="mb-2">
-                  {{ field.label_tag }}
-                  {% render_field field class="form-control form-control-sm" %}
-                  {% for error in field.errors %}
-                    <div class="invalid-feedback d-block">{{ error }}</div>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            {% endfor %}
-          </div>
-        </div>
+                {% endif %}
+              {% endfor %}
+            </div>
 
-        <!-- Submit Button -->
-        <div class="text-center mt-4">
-          <button type="submit" class="btn btn-primary btn-lg">
-            <i class="bi bi-save"></i> Update Profile
-          </button>
+            <!-- Social Media Section -->
+            <div class="section collapse" id="social-media">
+              <h5 class="text-light mb-3">Social Media</h5>
+              {% for field in user_form %}
+                {% if field.name in "instagram_name,x_name,facebook_name" %}
+                  <div class="mb-3">
+                    <div class="input-group input-group-sm">
+                      {% if field.name == "instagram_name" %}
+                        <span class="input-group-text bg-light text-dark">www.instagram.com/</span>
+                      {% elif field.name == "x_name" %}
+                        <span class="input-group-text bg-light text-dark">www.twitter.com/</span>
+                      {% elif field.name == "facebook_name" %}
+                        <span class="input-group-text bg-light text-dark">www.facebook.com/</span>
+                      {% endif %}
+                      {% render_field field class="form-control text-dark bg-light" %}
+                    </div>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <!-- Gym Information Section -->
+            <div class="section collapse" id="gym-info">
+              <h5 class="text-light mb-3">Gym & Team Info</h5>
+              {% for field in profile_form %}
+                {% if field.name in "home_gym,team_name,coach" %}
+                  <div class="mb-3">
+                    {{ field.label_tag }}
+                    {% render_field field class="form-control form-control-sm text-dark bg-light" %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <!-- Submit Button -->
+            <div class="text-center mt-4">
+              <button type="submit" class="btn btn-lg" style="background-color: #DED831; color: #231F20;">
+                <i class="bi bi-save"></i> Save Changes
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
-</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const profileNavLinks = document.querySelectorAll('#profile-tabs .nav-link');
+    const profileSections = document.querySelectorAll('.section');
+    const sectionTitle = document.getElementById('section-title');
+
+    if (profileNavLinks && profileSections && sectionTitle) {
+      profileNavLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          const targetId = this.getAttribute('data-target');
+          const targetElement = document.querySelector(targetId);
+
+          if (!targetElement) return;
+
+          // Collapse all sections
+          profileSections.forEach(section => section.classList.remove('show'));
+
+          // Highlight the active tab
+          profileNavLinks.forEach(nav => nav.classList.remove('active'));
+          this.classList.add('active');
+
+          // Show the selected section
+          targetElement.classList.add('show');
+
+          // Update section title
+          sectionTitle.textContent = this.textContent.trim();
+        });
+      });
+    }
+  });
+</script>
 {% endblock %}

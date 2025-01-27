@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load widget_tweaks %}
 {% load crispy_forms_tags %}
 {% load crispy_forms_field %}
 {% load django_bootstrap5 %}
@@ -108,4 +109,22 @@
         {% endif %}
     </div>
 </div>
+    <div class="collapse" id="filterCollapse">
+    <div class="card card-body">
+        <form method="get">
+            {% csrf_token %}
+            {% for field in filterset.form %}
+                <div class="mb-3">
+                    {{ field.label_tag }}
+                    {% render_field field class="form-control form-control-sm js-autocomplete" data-placeholder="Search {{ field.label }}" %}
+                </div>
+            {% endfor %}
+            <div class="d-flex justify-content-between mt-3">
+                <button type="submit" class="btn btn-success w-50 me-2">Apply Filters</button>
+                <button type="reset" class="btn btn-secondary w-50" onclick="window.location.href='{{ request.path }}'; return false;">Reset Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {% endblock %}

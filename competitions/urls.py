@@ -3,7 +3,8 @@ from . import views
 from .consumers import ScoreUpdateConsumer
 from .views import SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
     CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView, AthleteCheckInView, \
-    toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView
+    toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView, AssignWeightClassesView, \
+    CustomDivisionCreateView, CustomWeightClassCreateView
 
 app_name = 'competitions'
 
@@ -15,6 +16,12 @@ urlpatterns = [
     path('<int:pk>/delete/', views.CompetitionDeleteView.as_view(), name='competition_delete'),
 
     path('get_weight_classes/', views.get_weight_classes, name='get_weight_classes'),
+    path(
+        "competitions/<int:pk>/assign-weight-classes/",
+        AssignWeightClassesView.as_view(),
+        name="assign_weight_classes",
+    ),
+    path('division/<int:division_id>/weight-classes/', views.get_division_weight_classes, name='division_weight_classes'),
 
     # Event URLs
     path('competition/<int:competition_pk>/event/create/', views.create_event, name='create_event'),
@@ -58,7 +65,8 @@ urlpatterns = [
         name='combine_weight_classes'
     ),
     path('event/<int:event_pk>/edit/', views.update_event, name='update_event'),
-
+    path('competitions/<int:competition_pk>/custom-division/add/', CustomDivisionCreateView.as_view(), name='add_custom_division'),
+    path('competitions/<int:competition_pk>/custom-weight-class/add/', CustomWeightClassCreateView.as_view(), name='add_custom_weight_class'),
 
     # AthleteCompetition URLs
     path('<int:competition_pk>/register/', views.AthleteCompetitionCreateView.as_view(), name='athletecompetition_create'),

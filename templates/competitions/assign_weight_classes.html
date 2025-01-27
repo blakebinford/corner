@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-5">
+  <h2 class="text-center mb-4" style="font-weight: bold; color: #333;">
+    Assign Weight Classes for {{ competition.name }}
+  </h2>
+
+  <form method="post" class="shadow-lg p-4 bg-white rounded">
+    {% csrf_token %}
+    {% for division, weight_classes in division_weight_classes.items %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h4 class="text-center mb-0">{{ division.name }}</h4>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <!-- Male Weight Classes -->
+            <div class="col-md-6 border-end">
+              <h5 class="text-center mb-3" style="color: #007bff;">Male Weight Classes</h5>
+              <div class="d-flex flex-wrap">
+                {% for weight_class in weight_classes %}
+                  {% if weight_class.gender == "Male" %}
+                    <div class="form-check me-3 mb-2" style="width: 45%;">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        name="division_{{ division.id }}"
+                        value="{{ weight_class.id }}"
+                        id="division_{{ division.id }}_weight_class_{{ weight_class.id }}"
+                        {% if weight_class in division.weightclass_set.all %}checked{% endif %}
+                      >
+                      <label class="form-check-label" for="division_{{ division.id }}_weight_class_{{ weight_class.id }}">
+                        {{ weight_class.name }}
+                      </label>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Female Weight Classes -->
+            <div class="col-md-6">
+              <h5 class="text-center mb-3" style="color: #ff6b6b;">Female Weight Classes</h5>
+              <div class="d-flex flex-wrap">
+                {% for weight_class in weight_classes %}
+                  {% if weight_class.gender == "Female" %}
+                    <div class="form-check me-3 mb-2" style="width: 45%;">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        name="division_{{ division.id }}"
+                        value="{{ weight_class.id }}"
+                        id="division_{{ division.id }}_weight_class_{{ weight_class.id }}"
+                        {% if weight_class in division.weightclass_set.all %}checked{% endif %}
+                      >
+                      <label class="form-check-label" for="division_{{ division.id }}_weight_class_{{ weight_class.id }}">
+                        {{ weight_class.name }}
+                      </label>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    <div class="text-center mt-4">
+      <button type="submit" class="btn btn-success btn-lg px-5">
+        <i class="bi bi-save me-2"></i> Save Weight Classes
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

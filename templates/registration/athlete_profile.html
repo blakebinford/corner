@@ -125,7 +125,7 @@
                           {% endfor %}
                         </td>
                           <td>
-                            {% if competition.competition.status == 'completed' %}
+                            {% if competition.competition.status == 'completed' and request.user == profile_user %}
                                 <a href="{% url 'competitions:competition_overlay' competition.competition.pk user.pk %}" 
                                    class="btn btn-primary btn-sm">
                                    View Overlay

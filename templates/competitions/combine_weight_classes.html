@@ -1,23 +1,67 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load widget_tweaks %}
+
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow-lg border-0">
-    <div class="card-header bg-primary text-white text-center">
-      <h2 class="mb-0">Combine Weight Classes for {{ competition.name }}</h2>
+<div class="container my-5">
+    <h2 class="text-center mb-4 text-primary">
+        <i class="bi bi-arrows-move"></i> Combine Weight Classes
+    </h2>
+    <div class="card shadow-lg border-0">
+        <div class="card-body p-5">
+            <form method="post" id="combineWeightClassesForm">
+                {% csrf_token %}
+                <div class="row">
+                    <!-- Select Division -->
+                    <div class="col-md-12 mb-4">
+                        <label for="division" class="form-label fw-bold text-secondary">
+                            <i class="bi bi-layers"></i> Select Division
+                        </label>
+                        {{ form.division|add_class:"form-select form-select-lg" }}
+                    </div>
+                    <!-- From Weight Class -->
+                    <div class="col-md-6 mb-4">
+                        <label for="from_weight_class" class="form-label fw-bold text-secondary">
+                            <i class="bi bi-arrow-left-circle"></i> From Weight Class
+                        </label>
+                        {{ form.from_weight_class|add_class:"form-select form-select-lg" }}
+                    </div>
+                    <!-- To Weight Class -->
+                    <div class="col-md-6 mb-4">
+                        <label for="to_weight_class" class="form-label fw-bold text-secondary">
+                            <i class="bi bi-arrow-right-circle"></i> To Weight Class
+                        </label>
+                        {{ form.to_weight_class|add_class:"form-select form-select-lg" }}
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-lg btn-primary px-5 py-3 shadow">
+                        <i class="bi bi-check-circle-fill"></i> Combine
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="card-body p-4">
-      <div class="alert alert-warning">
-        <p class="mb-0">
-          Select the weight class to combine (from) and the weight class to move athletes into (to). This action is irreversible.
-        </p>
-      </div>
-      <form method="post">
-        {% csrf_token %}
-        {{ form|crispy }}
-        <button type="submit" class="btn btn-success w-100 mt-3">Combine Weight Classes</button>
-      </form>
-    </div>
-  </div>
 </div>
+
+<script>
+    document.getElementById('id_division').addEventListener('change', function () {
+        const divisionId = this.value;
+        const form = document.getElementById('combineWeightClassesForm');
+        fetch(`/competitions/division/${divisionId}/weight-classes/`)
+            .then(response => response.json())
+            .then(data => {
+                const fromSelect = document.getElementById('id_from_weight_class');
+                const toSelect = document.getElementById('id_to_weight_class');
+                fromSelect.innerHTML = '';
+                toSelect.innerHTML = '';
+                data.forEach(weightClass => {
+                    const option = new Option(weightClass.text, weightClass.id);
+                    fromSelect.add(option);
+                    toSelect.add(option.cloneNode(true));
+                });
+            });
+    });
+</script>
 {% endblock %}
+

@@ -24,6 +24,12 @@ class SignUpView(generic.CreateView):
     success_url = reverse_lazy('login')
     template_name = 'registration/signup.html'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        kwargs['competition'] = competition
+        return kwargs
+
     def form_valid(self, form):
         """
         If the form is valid, save the user and create their profile based on their role.
@@ -37,7 +43,7 @@ class SignUpView(generic.CreateView):
         mail_subject = 'Activate your account.'
         message = render_to_string('registration/acc_active_email.html', {
             'user': user,
-            'domain': 'comppodium.onrender.com',  # Replace with your domain
+            'domain': 'comppodium.onrender.com',
             'uid': urlsafe_base64_encode(force_bytes(user.pk)),
             'token': account_activation_token.make_token(user),
         })

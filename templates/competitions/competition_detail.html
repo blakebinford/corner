@@ -180,7 +180,7 @@
                                                             </strong>
                                                         </td>
                                                         {% for event in events %}
-                                                            <td>{{ row|get:event.name|capfirst|safe }}</td>
+                                                            <td>{{ row|get:event.name|capfirst }}</td>
                                                         {% endfor %}
                                                     </tr>
                                                 {% endif %}
@@ -298,6 +298,7 @@
                             Competition Card
                         </a>
                     </div>
+                    
                 </div>
             </div>
         </div>

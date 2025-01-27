@@ -24,18 +24,9 @@
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   <link rel="stylesheet" href="{% static 'chat/style.css' %}">
 
+{% block extra_head %}{% endblock %}
 
     <style>
-.notes-container {
-  max-height: 80px; /* Adjust the max height as needed */
-  overflow-y: auto;
-}
-.sponsor-logos {
-  display: flex;
-  justify-content: space-around; /* Distribute logos evenly */
-  align-items: center;
-  margin-bottom: 10px; /* Add some space below the logos */
-}
 
 .sponsor-logos img {
     max-height: 75px; /* Adjust as needed */

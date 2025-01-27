@@ -3,6 +3,7 @@ from datetime import date
 import re
 import requests
 import bleach
+from crispy_forms.helper import FormHelper
 from tinymce.widgets import TinyMCE
 
 import django_filters
@@ -94,14 +95,13 @@ class CompetitionForm(forms.ModelForm):
             'address', 'city', 'state', 'zip_code', 'federation',
             'signup_price', 'capacity', 'registration_deadline', 'image',
             'description', 'liability_waiver_accepted', 'provides_shirts', 'allowed_tshirt_sizes',
-            'allowed_divisions', 'allowed_weight_classes', 'tags', 'facebook_url', 'instagram_url',
+            'allowed_divisions', 'tags', 'facebook_url', 'instagram_url',
         ]
         widgets = {
             'comp_date': forms.DateInput(attrs={'type': 'date'}),
             'comp_end_date': forms.DateInput(attrs={'type': 'date'}),
             'start_time': forms.TimeInput(attrs={'type': 'time'}),
             'registration_deadline': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-            'allowed_weight_classes': forms.CheckboxSelectMultiple,
             'description': TinyMCE(attrs={'cols': 80, 'rows': 30}),
             'state': forms.Select(choices=Competition.STATE_CHOICES),
             'signup_price': NumberInput(attrs={'type': 'number', 'step': '0.01', 'min': '0'}),
@@ -168,22 +168,47 @@ class CompetitionForm(forms.ModelForm):
 
         # Save competition instance before updating ManyToMany fields
         if commit:
-            competition.save()
+            competition.save()  # Save the instance to assign an ID
 
-        # Handle T-shirt sizes
-        selected_sizes = self.cleaned_data.get('allowed_tshirt_sizes', [])
-        selected_sizes = self.cleaned_data.get('allowed_tshirt_sizes', [])
-        print("Saving Sizes:", selected_sizes)
-        if selected_sizes:
-            tshirt_size_objects = TshirtSize.objects.filter(size__in=selected_sizes)
-            competition.allowed_tshirt_sizes.set(tshirt_size_objects)
-        else:
-            competition.allowed_tshirt_sizes.clear()  # Remove all sizes if none are selected
+            # Many-to-many relationships
+            if self.cleaned_data.get('allowed_tshirt_sizes'):
+                selected_sizes = TshirtSize.objects.filter(size__in=self.cleaned_data['allowed_tshirt_sizes'])
+                competition.allowed_tshirt_sizes.set(selected_sizes)
+            else:
+                competition.allowed_tshirt_sizes.clear()  # Clear if none selected
 
-        if commit:
-            competition.save()
+            if self.cleaned_data.get('tags'):
+                competition.tags.set(self.cleaned_data['tags'])
+
+            if self.cleaned_data.get('allowed_divisions'):
+                competition.allowed_divisions.set(self.cleaned_data['allowed_divisions'])
 
         return competition
+
+class AssignWeightClassesForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        self.competition = kwargs.pop("competition", None)
+        super().__init__(*args, **kwargs)
+
+        # Dynamically generate fields for each division in the competition
+        for division in self.competition.allowed_divisions.all():
+            self.fields[f"division_{division.pk}"] = forms.ModelMultipleChoiceField(
+                queryset=WeightClass.objects.filter(federation=self.competition.federation),
+                required=False,
+                widget=forms.CheckboxSelectMultiple,
+                label=f"Weight Classes for {division.name}",
+            )
+
+    def save(self):
+        # Save weight classes for each division in the competition
+        for field_name, weight_classes in self.cleaned_data.items():
+            if field_name.startswith("division_"):
+                division_id = int(field_name.split("_")[1])
+                division = self.competition.allowed_divisions.get(pk=division_id)
+
+                # Clear existing weight classes and add the new ones
+                division.weightclass_set.clear()
+                division.weightclass_set.add(*weight_classes)
 
 class EditWeightClassesForm(forms.Form):
     weight_classes = forms.ModelMultipleChoiceField(
@@ -341,25 +366,45 @@ class AthleteCompetitionForm(forms.ModelForm):
             else:
                 self.fields.pop('tshirt_size', None)
 
+
 class CombineWeightClassesForm(forms.Form):
+    division = forms.ModelChoiceField(
+        queryset=Division.objects.none(),
+        label="Division",
+        required=True
+    )
     from_weight_class = forms.ModelChoiceField(
-        queryset=WeightClass.objects.none(),
+        queryset=DivisionWeightClass.objects.none(),
         label="From Weight Class",
         required=True
     )
     to_weight_class = forms.ModelChoiceField(
-        queryset=WeightClass.objects.none(),
+        queryset=DivisionWeightClass.objects.none(),
         label="To Weight Class",
         required=True
     )
 
     def __init__(self, *args, **kwargs):
         competition = kwargs.pop('competition', None)
+        division_id = kwargs.get('data', {}).get('division')
         super().__init__(*args, **kwargs)
+
         if competition:
-            allowed_weight_classes = competition.allowed_weight_classes.all()
-            self.fields['from_weight_class'].queryset = allowed_weight_classes
-            self.fields['to_weight_class'].queryset = allowed_weight_classes
+            # Populate the division field with allowed divisions
+            self.fields['division'].queryset = competition.allowed_divisions.all()
+
+            # Dynamically filter weight classes based on the selected division
+            if division_id:
+                try:
+                    division = Division.objects.get(id=division_id)
+                    self.fields['from_weight_class'].queryset = DivisionWeightClass.objects.filter(
+                        division=division
+                    )
+                    self.fields['to_weight_class'].queryset = DivisionWeightClass.objects.filter(
+                        division=division
+                    )
+                except Division.DoesNotExist:
+                    pass
 
 
 class ResultForm(forms.ModelForm):

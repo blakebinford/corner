@@ -4,7 +4,7 @@ from django.shortcuts import redirect, render
 from phonenumber_field.formfields import PhoneNumberField
 from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, AthleteProfile, OrganizerProfile
+from .models import User, AthleteProfile, OrganizerProfile, Division, WeightClass
 
 height_choices = []
 feet = 4
@@ -188,3 +188,50 @@ class OrganizerProfileForm(forms.ModelForm):
     class Meta:
         model = OrganizerProfile
         fields = ('organization_name', 'contact_phone', 'org_email')
+
+class CustomDivisionForm(forms.ModelForm):
+    class Meta:
+        model = Division
+        fields = ['custom_name']
+        labels = {
+            'custom_name': 'Division Name',
+        }
+        widgets = {
+            'custom_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter a custom name'}),
+        }
+
+    def clean_custom_name(self):
+        custom_name = self.cleaned_data.get('custom_name')
+        if not custom_name:
+            raise forms.ValidationError("Division name is required.")
+        return custom_name
+
+
+class CustomWeightClassForm(forms.ModelForm):
+    division = forms.ModelChoiceField(
+        queryset=Division.objects.none(),  # Set dynamically in __init__
+        required=True,
+        help_text="Select the division this weight class belongs to."
+    )
+    name = forms.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        widget=forms.NumberInput(attrs={'step': '0.1'}),
+        help_text="(e.g., 140.0)."
+    )
+
+    class Meta:
+        model = WeightClass
+        fields = ['name', 'weight_d', 'gender', 'division']  # Add other fields if necessary
+        labels = {
+            'name': 'Weight Class Name (e.g., 140.0)',
+            'weight_d': 'Weight Designation (u or +)',
+            'gender': 'Select Gender',
+            'division': 'Division',
+        }
+
+    def __init__(self, *args, **kwargs):
+        competition = kwargs.pop('competition', None)
+        super().__init__(*args, **kwargs)
+        if competition:
+            self.fields['division'].queryset = competition.allowed_divisions.all()

@@ -447,17 +447,39 @@
 <div class="col-md-6">
     <div class="card shadow-lg border-0 mb-5">
         <div class="card-header bg-secondary text-white text-center">
-            <h4 class="mb-0"><i class="bi bi-barbell me-2"></i> Allowed Weight Classes</h4>
+            <h4 class="mb-0">
+                <i class="bi bi-barbell me-2"></i> Weight Class Management
+            </h4>
         </div>
         <div class="card-body">
-        <div class="col-md-12">
-             <div class="card-body text-center">
-        <a href="{% url 'competitions:edit_weight_classes' competition.pk %}" 
-           class="btn btn-outline-secondary px-4 py-2 d-inline-flex align-items-center">
-            <i class="bi bi-pencil-square me-2"></i> Edit Weight Classes
+    
+    <!-- Button Group -->
+    <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+        <!-- Assign Weight Classes Button -->
+        <a href="{% url 'competitions:assign_weight_classes' competition.pk %}" 
+           class="btn btn-secondary btn-sm">
+            <i class="bi bi-pencil-square"></i> Assign
         </a>
-        </div>
-            {% if competition.allowed_divisions.all and competition.allowed_weight_classes.all %}
+        <!-- Combine Weight Classes Button -->
+        <a href="{% url 'competitions:combine_weight_classes' competition.pk %}" 
+           class="btn btn-primary btn-sm">
+            <i class="bi bi-arrows-move"></i> Combine
+        </a>
+        <!-- Add Custom Division Button -->
+        <a href="{% url 'competitions:add_custom_division' competition.pk %}" 
+           class="btn btn-success btn-sm">
+            <i class="bi bi-plus-circle"></i> Add Division
+        </a>
+        <!-- Add Custom Weight Class Button -->
+        <a href="{% url 'competitions:add_custom_weight_class' competition.pk %}" 
+           class="btn btn-success btn-sm">
+            <i class="bi bi-plus-circle"></i> Add Weight Class
+        </a>
+    </div>
+
+
+
+            {% if competition.allowed_divisions.all %}
                 <div class="accordion" id="weightClassesAccordion">
                     {% for division in competition.allowed_divisions.all %}
                         <div class="accordion-item">
@@ -468,14 +490,14 @@
                             </h2>
                             <div id="collapse-{{ division.id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ division.id }}" data-bs-parent="#weightClassesAccordion">
                                 <div class="accordion-body">
-                                    {% for weight_class in competition.allowed_weight_classes.all %}
+                                    {% for dwc in division.divisionweightclass_set.all %}
                                         <span class="badge bg-primary me-1 mb-2">
-                                        {% if weight_class.weight_d == "u" %}
-                                                                    {{ weight_class.weight_d }}{{ weight_class.name|floatformat:"-1" }}
-                                                                {% else %}
-                                                                    {{ weight_class.name|floatformat:"-1" }}{{ weight_class.weight_d }}
-                                                                {% endif %}
-                                            - {{ weight_class.gender }}
+                                            {% if dwc.weight_class.weight_d == "u" %}
+                                                {{ dwc.weight_class.weight_d }}{{ dwc.weight_class.name|floatformat:"-1" }}
+                                            {% else %}
+                                                {{ dwc.weight_class.name|floatformat:"-1" }}{{ dwc.weight_class.weight_d }}
+                                            {% endif %}
+                                            - {{ dwc.weight_class.gender }}
                                         </span>
                                     {% endfor %}
                                 </div>
@@ -488,7 +510,6 @@
             {% endif %}
         </div>
     </div>
-</div>
 </div>
 
 
