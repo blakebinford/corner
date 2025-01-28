@@ -1,5 +1,5 @@
 import math
-from datetime import date
+from datetime import date, datetime, time
 import re
 import requests
 import bleach
@@ -79,7 +79,7 @@ class CompetitionForm(forms.ModelForm):
     allowed_tshirt_sizes = forms.MultipleChoiceField(
         required=False,
         widget=forms.CheckboxSelectMultiple,
-        choices=TshirtSize.SIZE_CHOICES,  # Use SIZE_CHOICES directly
+        choices=TshirtSize.SIZE_CHOICES,
         label="Allowed T-shirt Sizes",
         help_text="Select the sizes athletes can choose from."
     )
@@ -88,6 +88,7 @@ class CompetitionForm(forms.ModelForm):
         required=False,
         label="Description",
     )
+
     class Meta:
         model = Competition
         fields = [
@@ -101,7 +102,7 @@ class CompetitionForm(forms.ModelForm):
             'comp_date': forms.DateInput(attrs={'type': 'date'}),
             'comp_end_date': forms.DateInput(attrs={'type': 'date'}),
             'start_time': forms.TimeInput(attrs={'type': 'time'}),
-            'registration_deadline': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'registration_deadline': forms.DateInput(attrs={'type': 'date'}),
             'description': TinyMCE(attrs={'cols': 80, 'rows': 30}),
             'state': forms.Select(choices=Competition.STATE_CHOICES),
             'signup_price': NumberInput(attrs={'type': 'number', 'step': '0.01', 'min': '0'}),
@@ -109,17 +110,15 @@ class CompetitionForm(forms.ModelForm):
             'instagram_url': forms.URLInput(attrs={'placeholder': 'https://www.instagram.com/...'}),
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['allowed_divisions'].queryset = Division.objects.all()
-
-        # Pre-check T-shirt sizes if they exist
-        if self.instance.pk:  # Ensure this runs for existing instances
-            selected_sizes = [tshirt_size.size for tshirt_size in self.instance.allowed_tshirt_sizes.all()]
-            print("Selected Sizes in Init:", selected_sizes)  # Debugging output
-            self.fields['allowed_tshirt_sizes'].initial = selected_sizes
-            print("Initial for allowed_tshirt_sizes:", self.fields['allowed_tshirt_sizes'].initial)
-            self.fields['allowed_tshirt_sizes'].widget.attrs['value'] = selected_sizes
+    def clean_registration_deadline(self):
+        """
+        Set the time of the registration deadline to 11:59 PM if only a date is provided.
+        """
+        registration_deadline = self.cleaned_data.get('registration_deadline')
+        if registration_deadline:
+            # Add 11:59 PM to the provided date
+            return datetime.combine(registration_deadline, time(23, 59))
+        return registration_deadline
 
     def clean_allowed_tshirt_sizes(self):
         if self.cleaned_data.get('provides_shirts') and not self.cleaned_data.get('allowed_tshirt_sizes'):
@@ -148,6 +147,7 @@ class CompetitionForm(forms.ModelForm):
             cleaned_data['comp_end_date'] = comp_date
 
         return cleaned_data
+
 
     def clean_description(self):
         """Sanitizes the description field before saving."""

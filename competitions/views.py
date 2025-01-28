@@ -239,34 +239,18 @@ class CompetitionDetailView(generic.DetailView):
         context = super().get_context_data(**kwargs)
         competition = self.get_object()
 
-        # Check if the user is signed up for the competition
+        # Existing logic for signed-up users
         if self.request.user.is_authenticated:
             context['is_signed_up'] = AthleteCompetition.objects.filter(
                 competition=competition,
                 athlete__user=self.request.user
             ).exists()
 
-        # Fetch messages for the organizer chat room
-        try:
-            organizer_chat_room = OrganizerChatRoom.objects.get(competition=competition)
-            organizer_messages = OrganizerChatMessage.objects.filter(room=organizer_chat_room).order_by('timestamp')
-        except OrganizerChatRoom.DoesNotExist:
-            organizer_messages = []
-
-        context['organizer_messages'] = organizer_messages
-
-        # Check if the user is an organizer or a registered athlete
-        is_organizer_or_athlete = False
-        if self.request.user.is_authenticated:
-            is_organizer_or_athlete = (
-                    self.request.user == competition.organizer or
-                    competition.athletecompetition_set.filter(athlete__user=self.request.user).exists()
-            )
-
-        context['is_organizer_or_athlete'] = is_organizer_or_athlete
-
-        # Fetch and organize event implement data
+        # Organizing event implement data
         division_tables = {}
+        has_male_events = False
+        has_female_events = False
+
         for event in competition.events.all():
             event_implements = event.implements.select_related('division_weight_class').order_by('implement_order')
             for implement in event_implements:
@@ -287,11 +271,14 @@ class CompetitionDetailView(generic.DetailView):
                     row = {'weight_class': weight_class_obj, 'gender': gender}
                     division_tables[division].append(row)
 
-                # Add the implement information, ensuring no duplicates
-                implements_data = row.get(event.name, [])
-                if not isinstance(implements_data, list):
-                    implements_data = []
+                    # Track if male or female rows exist
+                    if gender == 'Male':
+                        has_male_events = True
+                    elif gender == 'Female':
+                        has_female_events = True
 
+                # Add implement data
+                implements_data = row.get(event.name, [])
                 implement_info = (
                     f"{implement.implement_name} - {implement.weight} {implement.weight_unit}"
                     if event.has_multiple_implements else f"{implement.weight} {implement.weight_unit}"
@@ -301,16 +288,19 @@ class CompetitionDetailView(generic.DetailView):
 
                 row[event.name] = implements_data
 
-        # Format the implement data for display in the template
+        # Format implement data for template
         for division, rows in division_tables.items():
             for row in rows:
                 for event in competition.events.all():
                     if event.name in row:
-                        row[event.name] = ''.join(row[event.name])
+                        row[event.name] = '<br>'.join(row[event.name])
 
         context['division_tables'] = division_tables
         context['events'] = competition.events.all()
+        context['has_male_events'] = has_male_events
+        context['has_female_events'] = has_female_events
         return context
+
 
 
 

@@ -37,6 +37,16 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Select2 for the event_base field
+        const eventBaseField = document.querySelector('#id_event_base');
+        if (eventBaseField) {
+            $(eventBaseField).select2({
+                placeholder: 'Select an Event Base',
+                allowClear: true,
+                width: '100%'
+            });
+        }
+
         const hasMultipleImplementsCheckbox = document.getElementById('id_has_multiple_implements');
         const numberOfImplementsContainer = document.getElementById('number-of-implements-container');
 

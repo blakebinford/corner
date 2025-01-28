@@ -12,7 +12,7 @@
             <thead class="table-dark">
                 <tr>
                     <th>Division Weight Class</th>
-                     {% if event.has_multiple_implements %}
+                    {% if event.has_multiple_implements %}
                         <th>Implement Name</th>
                         <th>Implement Order</th>
                     {% endif %}
@@ -27,12 +27,14 @@
                         {{ form.division_weight_class.as_hidden }}
                         {{ form.division_weight_class }}
                     </td>
+                    {% if event.has_multiple_implements %}
                     <td>
                         {{ form.implement_name }}
                     </td>
                     <td>
                         {{ form.implement_order }}
                     </td>
+                    {% endif %}
                     <td>
                         {{ form.weight }}
                     </td>
@@ -50,18 +52,54 @@
     </form>
 </div>
 
+{% if event.has_multiple_implements %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Handle dynamic behavior for has_multiple_implements (if needed)
-        const implementNameFields = document.querySelectorAll('td:nth-child(2)');
-        const implementOrderFields = document.querySelectorAll('td:nth-child(3)');
-        
-        // Example: Hide implement order if multiple implements aren't allowed
-        const hasMultipleImplements = {{ event.has_multiple_implements|yesno:"true,false" }};
-        if (!hasMultipleImplements) {
-            implementNameFields.forEach(field => field.style.display = 'none');
-            implementOrderFields.forEach(field => field.style.display = 'none');
-        }
+        // Collect all rows in the table
+        const rows = Array.from(document.querySelectorAll('tbody tr'));
+
+        // Function to group inputs by implement order
+        const groupByImplementOrder = () => {
+            const grouped = {};
+            rows.forEach(row => {
+                const implementOrderInput = row.querySelector('input[name$="implement_order"]');
+                const implementNameInput = row.querySelector('input[name$="implement_name"]');
+
+                if (implementOrderInput && implementNameInput) {
+                    const orderValue = implementOrderInput.value;
+
+                    if (!grouped[orderValue]) {
+                        grouped[orderValue] = [];
+                    }
+
+                    grouped[orderValue].push(implementNameInput);
+                }
+            });
+            return grouped;
+        };
+
+        // Copy text function
+        const copyTextAcrossRows = () => {
+            const grouped = groupByImplementOrder();
+
+            Object.keys(grouped).forEach(order => {
+                const inputs = grouped[order];
+                if (inputs.length > 0) {
+                    const primaryInput = inputs[0];
+                    primaryInput.addEventListener('input', () => {
+                        inputs.forEach(input => {
+                            if (input !== primaryInput) {
+                                input.value = primaryInput.value;
+                            }
+                        });
+                    });
+                }
+            });
+        };
+
+        // Initialize the copy function
+        copyTextAcrossRows();
     });
 </script>
+{% endif %}
 {% endblock %}

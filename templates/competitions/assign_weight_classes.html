@@ -30,7 +30,13 @@
                         {% if weight_class in division.weightclass_set.all %}checked{% endif %}
                       >
                       <label class="form-check-label" for="division_{{ division.id }}_weight_class_{{ weight_class.id }}">
-                        {{ weight_class.name }}
+                        {% if weight_class.weight_d == 'u' %}
+                          {{ weight_class.weight_d }}{{ weight_class.name }}
+                        {% elif weight_class.weight_d == '+' %}
+                          {{ weight_class.name }}{{ weight_class.weight_d }}
+                        {% else %}
+                          {{ weight_class.name }}
+                        {% endif %}
                       </label>
                     </div>
                   {% endif %}
@@ -54,7 +60,13 @@
                         {% if weight_class in division.weightclass_set.all %}checked{% endif %}
                       >
                       <label class="form-check-label" for="division_{{ division.id }}_weight_class_{{ weight_class.id }}">
-                        {{ weight_class.name }}
+                        {% if weight_class.weight_d == 'u' %}
+                          {{ weight_class.weight_d }}{{ weight_class.name }}
+                        {% elif weight_class.weight_d == '+' %}
+                          {{ weight_class.name }}{{ weight_class.weight_d }}
+                        {% else %}
+                          {{ weight_class.name }}
+                        {% endif %}
                       </label>
                     </div>
                   {% endif %}

@@ -24,12 +24,6 @@ class SignUpView(generic.CreateView):
     success_url = reverse_lazy('login')
     template_name = 'registration/signup.html'
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
-        kwargs['competition'] = competition
-        return kwargs
-
     def form_valid(self, form):
         """
         If the form is valid, save the user and create their profile based on their role.
