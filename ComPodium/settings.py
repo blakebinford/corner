@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-eekryfugq*^)_(j$d@_l_fkgfnt5_dffkb41!%w)07o68lig*a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['comppodium.onrender.com']
+ALLOWED_HOSTS = ['atlascompetition.com']
 
 
 # Application definition

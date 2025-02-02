@@ -1,14 +1,52 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 {% load widget_tweaks %}
+{% block extra_styles %}
+    <style>
+.division-preview-tab {
+    width: 125px; /* ✅ Uniform width */
+    text-align: center;
+    padding: 10px 0; /* ✅ Adds padding inside */
+    margin: 5px; /* ✅ Adds space between tabs */
+    border-radius: 5px; /* ✅ Keeps rounded corners */
+}
+/* Floating Button Styles */
+.scroll-to-preview {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 30px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    display: none; /* Hidden by default */
+    background-color: #333; /* Dark theme */
+    color: white;
+    border: none;
+    transition: all 0.3s ease-in-out;
+}
 
+.scroll-to-preview:hover {
+    background-color: #555;
+    transform: scale(1.05);
+}
+</style>
+{% endblock %}
 {% block content %}
+    <!-- Scroll to Live Preview Button -->
+<button id="scrollToPreviewBtn" class="btn btn-dark scroll-to-preview">
+    <i class="bi bi-eye"></i> View Live Preview
+</button>
 <div class="container py-4" style="background: #f8f9fa;">
   <div class="row justify-content-center">
     <div class="col-md-8">
       <div class="card shadow-sm border-0" style="border-radius: 15px; background-color: #ffffff;">
         <div class="card-body p-4">
-          <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">{{ is_update|yesno:"Update Competition,Create Competition" }}</h2>
+          <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">
+            {{ is_update|yesno:"Update Competition,Create Competition" }}
+          </h2>
           <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
             {% csrf_token %}
 
@@ -59,23 +97,24 @@
               <div class="col-md-6">
                 {{ form.image|as_crispy_field }}
               </div>
-              <div class="col-md-12">
-                <p class="text-center mb-2"><b>Select Tags</b> <small>(Hold Ctrl to select multiple)</small></p>
+                  <div class="col-md-12">
                 {{ form.tags|as_crispy_field }}
               </div>
+              
               <div class="col-md-6">
+                {{ form.facebook_url|as_crispy_field }}
+              </div>
+              <div class="col-md-6">
+                {{ form.instagram_url|as_crispy_field }}
+              </div>
+              <div class="col-md-12">
                 {{ form.allowed_divisions|as_crispy_field }}
               </div>
-            
               <div class="col-md-12">
                 {{ form.description|as_crispy_field }}
               </div>
-                <div class="col-md-6">
-                    {{ form.facebook_url|as_crispy_field }}
-                  </div>
-                  <div class="col-md-6">
-                    {{ form.instagram_url|as_crispy_field }}
-                  </div>
+            </div>
+
                 <div class="col-md-12">
   <div class="form-check mb-3">
     {{ form.provides_shirts|as_crispy_field }}
@@ -162,7 +201,8 @@
                 </div>
               </div>
             </div>
-
+      </div>
+      </div>
             <div class="d-grid mt-4">
               <button type="submit" class="btn btn-primary btn-lg" style="background-color: #333; border: none;">
                 {{ is_update|yesno:"Update Competition,Create Competition" }}
@@ -175,6 +215,69 @@
   </div>
 </div>
 
+
+  <!-- Live Preview Section -->
+  <div class="row justify-content-center mt-5">
+    <div class="col-md-10">
+        
+      <h3 class="text-center">Live Preview</h3>
+        <div class="text-center mt-3">
+    <button id="refresh-preview" class="btn btn-secondary">
+        <i class="bi bi-arrow-clockwise"></i> Refresh Preview
+    </button>
+</div>
+
+      <div class="card shadow-lg">
+        <h2 id="preview-name" class="card-title text-center my-4"><b>Competition Name</b></h2>
+        <img id="preview-image" src="" class="card-img-top img-fluid" style="display: none; max-height: 500px; object-fit: cover;">
+          <div class="row mx-3 mt-3">
+                    <div class="col-10">
+                        <div class="mb-3">
+                            <div class="mb-3" id="preview-tags"></div>                            
+                        </div>
+                    </div>
+                    <div class="col-2 text-end">
+                        <img id="preview-federation-display" class="img-fluid" style="max-height: 50px; display: none;">
+                    </div>
+
+                </div>
+        <div class="row mx-3 mt-3">
+          <div class="col-6">
+            <p id="preview-date" class="text-muted"><i class="bi bi-calendar-event"></i> Competition Date</p>
+            <p id="preview-location" class="text-muted"><i class="bi bi-geo-alt-fill"></i> City, State</p>
+            <p id="preview-price" class="text-muted"><i class="bi bi-cash"></i> $Price</p>
+          </div>
+            <div class="col-6">
+            <p id="preview-date" class="text-muted">Organizer: {{ user.first_name }} {{ user.last_name }}</p>
+            <p id="preview-location" class="text-muted">Status: <span class="badge bg-success">Upcoming</span></p>
+            <p id="preview-capacity" class="text-muted">Capacity: 0 out of capacity spots</p>
+          </div>
+        </div>
+        <div class="px-3">
+          <h4 class="text-center">Description</h4>
+          <p id="preview-description" class="card-text">Competition details will appear here.</p>
+        </div>
+        <div class="text-center mt-3" id="social-section" style="display: none;">
+            <h5 class="card-title">Stay up to Date</h5>
+            <a id="preview-instagram-btn" href="#" target="_blank" class="btn btn-danger" style="display: none;">
+                <i class="bi bi-instagram"></i> Instagram
+            </a>
+            <a id="preview-facebook-btn" href="#" target="_blank" class="btn btn-primary" style="display: none;">
+                <i class="bi bi-facebook"></i> Facebook
+            </a>
+        </div>
+          <div>
+              <br>
+           <h2 class="text-center">Divisions and Events</h2>
+              
+<div id="preview-divisions" class="d-flex flex-wrap justify-content-center gap-2 mt-3"></div>
+
+
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const providesShirtsCheckbox = document.getElementById('{{ form.provides_shirts.id_for_label }}');
@@ -256,13 +359,249 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 });
-tinymce.init({
-    selector: '#id_description', // Target the description field by its ID
-    height: 400,
-    menubar: true,
-    plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code fullscreen insertdatetime media table paste help wordcount',
-    toolbar: 'undo redo | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | fullscreen',
-    branding: false,
+document.addEventListener("DOMContentLoaded", function () {
+    let scrollToPreviewBtn = document.getElementById("scrollToPreviewBtn");
+    let previewSection = document.querySelector(".row.justify-content-center.mt-5");
+
+    if (!scrollToPreviewBtn || !previewSection) {
+        console.error("❌ Scroll button or preview section not found.");
+        return;
+    }
+
+    // Show button when scrolling down
+    window.addEventListener("scroll", function () {
+        if (window.scrollY > 200) {
+            scrollToPreviewBtn.style.display = "block";
+        } else {
+            scrollToPreviewBtn.style.display = "none";
+        }
+    });
+
+    // Scroll to preview section when button is clicked
+    scrollToPreviewBtn.addEventListener("click", function () {
+        previewSection.scrollIntoView({ behavior: "smooth" });
+    });
+});
+
+</script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("✅ TinyMCE Loaded - Initializing...");
+
+    tinymce.init({
+        selector: "#id_description",
+        height: 500,
+        menubar: true,
+        plugins: [
+            "advlist autolink lists link image charmap print preview anchor",
+            "searchreplace visualblocks code fullscreen",
+            "insertdatetime media table paste code help wordcount"
+        ],
+        toolbar: "undo redo | formatselect | bold italic backcolor | \
+                  alignleft aligncenter alignright alignjustify | \
+                  bullist numlist outdent indent | removeformat | help",
+        setup: function (editor) {
+            editor.on('input change', function () {
+                console.log("🔄 TinyMCE Content Updated");
+                updatePreview();
+            });
+        }
+    });
+
+    console.log("✅ TinyMCE Initialized!");
 });
 </script>
+<script>
+window.onload = function () {
+    console.log("✅ JavaScript Loaded - Debugging Starts Here");
+
+    function updatePreview() {
+        console.log("🔄 Updating preview...");
+
+        // Get input elements
+        let nameInput = document.getElementById('id_name');
+        let dateInput = document.getElementById('id_comp_date');
+        let cityInput = document.getElementById('id_city');
+        let stateInput = document.getElementById('id_state');
+        let priceInput = document.getElementById('id_signup_price');
+        let descriptionInput = document.getElementById('id_description');
+        let imageInput = document.getElementById('id_image');
+        let capacityInput = document.getElementById('id_capacity');
+        let federationSelect = document.getElementById('id_federation');
+
+        // Get preview elements
+        let previewName = document.getElementById('preview-name');
+        let previewDate = document.getElementById('preview-date');
+        let previewLocation = document.getElementById('preview-location');
+        let previewPrice = document.getElementById('preview-price');
+        let previewCapacity = document.getElementById('preview-capacity');
+        let previewDescription = document.getElementById('preview-description');
+        let previewImage = document.getElementById('preview-image');
+        let previewFederationImage = document.getElementById('preview-federation-display');
+        let previewTagsContainer = document.getElementById('preview-tags'); // Tag preview container
+        let previewDivisionsContainer = document.getElementById('preview-divisions'); // Division preview container
+
+        // ✅ Update Text Fields
+        if (nameInput) previewName.innerText = nameInput.value || "Competition Name";
+        if (dateInput) previewDate.innerHTML = `<i class="bi bi-calendar-event"></i> ${dateInput.value || "Competition Date"}`;
+        if (cityInput && stateInput) previewLocation.innerHTML = `<i class="bi bi-geo-alt-fill"></i> ${cityInput.value}, ${stateInput.value || "City, State"}`;
+        if (priceInput) previewPrice.innerHTML = `<i class="bi bi-cash"></i> $${priceInput.value || "Price"}`;
+        if (capacityInput) previewCapacity.innerText = `Capacity: 0 out of ${capacityInput.value || "Capacity"} spots`;
+        if (descriptionInput) previewDescription.innerHTML = tinymce.get('id_description').getContent() || "Competition details will appear here.";
+        // ✅ Fix Competition Image Preview
+        if (imageInput && imageInput.files.length > 0) {
+            let reader = new FileReader();
+            reader.onload = function (e) {
+                previewImage.src = e.target.result;
+                previewImage.style.display = 'block';
+                console.log("✅ Competition image updated");
+            };
+            reader.readAsDataURL(imageInput.files[0]);
+        } else {
+            previewImage.style.display = 'none';
+            console.log("❌ No competition image selected, hiding preview");
+        }
+
+        // ✅ Federation Logo Mapping
+        const federationLogos = {
+            "1": "/media/federation_logos/nas_Z6xYsy6.png",  // Strongman Corporation
+            "2": "/media/federation_logos/uss_7MzBt3N.png",  // United States Strongman
+            "3": "/media/federation_logos/IMG_4217_wz8NJB8.jpg" // Unsanctioned
+        };
+
+        if (federationSelect) {
+            let selectedFederation = federationSelect.value;
+            console.log(`📌 Selected Federation Value: "${selectedFederation}"`);
+
+            if (federationLogos[selectedFederation]) {
+                previewFederationImage.src = federationLogos[selectedFederation];
+                previewFederationImage.style.display = 'block';
+                console.log(`✅ Federation logo updated: ${federationLogos[selectedFederation]}`);
+            } else {
+                previewFederationImage.style.display = 'none';
+                console.log("❌ No federation selected, hiding logo.");
+            }
+        }
+
+        // ✅ TAGS PREVIEW UPDATE
+        if (previewTagsContainer) {
+            previewTagsContainer.innerHTML = ""; // Clear existing tags
+            let selectedTags = document.querySelectorAll("input[name='tags']:checked");
+
+            selectedTags.forEach(tag => {
+                let tagLabel = tag.nextElementSibling.innerText; // Get label text
+                let tagBadge = document.createElement("span");
+                tagBadge.className = "badge rounded-pill bg-primary me-1"; // Uniform color
+                tagBadge.innerText = tagLabel;
+                previewTagsContainer.appendChild(tagBadge);
+            });
+
+            console.log(`✅ Tags updated: ${selectedTags.length} selected`);
+        }
+
+        // ✅ DIVISIONS PREVIEW UPDATE
+        if (previewDivisionsContainer) {
+            previewDivisionsContainer.innerHTML = ""; // Clear previous divisions
+            let selectedDivisions = document.querySelectorAll("input[name='allowed_divisions']:checked");
+
+            if (selectedDivisions.length > 0) {
+                let divisionList = document.createElement("ul");
+                divisionList.className = "nav nav-pills justify-content-center mb-4"; // Match competition_detail.html style
+
+                selectedDivisions.forEach(division => {
+                    let divisionLabel = division.nextElementSibling.innerText; // Get label text
+                    let divisionItem = document.createElement("li");
+                    divisionItem.className = "nav-item";
+                    divisionItem.className = "division-preview-tab";
+                    
+                    let divisionLink = document.createElement("span");
+                    divisionLink.className = "nav-link active"; // Make it look like an active tab
+                    divisionLink.innerText = divisionLabel;
+
+                    divisionItem.appendChild(divisionLink);
+                    divisionList.appendChild(divisionItem);
+                });
+
+                previewDivisionsContainer.appendChild(divisionList);
+            }
+
+            console.log(`✅ Divisions updated: ${selectedDivisions.length} selected`);
+        }
+
+        // ✅ SOCIAL ICONS HANDLING
+        let facebookInput = document.getElementById('id_facebook_url');
+        let instagramInput = document.getElementById('id_instagram_url');
+        let facebookButton = document.getElementById('preview-facebook-btn');
+        let instagramButton = document.getElementById('preview-instagram-btn');
+        let socialSection = document.getElementById('social-section');
+
+        let fbValue = facebookInput.value.trim();
+        let igValue = instagramInput.value.trim();
+
+        let showFacebook = fbValue !== "" && (fbValue.startsWith("http://") || fbValue.startsWith("https://"));
+        let showInstagram = igValue !== "" && (igValue.startsWith("http://") || igValue.startsWith("https://"));
+
+        if (showFacebook) {
+            facebookButton.href = fbValue;
+            facebookButton.style.display = 'inline-block';
+            console.log("✅ Facebook button shown");
+        } else {
+            facebookButton.style.display = 'none';
+            console.log("❌ Facebook button hidden");
+        }
+
+        if (showInstagram) {
+            instagramButton.href = igValue;
+            instagramButton.style.display = 'inline-block';
+            console.log("✅ Instagram button shown");
+        } else {
+            instagramButton.style.display = 'none';
+            console.log("❌ Instagram button hidden");
+        }
+
+        if (showFacebook || showInstagram) {
+            socialSection.style.display = 'block';
+            console.log("✅ Social section displayed");
+        } else {
+            socialSection.style.display = 'none';
+            console.log("❌ Social section hidden");
+        }
+    }
+
+    function attachEventListeners() {
+        let formInputs = document.querySelectorAll(
+            '#id_name, #id_comp_date, #id_city, #id_state, #id_signup_price, #id_description, #id_image, #id_capacity, #id_federation, #id_facebook_url, #id_instagram_url'
+        );
+
+        formInputs.forEach(input => {
+            if (input) {
+                ['input', 'change', 'paste', 'keyup'].forEach(evt =>
+                    input.addEventListener(evt, updatePreview)
+                );
+            }
+        });
+
+        let federationSelect = document.getElementById('id_federation');
+        if (federationSelect) {
+            federationSelect.addEventListener('change', updatePreview);
+        }
+
+        let imageInput = document.getElementById('id_image');
+        if (imageInput) {
+            imageInput.addEventListener('change', updatePreview);
+        }
+
+        let divisionCheckboxes = document.querySelectorAll("input[name='allowed_divisions']");
+        divisionCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updatePreview);
+        });
+    }
+
+    updatePreview();
+    attachEventListeners();
+    console.log("✅ Event Listeners Attached");
+};
+
+</script>
+    
 {% endblock %}
