@@ -1,8 +1,9 @@
+import os
 from .base import *
 from decouple import config
 import dj_database_url
 
-SECRET_KEY = config('SECRET_KEY', default='fallback-secret-key')
+SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = ['atlascompetition.com']
@@ -23,11 +24,11 @@ SESSION_COOKIE_SECURE = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
-AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = "atlascompetition"
 AWS_S3_REGION_NAME = "us-east-2"
-AWS_S3_CUSTOM_DOMAIN = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
+AWS_S3_CUSTOM_DOMAIN = f"media.atlascompetition.com"
 
 STORAGES = {
     "default": {
