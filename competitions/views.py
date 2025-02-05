@@ -239,70 +239,69 @@ class CompetitionDetailView(generic.DetailView):
         context = super().get_context_data(**kwargs)
         competition = self.get_object()
 
-        # Existing logic for signed-up users
+        # Check if the user is signed up for this competition
         if self.request.user.is_authenticated:
             context['is_signed_up'] = AthleteCompetition.objects.filter(
                 competition=competition,
                 athlete__user=self.request.user
             ).exists()
 
-        # Organizing event implement data
+        # Initialize data structures
         division_tables = {}
         has_male_events = False
         has_female_events = False
 
-        for event in competition.events.all():
-            event_implements = event.implements.select_related('division_weight_class').order_by('implement_order')
-            for implement in event_implements:
-                division = implement.division_weight_class.division.name
-                weight_class_obj = implement.division_weight_class.weight_class
-                gender = implement.division_weight_class.gender
+        # Retrieve divisions and associated weight classes for this competition
+        divisions = competition.allowed_divisions.all()
 
-                if division not in division_tables:
-                    division_tables[division] = []
+        # Ensure that each division is included in the division_tables
+        for division in divisions:
+            division_tables[division.name] = []
 
-                # Find or create a row for the weight class and gender
-                row = next(
-                    (r for r in division_tables[division]
-                     if r['weight_class'] == weight_class_obj and r['gender'] == gender),
-                    None
-                )
-                if not row:
-                    row = {'weight_class': weight_class_obj, 'gender': gender}
-                    division_tables[division].append(row)
+            # Get the weight classes specific to this division (from DivisionWeightClass)
+            division_weight_classes = DivisionWeightClass.objects.filter(division=division)
 
-                    # Track if male or female rows exist
-                    if gender == 'Male':
-                        has_male_events = True
-                    elif gender == 'Female':
-                        has_female_events = True
+            for div_weight_class in division_weight_classes:
+                weight_class = div_weight_class.weight_class
+                gender = div_weight_class.gender
 
-                # Add implement data
-                implements_data = row.get(event.name, [])
-                implement_info = (
-                    f"{implement.implement_name} - {implement.weight} {implement.weight_unit}"
-                    if event.has_multiple_implements else f"{implement.weight} {implement.weight_unit}"
-                )
-                if implement_info not in implements_data:
-                    implements_data.append(implement_info)
+                row = {
+                    'weight_class': weight_class,
+                    'gender': gender
+                }
 
-                row[event.name] = implements_data
+                # Track if male or female rows exist
+                if gender == 'Male':
+                    has_male_events = True
+                elif gender == 'Female':
+                    has_female_events = True
 
-        # Format implement data for template
-        for division, rows in division_tables.items():
-            for row in rows:
+                # Populate event details within the row
                 for event in competition.events.all():
-                    if event.name in row:
-                        row[event.name] = '<br>'.join(row[event.name])
+                    event_implements = event.implements.filter(division_weight_class=div_weight_class)
 
+                    implement_data = []
+                    for implement in event_implements:
+                        implement_info = f"{implement.weight} {implement.weight_unit}"  # Only returning weight & unit
+
+                        if event.has_multiple_implements:
+                            implement_info = f"{implement.implement_name} - {implement_info}"
+
+                        implement_data.append(implement_info)
+
+                    # Store implement data in the row
+                    row[event.name] = "<br>".join(implement_data) if implement_data else "N/A"
+
+                # Append row to the division table
+                division_tables[division.name].append(row)
+
+        # Add context variables for the template
         context['division_tables'] = division_tables
         context['events'] = competition.events.all()
         context['has_male_events'] = has_male_events
         context['has_female_events'] = has_female_events
+
         return context
-
-
-
 
 class AthleteCheckInView(View):
     template_name = 'competitions/checkin_athletes.html'
@@ -452,13 +451,8 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
     template_name = 'competitions/competition_form.html'
 
     def form_valid(self, form):
-        # Set the organizer of the competition to the currently logged-in user
         form.instance.organizer = self.request.user
-
-        # Save the competition instance without committing to handle many-to-many fields
         competition = form.save(commit=False)
-
-        # Save the main competition instance
         competition.save()
 
         # Handle many-to-many fields explicitly
@@ -469,10 +463,16 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
         if form.cleaned_data.get('allowed_weight_classes'):
             competition.allowed_weight_classes.set(form.cleaned_data['allowed_weight_classes'])
 
-        # Save the competition again to ensure everything is persisted
         competition.save()
 
-        # Redirect to the success URL
+        # Create DivisionWeightClass entries
+        for division in competition.allowed_divisions.all():
+            for weight_class in competition.allowed_weight_classes.all():
+                DivisionWeightClass.objects.create(
+                    division=division,
+                    weight_class=weight_class,
+                    gender=weight_class.gender  # Ensure gender is properly saved
+                )
 
         return HttpResponseRedirect(reverse('competitions:assign_weight_classes', kwargs={'pk': competition.pk}))
 
@@ -531,12 +531,11 @@ class AssignWeightClassesView(View):
         )
 
     def post(self, request, *args, **kwargs):
-        competition_id = self.kwargs.get("pk")
-        competition = get_object_or_404(Competition, pk=competition_id)
+        competition = get_object_or_404(Competition, pk=self.kwargs.get("pk"))
 
         # Clear all existing DivisionWeightClass entries for this competition
         DivisionWeightClass.objects.filter(division__in=competition.allowed_divisions.all()).delete()
-
+        allowed_weight_classes = set()
         for key, weight_class_ids in request.POST.lists():
             if key.startswith("division_"):
                 division_id = key.replace("division_", "")
@@ -544,9 +543,12 @@ class AssignWeightClassesView(View):
 
                 for weight_class_id in weight_class_ids:
                     weight_class = get_object_or_404(WeightClass, pk=weight_class_id)
+                    allowed_weight_classes.add(weight_class)
                     DivisionWeightClass.objects.create(
                         division=division, weight_class=weight_class, gender=weight_class.gender
                     )
+        competition.allowed_weight_classes.set(allowed_weight_classes)
+        competition.save()
 
         messages.success(
             request, "Weight classes were successfully assigned to the competition!"
@@ -1191,14 +1193,16 @@ def assign_implements(request, event_pk):
         allowed_division_weight_classes = allowed_division_weight_classes.filter(
             weight_class__in=competition.allowed_weight_classes.all()
         )
+
     print("Allowed DivisionWeightClasses:", allowed_division_weight_classes)
+
     # Prepare initial data for the formset
     initial_data = []
     existing_implements = EventImplement.objects.filter(event=event)
 
     if event.has_multiple_implements:
         for dwc in allowed_division_weight_classes:
-            for implement_order in range(1, event.number_of_implements + 1):
+            for implement_order in range(1, event.number_of_implements + 1):  # Ensures multiple orders
                 existing_implement = existing_implements.filter(
                     division_weight_class=dwc, implement_order=implement_order
                 ).first()
@@ -1211,14 +1215,12 @@ def assign_implements(request, event_pk):
                         'weight': existing_implement.weight,
                         'weight_unit': existing_implement.weight_unit,
                     })
-                    print("Initial Data:", initial_data)
                 else:
                     # New implement data
                     initial_data.append({
                         'division_weight_class': dwc.id,
-                        'implement_order': implement_order,
+                        'implement_order': implement_order,  # Now correctly loops for multiple implements
                     })
-                    print("Initial Data:", initial_data)
     else:
         for dwc in allowed_division_weight_classes:
             existing_implement = existing_implements.filter(
@@ -1237,7 +1239,7 @@ def assign_implements(request, event_pk):
                 # New implement data
                 initial_data.append({
                     'division_weight_class': dwc.id,
-                    'implement_order': 1,
+                    'implement_order': 1,  # Ensure order defaults to 1 for single implements
                 })
 
     # Create a formset using formset_factory instead of modelformset_factory
@@ -1245,6 +1247,7 @@ def assign_implements(request, event_pk):
 
     if request.method == 'POST':
         formset = EventImplementFormSet(request.POST)
+        print("POST Data:", request.POST)  # Debugging
         if formset.is_valid():
             # Delete all existing implements for the event to avoid duplicates
             existing_implements.delete()
@@ -1257,7 +1260,7 @@ def assign_implements(request, event_pk):
 
             return redirect('competitions:competition_detail', pk=competition.pk)
         else:
-            print("Formset Errors:", formset.errors)
+            print("Formset Errors:", formset.errors)  # Debugging
     else:
         formset = EventImplementFormSet(initial=initial_data)
 

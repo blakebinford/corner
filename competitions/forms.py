@@ -293,12 +293,17 @@ class EventImplementForm(forms.ModelForm):
     """
     Form for assigning implements to weight classes within an event.
     """
+    implement_order = forms.IntegerField(
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Order'}),
+        required=True,  # ✅ Ensure it's required
+        initial=1  # ✅ Default to 1 for single implements
+    )
+
     class Meta:
         model = EventImplement
         fields = ['division_weight_class', 'implement_name', 'implement_order', 'weight', 'weight_unit']
         widgets = {
             'implement_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Implement Name'}),
-            'implement_order': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Order'}),
             'weight': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Weight'}),
             'weight_unit': forms.Select(attrs={'class': 'form-select'}),
         }

@@ -10,40 +10,49 @@
 
         <table class="table table-bordered table-striped align-middle">
             <thead class="table-dark">
-                <tr>
-                    <th>Division Weight Class</th>
-                    {% if event.has_multiple_implements %}
-                        <th>Implement Name</th>
-                        <th>Implement Order</th>
-                    {% endif %}
-                    <th>Weight</th>
-                    <th>Weight Unit</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for form in formset %}
-                <tr>
-                    <td>
-                        {{ form.division_weight_class.as_hidden }}
-                        {{ form.division_weight_class }}
-                    </td>
-                    {% if event.has_multiple_implements %}
-                    <td>
-                        {{ form.implement_name }}
-                    </td>
-                    <td>
-                        {{ form.implement_order }}
-                    </td>
-                    {% endif %}
-                    <td>
-                        {{ form.weight }}
-                    </td>
-                    <td>
-                        {{ form.weight_unit }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    <tr>
+        <th>Division Weight Class</th>
+        {% if event.has_multiple_implements %}
+            <th>Implement Name</th>
+            <th>Implement Order</th>
+        {% else %}
+            <th>Implement Order (Auto-Assigned)</th>  <!-- ✅ Ensure it's still present -->
+        {% endif %}
+        <th>Weight</th>
+        <th>Weight Unit</th>
+    </tr>
+</thead>
+<tbody>
+    {% for form in formset %}
+    <tr>
+        <td>
+            {{ form.division_weight_class.as_hidden }}
+            {{ form.division_weight_class }}
+        </td>
+        {% if event.has_multiple_implements %}
+        <td>
+            {{ form.implement_name }}
+        </td>
+        <td>
+            {{ form.implement_order }}
+        </td>
+        {% else %}
+        <td>
+            {{ form.implement_order.as_hidden }}  <!-- Still present in form submission -->
+            <input type="hidden" name="{{ form.implement_order.name }}" value="1">  <!-- Ensures value is submitted -->
+            <span>1</span>  <!-- Displays a fixed "1" to the user -->
+        </td>
+        {% endif %}
+        <td>
+            {{ form.weight }}
+        </td>
+        <td>
+            {{ form.weight_unit }}
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
+
         </table>
 
         <div class="text-center mt-3">
