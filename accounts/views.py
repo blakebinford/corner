@@ -8,11 +8,10 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
-from competitions.models import Competition, AthleteCompetition, EventOrder, Result
 from .forms import CustomUserCreationForm, OrganizerProfileForm, AthleteProfileUpdateForm, \
     UserUpdateForm
 from .tokens import account_activation_token
-from .models import AthleteProfile, OrganizerProfile, User, WeightClass
+from .models import AthleteProfile, OrganizerProfile, User
 from django.contrib import messages
 import re
 

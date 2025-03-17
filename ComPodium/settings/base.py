@@ -148,7 +148,21 @@ AUTHENTICATION_BACKENDS = [
 LOGIN_REDIRECT_URL = 'home'  # Replace 'home' with your desired URL after login
 LOGOUT_REDIRECT_URL = 'home'  # Replace 'home' with your desired URL after logout
 
-
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
 
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Use SMTP backend

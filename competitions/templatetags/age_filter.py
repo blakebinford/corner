@@ -5,14 +5,18 @@ from django.utils import timezone
 
 register = template.Library()
 
-@register.filter(name='age')
-def calculate_age(born):
-    today = timezone.now().date()  # Use timezone.now() to get the current date in the correct time zone
-    try:
-        birthday = born.replace(year=today.year)
-    except ValueError:
-        birthday = born.replace(year=today.year, month=born.month + 1, day=1)
+@register.filter
+def age(born):
+    """
+    Calculate the age based on the date of birth.
+    Returns 'N/A' if date_of_birth is None.
+    """
+    if not born or not isinstance(born, date):
+        return "N/A"
+    today = date.today()
+    birthday = born.replace(year=today.year)
     if birthday > today:
-        return today.year - born.year - 1
+        age = today.year - born.year - 1
     else:
-        return today.year - born.year
+        age = today.year - born.year
+    return str(age)

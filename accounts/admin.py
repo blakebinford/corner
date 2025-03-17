@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, AthleteProfile, OrganizerProfile, Division, WeightClass
+from .models import User, AthleteProfile, OrganizerProfile
 
 class AthleteProfileInline(admin.StackedInline):
     model = AthleteProfile
@@ -30,13 +30,5 @@ class CustomUserAdmin(UserAdmin):
     )
 
 
-@admin.register(Division)
-class DivisionAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-
-@admin.register(WeightClass)
-class WeightClassAdmin(admin.ModelAdmin):
-    list_display = ('name', 'gender', 'federation', 'weight_d')
-    fields = ('name', 'gender', 'federation', 'weight_d')
 
 admin.site.register(User, CustomUserAdmin)

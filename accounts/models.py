@@ -1,13 +1,7 @@
-from django.db import models
-from django.db.models import DecimalField
-
 from django.contrib.auth.models import AbstractUser
-from django.db.models.functions import Cast
-from django.db.models import IntegerField
 from phonenumber_field.modelfields import PhoneNumberField
 from django.db import models
 from django.conf import settings
-from django.core.validators import RegexValidator
 from django.utils.translation import gettext_lazy as _
 
 
@@ -137,83 +131,3 @@ class AthleteProfile(models.Model):
     def __str__(self):
         return self.user.username
 
-class WeightClass(models.Model):
-    """
-    Model to store weight class information.
-    """
-    WEIGHT_CHOICES = [
-        ('u', 'u'),
-        ('+', '+')
-    ]
-    CATEGORY_CHOICES = [
-        ('lw', 'LW'),
-        ('mw', 'MW'),
-        ('hw', 'HW'),
-        ('shw', 'SWH'),
-    ]
-    name = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, verbose_name="Weight")
-    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')])  # Add gender field
-    federation = models.ForeignKey('competitions.Federation', on_delete=models.CASCADE)
-    weight_d = models.CharField(max_length=2, choices=WEIGHT_CHOICES)
-    category = models.CharField(
-        max_length=20,
-        choices=CATEGORY_CHOICES,
-        default='middleweight',
-        help_text="Weight class category (e.g., lightweight, middleweight)."
-    )
-    competition = models.ForeignKey(
-        'competitions.Competition',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='custom_weight_classes',
-        help_text="Competition this custom weight class belongs to."
-    )
-    is_custom = models.BooleanField(default=False)
-
-    class Meta:
-        pass
-
-    def __str__(self):
-        return f"{self.name} ({self.gender})"
-
-class Division(models.Model):
-    PREDEFINED_CHOICES = [
-        ('novice', 'Novice'),
-        ('teen', 'Teen'),
-        ('master', 'Master'),
-        ('open', 'Open'),
-        ('adaptive', 'Adaptive'),
-        ('pro', 'Pro'),
-    ]
-
-    predefined_name = models.CharField(
-        max_length=50,
-        choices=PREDEFINED_CHOICES,
-        blank=True,
-        null=True,
-        help_text="Choose a predefined name or leave blank to set a custom name."
-    )
-    custom_name = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text="Provide a custom division name if none of the predefined names apply."
-    )
-    competition = models.ForeignKey(
-        'competitions.Competition',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='custom_divisions',
-        help_text="Competition this custom division belongs to."
-    )
-    is_custom = models.BooleanField(default=False)
-
-    def __str__(self):
-        # Return custom_name if it exists; otherwise, return predefined_name
-        return self.custom_name or self.name or "Unnamed Division"
-
-    @property
-    def name(self):
-        return self.custom_name or self.predefined_name or "Unnamed Division"

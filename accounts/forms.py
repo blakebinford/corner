@@ -1,11 +1,11 @@
-
 from django import forms
-from django.shortcuts import redirect, render
 from phonenumber_field.formfields import PhoneNumberField
 from django.contrib import messages
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
-from .models import User, AthleteProfile, OrganizerProfile, Division, WeightClass
+from .models import User, AthleteProfile, OrganizerProfile
+import re
 
+# Height choices (formatted for dropdown selection)
 height_choices = []
 feet = 4
 inches = 11
@@ -14,25 +14,19 @@ while feet <= 7:
     while inches <= 12:
         if feet == 7 and inches == 3:
             break  # Stop at 7'2"
-
-        # Format the display value with leading zero for inches < 10
         display_value = f"{feet}'{inches:02d}\""
-
-        # Calculate total inches for the database value
         total_inches = (feet * 12) + inches
-
         height_choices.append((total_inches, display_value))
-
-        inches += 1  # Increment inches here
-
-        if inches == 12:  # Check if inches reached 12
-            inches = 0  # Reset inches to 0
-            feet += 1   # Increment feet
-
+        inches += 1  # Increment inches
+        if inches == 12:
+            inches = 0  # Reset inches
+            feet += 1
     feet += 1
     inches = 1  # Reset inches for the next foot
 
+
 class CustomUserCreationForm(UserCreationForm):
+    """Form for user registration."""
     email = forms.EmailField(required=True)
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
@@ -51,17 +45,14 @@ class CustomUserCreationForm(UserCreationForm):
         user = super().save(commit=False)
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
-        user.email = self.cleaned_data['email']  # Save the email
+        user.email = self.cleaned_data['email']
 
         if commit:
             user.save()
-
-            # Create AthleteProfile if the role is 'athlete'
             if user.role == 'athlete':
                 AthleteProfile.objects.create(user=user)
 
         return user
-
 
 
 class UserUpdateForm(UserChangeForm):
@@ -78,14 +69,17 @@ class UserUpdateForm(UserChangeForm):
             'x_name',
             'facebook_name',
         )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control'})
         for field_name in ['instagram_name', 'x_name', 'facebook_name']:
-                self.fields[field_name].required = False
+            self.fields[field_name].required = False
+
 
 class AthleteProfileUpdateForm(forms.ModelForm):
+    """Form for updating the AthleteProfile model."""
 
     class Meta:
         model = AthleteProfile
@@ -107,131 +101,21 @@ class AthleteProfileUpdateForm(forms.ModelForm):
             'bio',
         ]
 
-
-
         widgets = {
             'height': forms.Select(choices=height_choices),
             'state': forms.Select(choices=AthleteProfile.STATE_CHOICES),
+            'date_of_birth': forms.DateInput(
+                attrs={'class': 'form-control', 'placeholder': 'mm/dd/yyyy', 'type': 'date'}
+            ),
         }
 
-        phone_number = PhoneNumberField(required=False)
-        whatsapp_number = PhoneNumberField(required=False)
-        date_of_birth = forms.DateField(
-            widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'mm/dd/yyyy'}),
-            input_formats=['%m/%d/%Y'],  # Specify accepted date format
-            required=False
-        )
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            self.fields['gender'].widget.attrs.update({'class': 'form-select'})
-
-            for field_name, field in self.fields.items():
-                if field_name != 'gender':
-                    field.widget.attrs.update({'class': 'form-control'})
-
-        def update_profile(request):
-            """
-            View for updating the user's athlete profile and user information.
-            """
-            if request.method == 'POST':
-                # Ensure the user has an AthleteProfile before creating the forms
-                if not hasattr(request.user, 'athlete_profile'):
-                    AthleteProfile.objects.create(user=request.user)
-
-                # Pass `request.FILES` for handling file uploads
-                user_form = UserUpdateForm(request.POST, request.FILES, instance=request.user)
-                profile_form = AthleteProfileUpdateForm(request.POST, instance=request.user.athlete_profile)
-
-                if user_form.is_valid() and profile_form.is_valid():
-                    instagram_name = user_form.cleaned_data.get('instagram_name')
-                    x_name = user_form.cleaned_data.get('x_name')
-                    facebook_name = user_form.cleaned_data.get('facebook_name')
-
-                    if instagram_name and not re.match(r'^[\w.]+$', instagram_name):
-                        messages.error(request,
-                                       'Invalid Instagram username. Only letters, numbers, underscores, and periods are allowed.')
-                    elif x_name and not re.match(r'^[a-zA-Z][\w_]*$', x_name):
-                        messages.error(request,
-                                       'Invalid X username. Only letters, numbers, and underscores are allowed, and it cannot start with a number.')
-                    elif facebook_name and not re.match(r'^[\w.]+$', facebook_name):
-                        messages.error(request,
-                                       'Invalid Facebook username. Only letters, numbers, and periods are allowed.')
-                    else:
-                        user_form.save()
-                        profile_form.save()
-                        messages.success(request, 'Your profile has been updated successfully!')
-                    return redirect('accounts:profile_update')  # Redirect to the profile page
-                else:
-                    messages.error(request, 'Error updating profile. Please check the form.')
-            else:
-                # Ensure the user has an AthleteProfile before creating the forms
-                if not hasattr(request.user, 'athlete_profile'):
-                    AthleteProfile.objects.create(user=request.user)
-
-                user_form = UserUpdateForm(instance=request.user)
-                profile_form = AthleteProfileUpdateForm(instance=request.user.athlete_profile)
-
-            context = {  # Define the context dictionary here
-                'user_form': user_form,
-                'profile_form': profile_form,
-                'user': request.user
-            }
-
-            return render(request, 'registration/update_profile.html', context)
+    phone_number = PhoneNumberField(required=False)
+    whatsapp_number = PhoneNumberField(required=False)
 
 
 class OrganizerProfileForm(forms.ModelForm):
-    """
-    Form for creating and updating organizer profiles.
-    """
+    """Form for creating and updating organizer profiles."""
+
     class Meta:
         model = OrganizerProfile
         fields = ('organization_name', 'contact_phone', 'org_email')
-
-class CustomDivisionForm(forms.ModelForm):
-    class Meta:
-        model = Division
-        fields = ['custom_name']
-        labels = {
-            'custom_name': 'Division Name',
-        }
-        widgets = {
-            'custom_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter a custom name'}),
-        }
-
-    def clean_custom_name(self):
-        custom_name = self.cleaned_data.get('custom_name')
-        if not custom_name:
-            raise forms.ValidationError("Division name is required.")
-        return custom_name
-
-
-class CustomWeightClassForm(forms.ModelForm):
-    division = forms.ModelChoiceField(
-        queryset=Division.objects.none(),  # Set dynamically in __init__
-        required=True,
-        help_text="Select the division this weight class belongs to."
-    )
-    name = forms.DecimalField(
-        max_digits=4,
-        decimal_places=1,
-        widget=forms.NumberInput(attrs={'step': '0.1'}),
-        help_text="(e.g., 140.0)."
-    )
-
-    class Meta:
-        model = WeightClass
-        fields = ['name', 'weight_d', 'gender', 'division']  # Add other fields if necessary
-        labels = {
-            'name': 'Weight Class Name (e.g., 140.0)',
-            'weight_d': 'Weight Designation (u or +)',
-            'gender': 'Select Gender',
-            'division': 'Division',
-        }
-
-    def __init__(self, *args, **kwargs):
-        competition = kwargs.pop('competition', None)
-        super().__init__(*args, **kwargs)
-        if competition:
-            self.fields['division'].queryset = competition.allowed_divisions.all()

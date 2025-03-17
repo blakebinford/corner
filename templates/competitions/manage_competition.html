@@ -269,30 +269,31 @@
     </form>
 </div>
 <div class="accordion" id="athleteSummaryAccordion" style="margin-top: -1px;">
-        <div class="accordion-item">
-            <h2 class="accordion-header" id="headingAthleteSummary">
-                <button class="accordion-button collapsed bg-primary text-white text-center py-2" type="button"
-                        data-bs-toggle="collapse" data-bs-target="#collapseAthleteSummary"
-                        aria-expanded="false" aria-controls="collapseAthleteSummary"
-                        style="font-size: 1.25rem; font-weight: bold; border-radius: 0; border-top: 1px solid #ffffff;">
-                    Athlete Registration Summary by Weight Class
-                </button>
-            </h2>
-            <div id="collapseAthleteSummary" class="accordion-collapse collapse" aria-labelledby="headingAthleteSummary"
-                 data-bs-parent="#athleteSummaryAccordion">
-                <div class="accordion-body">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered text-center align-middle" style="font-size: 0.9rem;">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Weight Class</th>
-                                    {% for division in competition.allowed_divisions.all %}
-                                        <th>{{ division.name|capfirst }}</th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for weight_class in competition.allowed_weight_classes.all %}
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingAthleteSummary">
+            <button class="accordion-button collapsed bg-primary text-white text-center py-2" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapseAthleteSummary"
+                    aria-expanded="false" aria-controls="collapseAthleteSummary"
+                    style="font-size: 1.25rem; font-weight: bold; border-radius: 0; border-top: 1px solid #ffffff;">
+                Athlete Registration Summary by Weight Class
+            </button>
+        </h2>
+        <div id="collapseAthleteSummary" class="accordion-collapse collapse" aria-labelledby="headingAthleteSummary"
+             data-bs-parent="#athleteSummaryAccordion">
+            <div class="accordion-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered text-center align-middle" style="font-size: 0.9rem;">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Weight Class</th>
+                                {% for division in competition.allowed_divisions.all %}
+                                    <th colspan="{{ division.weight_classes.count }}">{{ division.name|capfirst }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for division in competition.allowed_divisions.all %}
+                                {% for weight_class in division.weight_classes.all %}
                                     <tr>
                                         <td>
                                             {% if weight_class.weight_d == "u" %}
@@ -302,33 +303,36 @@
                                             {% endif %}
                                             - {{ weight_class.gender }}
                                         </td>
-                                        {% for division in competition.allowed_divisions.all %}
-                                            <td>
-                                                {% with division.id|stringformat:"s" as division_id %}
-                                                    {% with weight_class.id|stringformat:"s" as weight_class_id %}
-                                                        {% with division_id|add:","|add:weight_class_id as key %}
-                                                            {% if athlete_summary|get_key_two:key == 0 %}
-                                                                <span class="badge bg-light text-muted">0</span>
-                                                            {% else %}
-                                                                <span class="badge bg-primary text-white">
-                                                                    {{ athlete_summary|get_key_two:key }}
-                                                                </span>
-                                                            {% endif %}
+                                        {% for div in competition.allowed_divisions.all %}
+                                            {% for wc in div.weight_classes.all %}
+                                                <td>
+                                                    {% with div.id|stringformat:"s" as division_id %}
+                                                        {% with wc.id|stringformat:"s" as weight_class_id %}
+                                                            {% with division_id|add:","|add:weight_class_id as key %}
+                                                                {% if athlete_summary|get_key_two:key == 0 %}
+                                                                    <span class="badge bg-light text-muted">0</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-primary text-white">
+                                                                        {{ athlete_summary|get_key_two:key }}
+                                                                    </span>
+                                                                {% endif %}
+                                                            {% endwith %}
                                                         {% endwith %}
                                                     {% endwith %}
-                                                {% endwith %}
-                                            </td>
+                                                </td>
+                                            {% endfor %}
                                         {% endfor %}
                                     </tr>
                                 {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 
 
 
@@ -363,7 +367,7 @@
     </div>
 
 
-    <!-- Events and Sponsors Row -->
+   <!-- Events and Sponsors Row -->
     <div class="row">
         <!-- Events Section -->
         <div class="col-md-6">
@@ -377,16 +381,21 @@
                     </a>
                     {% if events %}
                         <ul class="list-group">
-                            {% for event_order in events %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>
-                                        <strong>{{ event_order.event.name }}</strong> <br>
-                                        <small>Order: {{ event_order.order }}</small>
-                                    </span>
-                                    <a href="{% url 'competitions:update_event' event_order.event.pk %}" class="btn btn-outline-primary btn-sm">
+                            {% for event in events %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    <strong>{{ event.name }}</strong> <br>
+                                    <small>Order: {{ event.order }}</small>
+                                </span>
+                                <div class="btn-group">
+                                    <a href="{% url 'competitions:update_event' event.pk %}" class="btn btn-outline-primary btn-sm">
                                         <i class="bi bi-pencil-square"></i> Edit Event
                                     </a>
-                                </li>
+                                    <a href="{% url 'competitions:competition_run_order' competition.pk event.pk %}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-list-ol"></i> Run Order
+                                    </a>
+                                </div>
+                            </li>
                             {% endfor %}
                         </ul>
                     {% else %}
@@ -395,6 +404,33 @@
                 </div>
             </div>
         </div>
+
+        <!-- Sponsor Logos Section -->
+        <div class="col-md-6">
+            <div class="card shadow-lg border-0 mb-5">
+                <div class="card-header bg-secondary text-white text-center">
+                    <h4 class="mb-0"><i class="bi bi-person-video3 me-2"></i> Sponsors</h4>
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'competitions:edit_sponsor_logos' competition.pk %}" class="btn btn-outline-primary mb-3">
+                        <i class="bi bi-pencil-square"></i> Manage Sponsors
+                    </a>
+                    {% if competition.sponsor_logos.all %}
+                        <ul class="list-group">
+                            {% for sponsor in competition.sponsor_logos.all %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" style="max-height: 40px;" class="me-2">
+                                    <span>{{ sponsor.name }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No sponsors added for this competition.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 
         <!-- Sponsor Logos Section -->
         <div class="col-md-6">
@@ -490,14 +526,14 @@
                             </h2>
                             <div id="collapse-{{ division.id }}" class="accordion-collapse collapse" aria-labelledby="heading-{{ division.id }}" data-bs-parent="#weightClassesAccordion">
                                 <div class="accordion-body">
-                                    {% for dwc in division.divisionweightclass_set.all %}
+                                    {% for weight_class in division.weight_classes.all %}
                                         <span class="badge bg-primary me-1 mb-2">
-                                            {% if dwc.weight_class.weight_d == "u" %}
-                                                {{ dwc.weight_class.weight_d }}{{ dwc.weight_class.name|floatformat:"-1" }}
+                                            {% if weight_class.weight_d == "u" %}
+                                                {{ weight_class.weight_d }}{{ weight_class.name|floatformat:"-1" }}
                                             {% else %}
-                                                {{ dwc.weight_class.name|floatformat:"-1" }}{{ dwc.weight_class.weight_d }}
+                                                {{ weight_class.name|floatformat:"-1" }}{{ weight_class.weight_d }}
                                             {% endif %}
-                                            - {{ dwc.weight_class.gender }}
+                                            - {{ weight_class.gender }}
                                         </span>
                                     {% endfor %}
                                 </div>

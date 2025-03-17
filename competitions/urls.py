@@ -1,10 +1,10 @@
 from django.urls import path, re_path
 from . import views
 from .consumers import ScoreUpdateConsumer
-from .views import SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
+from competitions.views import SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
     CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView, AthleteCheckInView, \
     toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView, AssignWeightClassesView, \
-    CustomDivisionCreateView, CustomWeightClassCreateView
+    CustomDivisionCreateView, add_custom_weight_class
 
 app_name = 'competitions'
 
@@ -64,9 +64,17 @@ urlpatterns = [
         views.CombineWeightClassesView.as_view(),
         name='combine_weight_classes'
     ),
+    path(
+        'competitions/<int:competition_pk>/custom-weight-class/add/',
+        add_custom_weight_class,
+        name='add_custom_weight_class'
+    ),
+    path('competition/<int:competition_pk>/run-order/', views.CompetitionRunOrderView.as_view(),
+         name='competition_run_order'),
+    path('competition/<int:competition_pk>/run-order/event/<int:event_pk>/', views.CompetitionRunOrderView.as_view(),
+         name='competition_run_order'),
     path('event/<int:event_pk>/edit/', views.update_event, name='update_event'),
     path('competitions/<int:competition_pk>/custom-division/add/', CustomDivisionCreateView.as_view(), name='add_custom_division'),
-    path('competitions/<int:competition_pk>/custom-weight-class/add/', CustomWeightClassCreateView.as_view(), name='add_custom_weight_class'),
 
     # AthleteCompetition URLs
     path('<int:competition_pk>/register/', views.AthleteCompetitionCreateView.as_view(), name='athletecompetition_create'),
