@@ -299,32 +299,57 @@
 
   /* on phones */
   @media (max-width: 576px) {
-  /* 1) Bleed the whole tab section (and its cards) full-width */
-  .tab-content > .container {
-    width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    padding-left: 0;
-    padding-right: 0;
+  /* 1) Bleed the outer container that wraps the nav + tab-content */
+  .container.mt-4 {
+    width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 
-  /* 2) Make the table fit 100% of that width and split columns evenly */
+  /* 2) Bleed the inner container inside each tab-pane */
+  .tab-pane > .container {
+    width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* 3) Force the table to fill its container with fixed layout */
   .table-responsive {
-    width: 100%;  /* let it fill its new container */
-    overflow-x: visible;  /* disable horizontal scroll */
+    width: 100% !important;
+    overflow-x: visible !important;
   }
   .table {
-    table-layout: fixed;
-    width: 100%;
+    table-layout: fixed !important;
+    width: 100% !important;
   }
 
-  /* 3) Allow wrapping inside each cell so text breaks instead of causing scroll */
+  /* 4) Shrink header & cell fonts + tighten padding */
+  .table th.event-header {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.15rem !important;
+  }
+  .table td {
+    font-size: 0.6rem !important;
+    padding: 0.15rem 0.1rem !important;
+  }
+
+  /* 5) Allow text wrap inside cells */
   .table th,
   .table td {
-    white-space: normal;
-    word-break: break-word;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+
+  /* 6) Reduce card header font so the “Male”/“Female” badges don’t push content */
+  .card-header h5 {
+    font-size: 0.8rem !important;
   }
 }
+
 
 
 }
@@ -507,6 +532,7 @@
                                             <tr class="event-row">
                                                 <td class="ps-3">
                                                      <strong>
+
           {% if row.weight_class.is_custom  %}
             Single Class
           {% elif row.weight_class.weight_d == "u" %}
@@ -573,18 +599,16 @@
                                             {% if row.gender == 'Female' %}
                                             <tr class="event-row">
                                                 <td class="ps-3">
-                                                    <strong>
-
-          {% if row.weight_class.weight_d == "u" %}
+                                                 <strong>
+          {% if row.weight_class.is_custom  %}
+            Single Class
+          {% elif row.weight_class.weight_d == "u" %}
             u{{ row.weight_class.name|floatformat:"-1" }}
           {% elif row.weight_class.weight_d == "+" %}
             {{ row.weight_class.name|floatformat:"-1" }}+
-          {% elif row.weight_class.is_custom  %}
-            Single Class
           {% else %}
-
+            {{ row.weight_class.name|floatformat:"-1" }}
           {% endif %}
-
         </strong>
                                                 </td>
                                                 {% for event in events %}
