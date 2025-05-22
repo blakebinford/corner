@@ -416,22 +416,41 @@ def add_custom_weight_class(request, competition_pk):
     """
     View to add a custom weight class to a competition.
     """
+    print("➡️ Entered add_custom_weight_class")
+    print("   HTTP method:", request.method)
+    print("   competition_pk:", competition_pk)
+
     competition = get_object_or_404(Competition, pk=competition_pk)
+    print("   Loaded Competition:", competition)
 
     if request.method == "POST":
+        print("✉️  POST data:", dict(request.POST))
+
         form = CustomWeightClassForm(request.POST, competition=competition)
-        if form.is_valid():
-            weight_class = form.save(commit=False)
-            weight_class.competition = competition
-            weight_class.is_custom = True
-            weight_class.federation = competition.federation  # ✅ Assign federation from competition
-            weight_class.save()
-            return redirect("competitions:manage_competition", competition_pk=competition.pk)
+        print("   Form bound?", form.is_bound)
+
+        is_valid = form.is_valid()
+        print("   form.is_valid() =>", is_valid)
+        if not is_valid:
+            print("   form.errors:", form.errors)
+
+        if is_valid:
+            wc = form.save(commit=False)
+            print("   Form.save(commit=False) =>", wc)
+            wc.competition = competition
+            wc.is_custom = True
+            wc.federation = competition.federation
+            wc.save()
+            print("✅ WeightClass saved, now redirecting")
+            return redirect("competitions:manage_competition", competition_pk=competition_pk)
     else:
+        print("🔍 GET request, instantiating empty form")
         form = CustomWeightClassForm(competition=competition)
 
-    return render(request, "competitions/custom_weight_class_form.html", {"form": form, "competition": competition})
-
+    print("🖼️ Rendering template, form.errors:", form.errors)
+    return render(request,
+                  "competitions/custom_weight_class_form.html",
+                  {"form": form, "competition": competition})
 
 @method_decorator(login_required, name="dispatch")
 class CompetitionRunOrderView(LoginRequiredMixin, View):

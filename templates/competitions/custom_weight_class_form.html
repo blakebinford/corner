@@ -1,33 +1,29 @@
-{% extends "base.html" %}
+{# competitions/templates/competitions/custom_weight_class_form.html #}
+{% extends 'base.html' %}
 {% load crispy_forms_tags %}
 {% block content %}
-<div class="container my-5">
-    <div class="card shadow-lg">
-        <div class="card-header bg-primary text-white text-center">
-            <h2 class="mb-0">Add Custom Weight Class</h2>
+  <div class="container py-4">
+    <h2>Add Custom Weight Class for {{ competition.name }}</h2>
+    <form
+      method="post"
+      action="{% url 'competitions:add_custom_weight_class' competition.pk %}"
+      novalidate
+      onsubmit="console.log('CustomWeightClass form submitting');"
+    >
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+          {{ form.non_field_errors }}
         </div>
-        <div class="card-body p-4">
-            <form method="post">
-                {% csrf_token %}
-                <div class="mb-3">
-                    {{ form.name|as_crispy_field }}
-                </div>
-                <div class="mb-3">
-                    {{ form.weight_d|as_crispy_field }}
-                </div>
-                <div class="mb-3">
-                    {{ form.gender|as_crispy_field }}
-                </div>
-                <div class="mb-3">
-                    {{ form.division|as_crispy_field }}
-                </div>
-                <div class="text-center">
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-save"></i> Save
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+      {% endif %}
+
+      {# Renders all your fields via crispy #}
+      {% crispy form %}
+
+      <button type="submit" class="btn btn-primary mt-3">
+        Save
+      </button>
+    </form>
+  </div>
 {% endblock %}

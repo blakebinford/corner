@@ -213,6 +213,12 @@ class CustomDivisionForm(forms.ModelForm):
 
 class CustomWeightClassForm(forms.ModelForm):
     """Form for creating a custom weight class within a competition."""
+    single_class = forms.BooleanField(
+        required=False,
+        label="Single Class",
+        help_text="Create a single class for this division—no numeric weight required.",
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
 
     division = forms.ModelChoiceField(
         queryset=Division.objects.none(),
@@ -228,19 +234,60 @@ class CustomWeightClassForm(forms.ModelForm):
 
     class Meta:
         model = WeightClass
-        fields = ['name', 'weight_d', 'gender', 'division']
+        # Note: include single_class before name/weight_d
+        fields = ['division', 'gender', 'single_class', 'name', 'weight_d']
         labels = {
-            'name': 'Weight Class Name (e.g., 140.0)',
-            'weight_d': 'Weight Designation (u or +)',
-            'gender': 'Select Gender',
+            'name': 'Weight (e.g. 140.0)',
+            'weight_d': 'Designation (u or +)',
             'division': 'Division',
+            'gender': 'Gender',
         }
 
     def __init__(self, *args, **kwargs):
         competition = kwargs.pop('competition', None)
         super().__init__(*args, **kwargs)
+
+        # only allow divisions in this competition :contentReference[oaicite:0]{index=0}
         if competition:
             self.fields['division'].queryset = competition.allowed_divisions.all()
+        self.helper = FormHelper()
+        # ← disable crispy’s own <form> tag
+        self.helper.form_tag = False
+        # Make numeric fields optional (we’ll enforce when single_class is False)
+        self.fields['name'].required = False
+        self.fields['weight_d'].required = False
+
+        # If the form was POSTed with single_class checked, hide the numeric inputs
+        if self.data.get('single_class'):
+            self.fields['name'].widget = forms.HiddenInput()
+            self.fields['weight_d'].widget = forms.HiddenInput()
+
+    def clean(self):
+        cleaned = super().clean()
+        single = cleaned.get('single_class')
+
+        if single:
+            # Force any numeric values to None/blank
+            cleaned['name'] = None
+            cleaned['weight_d'] = ''
+        else:
+            # enforce numeric weight + designation when not single_class
+            if cleaned.get('name') is None:
+                self.add_error('name', "Enter a weight or check Single Class.")
+            if not cleaned.get('weight_d'):
+                self.add_error('weight_d', "Choose a designation (u or +).")
+
+        return cleaned
+
+    def save(self, commit=True):
+        wc = super().save(commit=False)
+        wc.is_custom = True
+        if self.cleaned_data.get('single_class'):
+            wc.name     = None
+            wc.weight_d = ''  # blank designation
+        if commit:
+            wc.save()
+        return wc
 
 class AssignWeightClassesForm(forms.Form):
     """

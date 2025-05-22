@@ -201,7 +201,11 @@ class WeightClass(models.Model):
         unique_together = ('name', 'gender', 'division')
 
     def __str__(self):
-        return f"{self.name} ({self.gender}) - {self.division.name if self.division else 'No Division'}"
+        # if custom and no numeric name, render as single class
+        if self.is_custom and self.name is None:
+            return f"{self.division.name} – Single Class"
+        # otherwise show weight + designation
+        return f"{self.name}{self.weight_d} – {self.division.name}"
 
 
 
