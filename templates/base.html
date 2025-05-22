@@ -23,10 +23,48 @@
   <!-- Default CSS -->
   <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   <link rel="stylesheet" href="{% static 'chat/style.css' %}">
-
+<link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 {% block extra_head %}{% endblock %}
 
     <style>
+/* Apply Inter to the entire site */
+body {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400; /* Regular weight for body text */
+  font-size: 16px; /* Standard readable size */
+  line-height: 1.6; /* Good spacing for readability */
+}
+
+/* Headings with a bolder weight */
+h1 {
+    font-family: 'Josefin Sans', sans-serif;
+}
+h2, h3, h4, h5, h6 {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700; /* Bold for emphasis */
+  line-height: 1.2; /* Tighter spacing for headings */
+}
+
+/* Specific sizes for headings */
+h1 { font-size: 2.5rem; } /* 40px */
+h2 { font-size: 2rem; }   /* 32px */
+h3 { font-size: 1.5rem; } /* 24px */
+
+/* Ensure numbers align nicely (e.g., in tables) */
+table, .numbers {
+  font-feature-settings: "tnum"; /* Tabular numbers for consistent width */
+}
+
+/* Optional: Light weight for less important text */
+.light-text {
+  font-weight: 300;
+}
+
+/* Optional: Semi-bold for emphasis or buttons */
+.emphasis, button {
+  font-weight: 600;
+}
 
 .sponsor-logos img {
     max-height: 75px; /* Adjust as needed */
@@ -162,7 +200,7 @@ footer {
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
-      <a class="navbar-brand" href="{% url 'home' %}">Atlas Competition</a>
+      <a class="navbar-brand" href="{% url 'home' %}" style="color: #e63946;"><img src="{% static 'images/navabarlogo.png' %}" alt="Atlas Competition Logo" class="logo" style="height: 60px; width: auto;"></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
               aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>

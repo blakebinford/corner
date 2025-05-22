@@ -29,6 +29,8 @@ class CustomUserAdmin(UserAdmin):
         (('Role'), {'fields': ('role',)}),
     )
 
-
+@admin.register(AthleteProfile)
+class AthleteProfileAdmin(admin.ModelAdmin):
+    list_display = ('user','gender', 'state')
 
 admin.site.register(User, CustomUserAdmin)

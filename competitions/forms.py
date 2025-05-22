@@ -5,7 +5,8 @@ import bleach
 
 import django_filters
 from django import forms
-from django.core.exceptions import ValidationError
+from django.contrib.auth import password_validation
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from .models import Competition, AthleteCompetition, Event, EventImplement, Result, Tag, \
     EventBase, ZipCode, Federation, Sponsor, TshirtSize, Division, WeightClass, AthleteEventNote
@@ -595,9 +596,6 @@ class AthleteProfileForm(forms.ModelForm):
         return athlete_profile
 
 class AthleteCompetitionForm(forms.ModelForm):
-    """
-    Form for registering an athlete in a competition.
-    """
     class Meta:
         model = AthleteCompetition
         fields = ['division', 'weight_class', 'tshirt_size']
@@ -608,22 +606,56 @@ class AthleteCompetitionForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """
-        Dynamically set queryset values based on the provided competition instance.
-        """
         competition = kwargs.pop('competition', None)
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
 
         if competition:
-            # Filter weight classes & divisions based on the competition
+            # Filter divisions based on the competition
             self.fields['division'].queryset = competition.allowed_divisions.all()
-            self.fields['weight_class'].queryset = WeightClass.objects.filter(federation=competition.federation)
+
+            # Determine athlete gender
+            athlete_gender = None
+            print(f"Request available: {self.request is not None}")
+            print(f"Instance exists: {self.instance and self.instance.pk}")
+            if self.instance and hasattr(self.instance, 'athlete') and self.instance.athlete_id:
+                athlete_gender = self.instance.athlete.gender
+                print(f"Gender from instance: {athlete_gender} (Athlete: {self.instance.athlete.user.username})")
+            elif self.request and hasattr(self.request.user, 'athlete_profile'):
+                try:
+                    athlete_gender = self.request.user.athlete_profile.gender
+                    print(f"Gender from request.user.athlete_profile: {athlete_gender} (User: {self.request.user.username})")
+                except ObjectDoesNotExist:
+                    print("No AthleteProfile for user")
+                    athlete_gender = None
+            else:
+                print("No instance or request available to determine gender")
+
+            # Filter weight classes
+            weight_class_queryset = WeightClass.objects.filter(federation=competition.federation)
+            print(f"Initial Weight Classes: {list(weight_class_queryset.values('name', 'gender'))}")
+            if athlete_gender in ['male', 'female']:
+                # Capitalize to match WeightClass.gender
+                filtered_gender = athlete_gender.capitalize()
+                weight_class_queryset = weight_class_queryset.filter(gender=filtered_gender)
+                print(f"Weight Classes after gender filter ({filtered_gender}): {list(weight_class_queryset.values('name', 'gender'))}")
+            else:
+                print(f"No gender filter applied (athlete_gender: {athlete_gender})")
+
+            # Further filter by divisions allowed in the competition
+            weight_class_queryset = weight_class_queryset.filter(
+                division__in=competition.allowed_divisions.all()
+            ).distinct()
+            print(f"Final Weight Class Queryset: {list(weight_class_queryset)}")
+
+            self.fields['weight_class'].queryset = weight_class_queryset
 
             # Handle T-shirt sizes dynamically based on competition settings
             if competition.provides_shirts:
                 self.fields['tshirt_size'].queryset = competition.allowed_tshirt_sizes.all()
             else:
-                self.fields.pop('tshirt_size', None)  # Remove field if T-shirts aren't provided
+                self.fields.pop('tshirt_size', None)
+
 
 class CombineWeightClassesForm(forms.Form):
     """
@@ -906,3 +938,172 @@ class AthleteEventNoteForm(forms.ModelForm):
 
             # Combine and set choices
             self.fields['note_type'].choices = choices + common_types + specific_types + event_specific
+
+
+from accounts.models import User, AthleteProfile
+from competitions.models import Competition, AthleteCompetition, Division, WeightClass, TshirtSize
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Row, Column, Fieldset, Submit, HTML
+
+class OrlandosStrongestSignupForm(forms.Form):
+    email = forms.EmailField(
+        label="Email",
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'you@example.com'})
+    )
+    first_name = forms.CharField(
+        max_length=30,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    password1 = forms.CharField(
+        label="Password",
+        strip=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        help_text=password_validation.password_validators_help_text_html(),
+    )
+    password2 = forms.CharField(
+        label="Confirm Password",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        strip=False,
+        help_text="Enter the same password again, for verification.",
+    )
+
+    # AthleteProfile fields
+    gender        = forms.ChoiceField(
+        choices=AthleteProfile._meta.get_field('gender').choices,
+        widget=forms.Select(attrs={'class':'form-select'})
+    )
+    date_of_birth = forms.DateField(
+        widget=forms.DateInput(attrs={'type':'date','class':'form-control'})
+    )
+    city = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        label="City"
+    )
+    state = forms.ChoiceField(
+        choices=AthleteProfile.STATE_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label="State"
+    )
+    home_gym      = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class':'form-control'})
+    )
+    team_name     = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class':'form-control'})
+    )
+    coach         = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class':'form-control'})
+    )
+    height        = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={'class':'form-control'})
+    )
+    weight        = forms.DecimalField(
+        required=False,
+        widget=forms.NumberInput(attrs={'class':'form-control'})
+    )
+
+    # Competition signup fields
+    division      = forms.ModelChoiceField(
+        queryset=Division.objects.none(),
+        widget=forms.Select(attrs={'class':'form-select'})
+    )
+    weight_class  = forms.ModelChoiceField(
+        queryset=WeightClass.objects.none(),
+        widget=forms.Select(attrs={'class':'form-select'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.competition = kwargs.pop("competition")
+        super().__init__(*args, **kwargs)
+
+        # 1) Crispy helper setup
+        self.helper = FormHelper()
+        self.helper.form_method = "post"
+        self.helper.form_class = "needs-validation"
+        self.helper.attrs = {"novalidate": "", "autocomplete": "off"}
+        self.helper.layout = Layout(
+            # Header card
+            HTML("""
+                <div class="card mb-4 shadow-sm">
+                  <div class="card-body text-center">
+                    <h2 class="card-title">Join Orlando’s Strongest</h2>
+                    <p class="card-text text-muted">Create your account & register in one step.</p>
+                  </div>
+                </div>
+            """),
+            # Account credentials row
+            Fieldset(
+                "Account Details",
+                Row(
+                    Column("first_name", css_class="mb-3"),
+                    Column("last_name",  css_class="mb-3"),
+                ),
+                "email",
+                Row(
+                    Column("password1", css_class="mb-3"),
+                    Column("password2", css_class="mb-3"),
+                ),
+            ),
+            # Athlete profile card
+            Fieldset(
+                "Athlete Profile",
+                Row(
+                    Column("gender",        css_class="mb-3"),
+                    Column("date_of_birth", css_class="mb-3"),
+                ),
+                Row(
+                    Column("city",  css_class="mb-3"),
+                    Column("state", css_class="mb-3"),
+                ),
+                Row(
+                    Column("home_gym",  css_class="mb-3"),
+                    Column("team_name", css_class="mb-3"),
+                ),
+                Row(
+                    Column("coach",  css_class="mb-3"),
+                    Column("height", css_class="mb-3"),
+                    Column("weight", css_class="mb-3"),
+                ),
+            ),
+            # Competition signup card
+            Fieldset(
+                "Competition Entry",
+                Row(
+                    Column("division",     css_class="mb-3"),
+                    Column("weight_class", css_class="mb-3"),
+                ),
+            ),
+            # Submit
+            Submit("submit", "Join Now", css_class="btn-lg btn-primary w-100 mt-4")
+        )
+
+        # 2) Populate the dynamic querysets
+        self.fields["division"].queryset     = self.competition.allowed_divisions.all()
+        wc_qs = WeightClass.objects.filter(
+            federation=self.competition.federation,
+            division__in=self.competition.allowed_divisions.all()
+        ).distinct()
+        self.fields["weight_class"].queryset = wc_qs
+
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].lower()
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("An account with this email already exists. Please log in.")
+        return email
+
+    def clean_password2(self):
+        p1 = self.cleaned_data.get('password1')
+        p2 = self.cleaned_data.get('password2')
+        if p1 and p2 and p1 != p2:
+            raise ValidationError("The two password fields didn’t match.")
+        password_validation.validate_password(p2, user=None)
+        return p2

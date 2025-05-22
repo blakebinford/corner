@@ -7,3 +7,4 @@ from .commentator_views import *
 from .sponsor_views import *
 from .utility_views import *
 from .overlay_views import *
+from .competition_api import *

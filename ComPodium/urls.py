@@ -26,21 +26,25 @@ from accounts import views as accounts_views
 from competitions import views as competitions_views
 from django.conf import settings
 from django.conf.urls.static import static
-
+from competitions.serializers import GetTokenView
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
     path('dashboard/', admin.site.urls),
     path("__reload__/", include("django_browser_reload.urls")),
-    path('competitions/', include('competitions.urls', namespace='competitions')),
+    path('competitions/', include('competitions.urls', namespace='competitions')),  # HTML views
+    path('api/', include('competitions.api_urls')),  # API views
     path('', competitions_views.home, name='home'),
     path('accounts/', include('accounts.urls', namespace='accounts')),
-    path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('activate/<uidb64>/<token>/', accounts_views.activate, name='activate'),
     path('chat/', include('chat.urls', namespace='chat')),
-    path('', include('django.contrib.auth.urls')),
     path('tinymce/', include('tinymce.urls')),
-
-]
+    path('api_auth/', include('rest_framework.urls')),
+    path('api/get-token/', GetTokenView.as_view(), name='get-token'),
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

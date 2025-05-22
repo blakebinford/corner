@@ -16,7 +16,8 @@ if DEBUG:
 
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgres://blake:758595Aa@localhost:5432/compodium'
+        "DATABASE_URL",
+        default="postgres://blake:758595Aa@localhost:5432/compodium"
     )
 }
 

@@ -361,16 +361,18 @@ class AthleteCompetition(models.Model):
         return f"{self.athlete.user.username} - {self.competition.name}"
 
 class Result(models.Model):
-    """
-    Stores the performance results for an athlete in a competition event.
-    """
     athlete_competition = models.ForeignKey(
         AthleteCompetition, on_delete=models.CASCADE, related_name='results'
     )
     event = models.ForeignKey(
         Event, on_delete=models.CASCADE, related_name="results"
     )
-    points_earned = models.PositiveIntegerField(default=0, help_text="Points awarded based on performance.")
+    points_earned = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        default=0,
+        help_text="Points awarded based on performance (e.g., 1.5 for ties)."
+    )
     event_rank = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Ranking in the event.")
     time = models.DurationField(null=True, blank=True, help_text="Recorded time for time-based events.")
     value = models.CharField(
@@ -380,11 +382,10 @@ class Result(models.Model):
     )
 
     class Meta:
-        ordering = ["event__order", "event_rank"]  # Sort results by event order and rank
+        ordering = ["event__order", "event_rank"]
 
     def __str__(self):
         return f"{self.athlete_competition.athlete.user.get_full_name()} - {self.event.name}"
-
 
 class ZipCode(models.Model):
     zip_code = models.CharField(max_length=5, primary_key=True)

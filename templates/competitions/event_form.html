@@ -3,6 +3,27 @@
 {% block content %}
 <div class="container mt-5" style="max-width: 400px;">
     <h2 class="text-center">{% if event %}Edit Event{% else %}Create Event{% endif %}</h2>
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        <ul>
+        {% for field in form %}
+            {% for error in field.errors %}
+                <li>{{ field.label }}: {{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
     <form method="post" action="{% if event %}{% url 'competitions:update_event' event.pk %}{% else %}{% url 'competitions:create_event' competition_pk=competition.pk %}{% endif %}">
         {% csrf_token %}
 
@@ -16,16 +37,19 @@
             {{ form.weight_type|as_crispy_field }}
         </div>
         <div class="form-check mb-3">
-            <input 
-                type="checkbox" 
-                class="form-check-input" 
-                id="id_has_multiple_implements" 
+            <input
+                type="checkbox"
+                class="form-check-input"
+                id="id_has_multiple_implements"
                 name="has_multiple_implements"
                 {% if form.has_multiple_implements.value %}checked{% endif %}>
             <label class="form-check-label" for="id_has_multiple_implements">Multiple Implements?</label>
         </div>
         <div class="form-group mb-3" id="number-of-implements-container" style="{% if not form.has_multiple_implements.value %}display: none;{% endif %}">
             {{ form.number_of_implements|as_crispy_field }}
+        </div>
+        <div class="form-group mb-3">
+            {{ form.number_of_lanes|as_crispy_field }}
         </div>
         <div class="text-center">
             <button type="submit" class="btn btn-primary w-100">

@@ -16,9 +16,10 @@ from django.views import View, generic
 from django.views.generic import TemplateView, CreateView
 
 from competitions.models import Competition, AthleteCompetition, Division, WeightClass, AthleteEventNote, \
-    LaneAssignment, CompetitionRunOrder, Event
+    LaneAssignment, CompetitionRunOrder, Event, Result
 from competitions.forms import EditWeightClassesForm, CustomWeightClassForm, CustomDivisionForm, \
     CombineWeightClassesForm
+from competitions.views import calculate_points_and_rankings
 
 
 class OrganizerCompetitionsView(TemplateView):
@@ -432,6 +433,7 @@ def add_custom_weight_class(request, competition_pk):
     return render(request, "competitions/custom_weight_class_form.html", {"form": form, "competition": competition})
 
 
+@method_decorator(login_required, name="dispatch")
 class CompetitionRunOrderView(LoginRequiredMixin, View):
     template_name = 'competitions/competition_run_order.html'
 
@@ -469,6 +471,14 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
                 'athlete_competition__division',
                 'athlete_competition__weight_class'
             ).order_by('order')
+
+            # Fetch results for all athletes in this event
+            results = Result.objects.filter(
+                event=current_event,
+                athlete_competition__in=[ro.athlete_competition for ro in run_orders]
+            ).select_related('athlete_competition')
+
+            results_map = {result.athlete_competition_id: result for result in results}
 
             # Fetch event notes for athletes in this event
             athlete_event_notes = AthleteEventNote.objects.filter(
@@ -518,6 +528,14 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
                     lanes_data[lane_number]['current'] = run_order
                 elif run_order.status == 'completed':
                     lanes_data[lane_number]['completed'].append(run_order)
+                    # Attach score and points
+                    athlete_comp_id = run_order.athlete_competition_id
+                    if athlete_comp_id in results_map:
+                        run_order.score = results_map[athlete_comp_id].value
+                        run_order.points = results_map[athlete_comp_id].points_earned
+                    else:
+                        run_order.score = None
+                        run_order.points = 0
                 elif run_order.status == 'pending':
                     lanes_data[lane_number]['pending'].append(run_order)
 
@@ -527,7 +545,6 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
                 if lanes_data[lane_number]['pending']:
                     lanes_data[lane_number]['on_deck'] = lanes_data[lane_number]['pending'][0]
                     # Remove on-deck from pending to avoid duplication
-                    # But keep it in the original run_orders list for backward compatibility
                     lanes_data[lane_number]['pending'] = lanes_data[lane_number]['pending'][1:]
 
                 # Find index of first pending athlete (for backward compatibility)
@@ -736,6 +753,7 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
 
             elif action == 'complete_current_lifter':
                 run_order_id = request.POST.get('run_order_id')
+                score_value = request.POST.get('score_value')  # New field for score input
                 current_run_order = get_object_or_404(CompetitionRunOrder, pk=run_order_id, status='current')
                 lane_number = current_run_order.lane_number
 
@@ -743,6 +761,24 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
                 current_run_order.status = 'completed'
                 current_run_order.completed_at = timezone.now()
                 current_run_order.save()
+
+                # Save the score to the Result model if provided
+                if score_value:
+                    athlete_competition = current_run_order.athlete_competition
+                    event = current_run_order.event
+                    result, created = Result.objects.get_or_create(
+                        athlete_competition=athlete_competition,
+                        event=event,
+                        defaults={'value': score_value}
+                    )
+                    if not created and result.value != score_value:
+                        result.value = score_value
+                        result.save()
+                    # Recalculate points and rankings
+                    calculate_points_and_rankings(competition.pk, event.pk)
+                    # Debugging: Verify the result was saved
+                    updated_result = Result.objects.get(athlete_competition=athlete_competition, event=event)
+                    print(f"Saved score for {athlete_competition.athlete.user.get_full_name()}: {updated_result.value}")
 
                 # Find the pending lifters in the same lane
                 pending_lifters = CompetitionRunOrder.objects.filter(
@@ -763,25 +799,53 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
                     if pending_lifters.count() > 1:
                         on_deck_lifter = pending_lifters[1]  # Get the second pending lifter
 
+                        # Update success message to include score info if provided
+                        if score_value:
+                            messages.success(
+                                request,
+                                f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
+                                f"marked as completed with score {score_value}. "
+                                f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
+                                f"{on_deck_lifter.athlete_competition.athlete.user.get_full_name()} is on deck."
+                            )
+                        else:
+                            messages.success(
+                                request,
+                                f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
+                                f"marked as completed. "
+                                f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
+                                f"{on_deck_lifter.athlete_competition.athlete.user.get_full_name()} is on deck."
+                            )
+                    else:
+                        if score_value:
+                            messages.success(
+                                request,
+                                f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
+                                f"marked as completed with score {score_value}. "
+                                f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
+                                f"No more lifters in this lane's queue."
+                            )
+                        else:
+                            messages.success(
+                                request,
+                                f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
+                                f"marked as completed. "
+                                f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
+                                f"No more lifters in this lane's queue."
+                            )
+                else:
+                    if score_value:
                         messages.success(
                             request,
-                            f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} marked as completed. "
-                            f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
-                            f"{on_deck_lifter.athlete_competition.athlete.user.get_full_name()} is on deck."
+                            f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
+                            f"marked as completed with score {score_value}. No more lifters in this lane's queue."
                         )
                     else:
                         messages.success(
                             request,
-                            f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} marked as completed. "
-                            f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
-                            f"No more lifters in this lane's queue."
+                            f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
+                            f"marked as completed. No more lifters in this lane's queue."
                         )
-                else:
-                    messages.success(
-                        request,
-                        f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
-                        f"marked as completed. No more lifters in this lane's queue."
-                    )
 
             elif action == 'reactivate_lifter':
                 run_order_id = request.POST.get('run_order_id')

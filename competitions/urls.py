@@ -4,7 +4,7 @@ from .consumers import ScoreUpdateConsumer
 from competitions.views import SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
     CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView, AthleteCheckInView, \
     toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView, AssignWeightClassesView, \
-    CustomDivisionCreateView, add_custom_weight_class
+    CustomDivisionCreateView, add_custom_weight_class, OrlandosStrongestSignupView
 
 app_name = 'competitions'
 
@@ -57,8 +57,7 @@ urlpatterns = [
     path('<int:competition_pk>/toggle_email_notifications/', views.toggle_email_notifications, name='toggle_email_notifications'),
     path('competitions/<int:competition_pk>/download_athlete_table/', views.download_athlete_table, name='download_athlete_table'),
     path('competitions/<int:competition_pk>/add_athlete/', AddAthleteManuallyView.as_view(), name='add_athlete'),
-    path('competitions/<int:competition_pk>/create_athlete_profile/', CreateAthleteProfileView.as_view(),
-         name='create_athlete_profile'),
+    path('competitions/<int:competition_pk>/create_athlete_profile/',views.AthleteProfileUpdateView.as_view(), name='athlete_profile_update'),
     path(
         'competitions/<int:competition_pk>/combine_weight_classes/',
         views.CombineWeightClassesView.as_view(),
@@ -82,5 +81,9 @@ urlpatterns = [
 
     path('athletecompetition/<int:pk>/delete/', views.AthleteCompetitionDeleteView.as_view(), name='athletecompetition_delete'),
     path('athlete/<int:athlete_id>/', views.athlete_profile, name='athlete_profile'),
-
+    path(
+        'orlandos-strongest/signup/',
+        OrlandosStrongestSignupView.as_view(),
+        name='orlandos_strongest_signup'
+    ),
 ]

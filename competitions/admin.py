@@ -1,4 +1,6 @@
 from django.contrib import admin
+
+from accounts.models import AthleteProfile
 from .models import (
     Competition, Event, AthleteCompetition, EventImplement,
     Tag, Federation, Sponsor, Result, ZipCode, EventBase, Division, WeightClass, TshirtSize, AthleteEventNote,

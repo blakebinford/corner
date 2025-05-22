@@ -242,47 +242,47 @@ document.addEventListener('DOMContentLoaded', function () {
     // Weight class sorting function
     function sortWeightClasses() {
         console.log('Sorting weight classes...');
-        
+
         // Process each division separately
         document.querySelectorAll('.division-group').forEach(divisionGroup => {
             // Process each gender group separately within the division
             const genderGroups = divisionGroup.querySelectorAll('.gender-row');
-            
+
             genderGroups.forEach(genderRow => {
                 const gender = genderRow.getAttribute('data-gender');
                 console.log(`Sorting ${gender} weight classes in division`);
-                
+
                 // Get all rows that belong to this gender group
                 let weightClassRows = [];
                 let nextRow = genderRow.nextElementSibling;
-                
+
                 // Collect all rows until the next gender header or division header
-                while (nextRow && 
-                       !nextRow.classList.contains('gender-row') && 
+                while (nextRow &&
+                       !nextRow.classList.contains('gender-row') &&
                        !nextRow.classList.contains('table-primary')) {
                     weightClassRows.push(nextRow);
                     nextRow = nextRow.nextElementSibling;
                 }
-                
+
                 if (weightClassRows.length <= 1) {
                     console.log('Only one or zero weight classes, no sorting needed');
                     return; // No need to sort just one row
                 }
-                
+
                 // Sort weight class rows
                 weightClassRows.sort((rowA, rowB) => {
                     // Get the weight class text from the first cell
                     const cellA = rowA.querySelector('td:first-child strong').textContent;
                     const cellB = rowB.querySelector('td:first-child strong').textContent;
-                    
+
                     // Extract weight value and weight_d (u, +, or empty)
                     const getWeightInfo = (text) => {
                         // Remove the gender part that's in parentheses
                         const weightClassPart = text.split('(')[0].trim();
-                        
+
                         let weightD = '';
                         let weightValue = 0;
-                        
+
                         // Check for 'u' prefix (under)
                         if (weightClassPart.startsWith('u')) {
                             weightD = 'u';
@@ -297,52 +297,52 @@ document.addEventListener('DOMContentLoaded', function () {
                         else {
                             weightValue = parseFloat(weightClassPart);
                         }
-                        
+
                         return { weightD, weightValue };
                     };
-                    
+
                     const infoA = getWeightInfo(cellA);
                     const infoB = getWeightInfo(cellB);
-                    
+
                     console.log(`Comparing: ${cellA} (${infoA.weightD}${infoA.weightValue}) vs ${cellB} (${infoB.weightD}${infoB.weightValue})`);
-                    
+
                     // Sort logic:
                     // 1. 'u' prefixed weights come first, sorted from smallest to largest
                     // 2. Regular weights come next, sorted from smallest to largest
                     // 3. '+' suffixed weights come last, sorted from smallest to largest
-                    
+
                     if (infoA.weightD !== infoB.weightD) {
                         if (infoA.weightD === 'u') return -1;
                         if (infoB.weightD === 'u') return 1;
                         if (infoA.weightD === '') return -1;
                         if (infoB.weightD === '') return 1;
                     }
-                    
+
                     // If same weight_d type, sort by numeric value
                     return infoA.weightValue - infoB.weightValue;
                 });
-                
+
                 // Re-insert the sorted rows in order
                 const parentNode = weightClassRows[0].parentNode;
-                
+
                 // Insert after the gender row
                 let insertAfter = genderRow;
-                
+
                 // Reattach all rows in sorted order
                 weightClassRows.forEach(row => {
                     // Remove from current position
                     row.parentNode.removeChild(row);
-                    
+
                     // Insert after previous element
                     insertAfter.after(row);
                     insertAfter = row;
                 });
-                
+
                 console.log(`Sorted ${weightClassRows.length} weight class rows`);
             });
         });
     }
-    
+
     // Run weight class sorting when page loads
     sortWeightClasses();
 
@@ -500,20 +500,20 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log('Applying filters');
         const selectedDivision = divisionFilter.value;
         const selectedGender = genderFilter.value;
-        
+
         console.log('Selected filters:', { division: selectedDivision, gender: selectedGender });
-        
+
         document.querySelectorAll('.division-group').forEach(group => {
             const divisionId = group.getAttribute('data-division-id');
             group.style.display = (!selectedDivision || divisionId === selectedDivision) ? '' : 'none';
         });
-        
+
         document.querySelectorAll('.gender-row').forEach(row => {
             const gender = row.getAttribute('data-gender');
             const parentGroup = row.closest('.division-group');
             if (!parentGroup || parentGroup.style.display !== 'none') {
                 row.style.display = (!selectedGender || gender === selectedGender) ? '' : 'none';
-                
+
                 // Handle the rows following this gender row until the next gender row
                 let nextRow = row.nextElementSibling;
                 while (nextRow && !nextRow.classList.contains('gender-row') && !nextRow.classList.contains('table-primary')) {
@@ -539,16 +539,16 @@ const bulkEditModal = document.getElementById('bulkEditModal');
 if (bulkEditModal) {
     document.getElementById('applyBulkEdit').addEventListener('click', function () {
         console.log('Apply Bulk Edit button clicked');
-        
+
         // Get values from the modal
         const weight = document.getElementById('bulk-weight').value;
         const unit = document.getElementById('bulk-unit').value;
-        
+
         {% if event.has_multiple_implements %}
         const bulkOrder = document.getElementById('bulk-order').value;
         const implementName = document.getElementById('bulk-implement-name').value;
         console.log('Bulk edit values:', { bulkOrder, implementName, weight, unit });
-        
+
         // Validate inputs for multiple implements
         if (!implementName.trim()) {
             alert('Implement name is required.');
@@ -557,26 +557,26 @@ if (bulkEditModal) {
         {% else %}
         console.log('Bulk edit values:', { weight, unit });
         {% endif %}
-        
+
         // Validate weight input
         if (!weight || isNaN(parseFloat(weight)) || parseFloat(weight) <= 0) {
             alert('Weight must be a positive number.');
             return;
         }
-        
+
         // Get all visible rows
         const visibleRows = Array.from(document.querySelectorAll('tbody tr')).filter(row => {
             // Skip division and gender header rows
             if (row.classList.contains('table-primary') || row.classList.contains('gender-row')) {
                 return false;
             }
-            
+
             // Check if the row is actually visible (not filtered out)
             const style = window.getComputedStyle(row);
             if (style.display === 'none') {
                 return false;
             }
-            
+
             // Check if any parent is hidden
             let parent = row.parentElement;
             while (parent && parent !== document.body) {
@@ -585,17 +585,17 @@ if (bulkEditModal) {
                 }
                 parent = parent.parentElement;
             }
-            
+
             return true;
         });
-        
+
         console.log(`Found ${visibleRows.length} visible rows to update`);
-        
+
         // Update all visible rows
         let updatedCount = 0;
         visibleRows.forEach(row => {
             let shouldUpdate = true;
-            
+
             {% if event.has_multiple_implements %}
             // Check if this row matches the selected implement order (if applicable)
             if (bulkOrder) {
@@ -603,7 +603,7 @@ if (bulkEditModal) {
                 shouldUpdate = orderInput && orderInput.value === bulkOrder;
             }
             {% endif %}
-            
+
             if (shouldUpdate) {
                 // Update weight - using a VERY specific selector to avoid confusion with other fields
                 const weightInputs = row.querySelectorAll('input[type="number"]');
@@ -613,7 +613,7 @@ if (bulkEditModal) {
                         updatedCount++;
                     }
                 });
-                
+
                 // Update unit with specific selector
                 const unitInputs = row.querySelectorAll('select');
                 unitInputs.forEach(input => {
@@ -621,7 +621,7 @@ if (bulkEditModal) {
                         input.value = unit;
                     }
                 });
-                
+
                 {% if event.has_multiple_implements %}
                 // Update implement name with specific selector
                 const nameInputs = row.querySelectorAll('input[type="text"]');
@@ -633,9 +633,9 @@ if (bulkEditModal) {
                 {% endif %}
             }
         });
-        
+
         console.log(`Updated ${updatedCount} rows`);
-        
+
         // Show success message
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
@@ -645,11 +645,11 @@ if (bulkEditModal) {
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
         form.parentNode.insertBefore(alertDiv, form);
-        
+
         // Dismiss the modal
         const closeBtn = bulkEditModal.querySelector('.btn-close');
         if (closeBtn) closeBtn.click();
-        
+
         // If we have implement name syncing, run it
         {% if event.has_multiple_implements %}
         syncImplementNames();

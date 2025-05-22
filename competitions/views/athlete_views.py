@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views import generic
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -22,14 +22,87 @@ def athlete_profile(request, athlete_id):
     }
     return render(request, 'registration/athlete_profile.html', context)
 
+class AthleteProfileUpdateView(LoginRequiredMixin, generic.UpdateView):
+    model = AthleteProfile
+    form_class = AthleteProfileForm
+    template_name = 'competitions/create_athlete_profile.html'
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(AthleteProfile, user=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        context['competition'] = competition
+        return context
+
+    def form_valid(self, form):
+        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        athlete_profile = form.save()
+        messages.success(self.request, "Your athlete profile has been updated! You can now register for the competition.")
+        return redirect('competitions:athletecompetition_create', competition_pk=competition.pk)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "Please correct the errors below.")
+        return super().form_invalid(form)
+
+
 class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
     model = AthleteCompetition
     form_class = AthleteCompetitionForm
     template_name = 'competitions/registration_form.html'
 
+    def get(self, request, *args, **kwargs):
+        try:
+            athlete_profile = request.user.athlete_profile
+            print(f"User {request.user.username} has AthleteProfile: {athlete_profile}")
+            if not athlete_profile.gender or athlete_profile.gender.strip() == '':
+                print(f"User {request.user.username} has no gender set in AthleteProfile")
+                messages.warning(
+                    request,
+                    "Please fill out your athlete profile before signing up for a competition."
+                )
+                return redirect(reverse('competitions:athlete_profile_update',
+                                        kwargs={'competition_pk': self.kwargs['competition_pk']}))
+        except AthleteProfile.DoesNotExist:
+            print(f"User {request.user.username} has no AthleteProfile")
+            messages.warning(
+                request,
+                "You need to create an athlete profile before you can sign up for a competition."
+            )
+            return redirect(reverse('competitions:athlete_profile_update',
+                                    kwargs={'competition_pk': self.kwargs['competition_pk']}))
+
+        print(f"Proceeding to registration form for {request.user.username}")
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        try:
+            athlete_profile = request.user.athlete_profile
+            print(f"POST: User {request.user.username} has AthleteProfile: {athlete_profile}")
+            if not athlete_profile.gender or athlete_profile.gender.strip() == '':
+                print(f"POST: User {request.user.username} has no gender set in AthleteProfile")
+                messages.warning(
+                    request,
+                    "You need to set your gender in your athlete profile before you can sign up for a competition."
+                )
+                return redirect(reverse('competitions:athlete_profile_update',
+                                        kwargs={'competition_pk': self.kwargs['competition_pk']}))
+        except AthleteProfile.DoesNotExist:
+            print(f"POST: User {request.user.username} has no AthleteProfile")
+            messages.warning(
+                request,
+                "You need to create an athlete profile before you can sign up for a competition."
+            )
+            return redirect(reverse('competitions:athlete_profile_update',
+                                    kwargs={'competition_pk': self.kwargs['competition_pk']}))
+
+        return super().post(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['competition'] = self.get_competition()
+        kwargs['request'] = self.request
         return kwargs
 
     def get_context_data(self, **kwargs):
@@ -38,9 +111,6 @@ class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
         return context
 
     def get_competition(self):
-        """
-        Helper method to retrieve the competition instance based on the URL parameter.
-        """
         return get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
 
     def form_valid(self, form):
@@ -54,15 +124,12 @@ class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
             messages.warning(self.request, "You are already registered for this competition.")
             return redirect('competitions:competition_detail', pk=form.instance.competition.pk)
 
-        # Check if competition is full
         competition = form.instance.competition
         if competition.athletecompetition_set.count() >= competition.capacity:
             return render(self.request, 'competitions/registration_full.html', {'competition': competition})
 
-        # Save the AthleteCompetition object
         athlete_competition = form.save()
 
-        # Send email to the organizer if notifications are enabled
         if competition.email_notifications:
             athlete = athlete_competition.athlete
             athlete_user = athlete.user
@@ -83,6 +150,7 @@ class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
                 f"The Atlas Competition Team\n"
             )
 
+            from django.core.mail import send_mail
             send_mail(
                 subject=email_subject,
                 message=email_message,
@@ -91,12 +159,10 @@ class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
                 fail_silently=False,
             )
 
-        # Render success page
         return render(self.request, 'competitions/registration_success.html', {
             'competition': competition,
             'athlete_competition': athlete_competition
         })
-
 
 class AthleteCompetitionUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
     model = AthleteCompetition

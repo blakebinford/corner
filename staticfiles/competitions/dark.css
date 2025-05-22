@@ -1,0 +1,99 @@
+/* Change Bootstrap Primary Color to #231F20 */
+
+/* Base Primary Color */
+.btn-primary,
+.text-primary,
+.bg-primary,
+.border-primary {
+  background-color: #231F20 !important;
+  color: #fff !important;
+  border-color: #231F20 !important;
+}
+
+/* Hover and Focus States */
+.btn-primary:hover,
+.btn-primary:focus,
+.text-primary:hover,
+.text-primary:focus,
+.bg-primary:hover,
+.bg-primary:focus,
+.border-primary:hover,
+.border-primary:focus {
+  background-color: #1A1819 !important; /* Slightly darker shade for hover */
+  color: #fff !important;
+  border-color: #1A1819 !important;
+}
+
+/* Active and Focused States */
+.btn-primary:active,
+.btn-primary:focus,
+.btn-primary.active,
+.btn-primary:active:hover,
+.btn-primary:focus-visible {
+  background-color: #0F0E0E !important; /* Even darker shade for active */
+  color: #fff !important;
+  border-color: #0F0E0E !important;
+  box-shadow: 0 0 0 0.2rem rgba(35, 31, 32, 0.5) !important;
+}
+
+/* Links with Primary Color */
+a.text-primary {
+  color: #231F20 !important;
+}
+
+a.text-primary:hover,
+a.text-primary:focus {
+  color: #1A1819 !important;
+}
+
+/* Utility Classes */
+.bg-primary {
+  background-color: #231F20 !important;
+}
+
+.border-primary {
+  border-color: #231F20 !important;
+}
+
+/* Alerts */
+.alert-primary {
+  color: #fff !important;
+  background-color: #231F20 !important;
+  border-color: #1A1819 !important;
+}
+
+/* Badge */
+.badge-primary {
+  background-color: #231F20 !important;
+  color: #fff !important;
+}
+
+/* Progress Bar */
+.progress-bar.bg-primary {
+  background-color: #231F20 !important;
+}
+
+/* Pagination */
+.page-item.active .page-link {
+  background-color: #231F20 !important;
+  border-color: #231F20 !important;
+  color: #fff !important;
+}
+
+.page-link:hover {
+  background-color: #1A1819 !important;
+  color: #fff !important;
+}
+
+/* Form Controls */
+.form-check-input:checked {
+  background-color: #231F20 !important;
+  border-color: #231F20 !important;
+}
+
+.form-select:focus,
+.input-group-text,
+.custom-control-input:checked ~ .custom-control-label::before {
+  border-color: #231F20 !important;
+  background-color: #231F20 !important;
+}

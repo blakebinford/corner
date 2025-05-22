@@ -1,4 +1,5 @@
 from collections import defaultdict
+import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -13,6 +14,7 @@ from competitions.models import Competition, AthleteCompetition, Result, Event, 
 from competitions.forms import EventImplementForm, EventCreationForm
 from competitions.views.scoring_views import calculate_points_and_rankings
 
+logger = logging.getLogger(__name__)
 
 def create_event(request, competition_pk):
     """
@@ -22,26 +24,18 @@ def create_event(request, competition_pk):
 
     if request.method == 'POST':
         form = EventCreationForm(request.POST)
-
         if form.is_valid():
-            # Save the event instance without committing
             event = form.save(commit=False)
-
-            # ✅ Explicitly assign the competition before saving
             event.competition = competition
-
-            # Determine the next event order within the competition
             max_order = competition.events.aggregate(Max('order'))['order__max']
-            event.order = (max_order or 0) + 1  # Assign next order number
-
-            # ✅ Save the event after setting competition
+            event.order = (max_order or 0) + 1
             event.save()
-
-            # Save many-to-many relationships
             form.save_m2m()
-
-            # Redirect to implement assignment if the event has multiple implements
+            messages.success(request, "Event created successfully!")
             return redirect('competitions:assign_implements', event_pk=event.pk)
+        else:
+            logger.error(f"Form validation failed: {form.errors}")
+            messages.error(request, "Please correct the errors below.")
     else:
         form = EventCreationForm()
 
@@ -52,16 +46,13 @@ def create_event(request, competition_pk):
         'action_kwargs': {'competition_pk': competition.pk},
     })
 
-
-@login_required
 def assign_implements(request, event_pk):
-    import logging
     logger = logging.getLogger(__name__)
 
     event = get_object_or_404(Event, pk=event_pk)
     competition = get_object_or_404(Competition, events=event)
     divisions = competition.allowed_divisions.all()
-    weight_classes = WeightClass.objects.filter(division__competition=competition)
+    weight_classes = WeightClass.objects.filter(division__in=divisions).distinct()  # Ensure weight classes match divisions
     existing_implements = EventImplement.objects.filter(event=event)
     initial_data = []
 
@@ -69,30 +60,35 @@ def assign_implements(request, event_pk):
 
     # Generate initial data
     if not existing_implements.exists():
-        for division in divisions:
-            division_weight_classes = weight_classes.filter(division=division)
-            for weight_class in division_weight_classes:
-                if not event.has_multiple_implements:
-                    initial_data.append({
-                        'event': event.id,
-                        'division': division.id,
-                        'weight_class': weight_class.id,
-                        'implement_order': 1,  # Always set to 1
-                        'weight': 0,
-                        'weight_unit': 'lbs',
-                    })
+        if divisions.exists() and weight_classes.exists():
+            for division in divisions:
+                division_weight_classes = weight_classes.filter(division=division)
+                if division_weight_classes.exists():
+                    for weight_class in division_weight_classes:
+                        if not event.has_multiple_implements:
+                            initial_data.append({
+                                'event': event.id,
+                                'division': division.id,
+                                'weight_class': weight_class.id,
+                                'implement_order': 1,
+                                'weight': 0,
+                                'weight_unit': 'lbs',
+                            })
+                        else:
+                            num_implements = event.number_of_implements or 1  # Default to 1 if None
+                            for order in range(1, num_implements + 1):
+                                initial_data.append({
+                                    'event': event.id,
+                                    'division': division.id,
+                                    'weight_class': weight_class.id,
+                                    'implement_order': order,
+                                    'weight': 0,
+                                    'weight_unit': 'lbs',
+                                })
                 else:
-                    # For multiple implements, create entries for each implement
-                    num_implements = event.number_of_implements
-                    for order in range(1, num_implements + 1):
-                        initial_data.append({
-                            'event': event.id,
-                            'division': division.id,
-                            'weight_class': weight_class.id,
-                            'implement_order': order,
-                            'weight': 0,
-                            'weight_unit': 'lbs',
-                        })
+                    logger.warning(f"No weight classes found for division {division.name}")
+        else:
+            logger.warning("No divisions or weight classes found for this competition")
         logger.debug(f"Initial data created: {len(initial_data)} entries")
 
     EventImplementFormSet = modelformset_factory(
@@ -100,8 +96,7 @@ def assign_implements(request, event_pk):
         form=EventImplementForm,
         extra=len(initial_data) if not existing_implements.exists() else 0,
         can_delete=True,
-        fields=(
-        'id', 'event', 'division', 'weight_class', 'implement_order', 'implement_name', 'weight', 'weight_unit')
+        fields=('id', 'event', 'division', 'weight_class', 'implement_order', 'implement_name', 'weight', 'weight_unit')
     )
 
     if request.method == 'POST':
@@ -113,22 +108,16 @@ def assign_implements(request, event_pk):
                 if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
                     instance = form.save(commit=False)
                     instance.event = event
-
-                    # Make sure division and weight_class are properly set
                     if not instance.division_id and 'division' in form.initial:
                         instance.division_id = form.initial['division']
-
                     if not instance.weight_class_id and 'weight_class' in form.initial:
                         instance.weight_class_id = form.initial['weight_class']
-
                     if not instance.implement_order:
                         instance.implement_order = 1
-
                     if instance.division_id and instance.weight_class_id:
                         instance.save()
                     else:
                         logger.error(f"Cannot save implement: missing division or weight_class")
-
             messages.success(request, "Implements saved successfully!")
             return redirect('competitions:manage_competition', competition_pk=competition.pk)
         else:
@@ -217,34 +206,28 @@ def event_list(request, competition_pk):
     View to list all events in a given competition.
     """
     competition = get_object_or_404(Competition, pk=competition_pk)
-
+    event_orders = competition.events.all().order_by('order')  # Order by 'order' field
     return render(request, 'competitions/event_list.html', {
         'competition': competition,
-        'events': competition.events.all(),  # Fetches events directly
+        'event_orders': event_orders,
     })
 
 @login_required
-def event_scores(request, competition_pk, event_pk):
-    """
-    View to manage event scores for a specific competition event.
-    """
+def event_scores(request, competition_pk, eventorder_pk):
     competition = get_object_or_404(Competition, pk=competition_pk)
-    event = get_object_or_404(Event, pk=event_pk)
+    event = get_object_or_404(Event, pk=eventorder_pk)
     athlete_competitions = AthleteCompetition.objects.filter(competition=competition)
 
-    # Group athletes by gender, then by division, then by weight class
     grouped_athletes = defaultdict(lambda: defaultdict(list))
     for athlete_competition in athlete_competitions:
         gender = athlete_competition.athlete.gender
         division_name = athlete_competition.division.name if athlete_competition.division else "Unknown Division"
         weight_class = athlete_competition.weight_class
-
-        # Retrieve or create a result for each athlete
         result, created = Result.objects.get_or_create(
             athlete_competition=athlete_competition,
-            event=event
+            event=event,
+            defaults={'value': ''}  # Ensure a default value
         )
-
         grouped_athletes[gender][division_name].append({
             'athlete_competition': athlete_competition,
             'weight_class': {
@@ -254,35 +237,38 @@ def event_scores(request, competition_pk, event_pk):
             'result': result,
         })
 
-    # Sort grouped athletes
     grouped_athletes = {
         gender: {
-            division: sorted(athletes, key=lambda x: (x['weight_class']['weight_d'], x['weight_class']['name']))
+            division: sorted(athletes, key=lambda x: (x['weight_class']['weight_d'] or '', x['weight_class']['name']))
             for division, athletes in divisions.items()
         }
         for gender, divisions in sorted(grouped_athletes.items())
     }
 
     if request.method == 'POST':
+        logger.debug(f"POST data: {request.POST}")
         for key, value in request.POST.items():
             if key.startswith('result_'):
+                logger.debug(f"Processing key: {key}, value: {value}")
                 try:
                     athlete_competition_id, event_id = map(int, key.replace('result_', '').split('_'))
                     result = Result.objects.get(
                         athlete_competition_id=athlete_competition_id,
                         event_id=event_id
                     )
-                    result.value = value
-                    result.save()
-                except (ValueError, Result.DoesNotExist):
-                    pass
+                    if value.strip():  # Only update if non-empty
+                        result.value = value.strip()
+                        result.save()
+                        logger.debug(f"Saved result: {result.value} for {result.athlete_competition.athlete.user.get_full_name()}")
+                    else:
+                        logger.warning(f"Empty value for {key}, not saved")
+                except (ValueError, Result.DoesNotExist) as e:
+                    logger.error(f"Error saving result for {key}: {e}")
+                    continue
 
-        # Recalculate points and rankings after score update
         calculate_points_and_rankings(competition.pk, event.pk)
-
-        # Add a success message
         messages.success(request, "Scores updated successfully!")
-        return redirect('competitions:event_scores', competition_pk=competition_pk, event_pk=event_pk)
+        return redirect('competitions:event_scores', competition_pk=competition_pk, eventorder_pk=eventorder_pk)
 
     return render(request, 'competitions/event_score_update.html', {
         'competition': competition,

@@ -122,7 +122,7 @@ class AthleteProfile(models.Model):
     home_gym = models.CharField(max_length=100, blank=True, help_text=_("Name of the athlete's primary gym"))
     team_name = models.CharField(max_length=100, blank=True, help_text=_("Name of the athlete's team (if any)"))
     coach = models.CharField(max_length=100, blank=True, help_text=_("Name of the athlete's coach"))
-    height = models.IntegerField(null=True, blank=True, help_text=_("Athlete's height"))
+    height = models.IntegerField(null=True, blank=True, help_text=_("Athlete's height in inches"))
     weight = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text=_("Athlete's weight (in kg or lbs)"))
     date_of_birth = models.DateField(null=True, blank=True, help_text=_("Athlete's date of birth"))
     whatsapp_number = PhoneNumberField(blank=True, help_text=_("Athlete's WhatsApp number"))
