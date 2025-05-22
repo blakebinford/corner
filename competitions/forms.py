@@ -7,6 +7,7 @@ import django_filters
 from django import forms
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.forms import TypedChoiceField
 
 from .models import Competition, AthleteCompetition, Event, EventImplement, Result, Tag, \
     EventBase, ZipCode, Federation, Sponsor, TshirtSize, Division, WeightClass, AthleteEventNote
@@ -1019,6 +1020,12 @@ class OrlandosStrongestSignupForm(forms.Form):
     )
 
     # AthleteProfile fields
+    profile_picture = forms.ImageField(
+        required=False,
+        label="Profile Picture",
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
+    )
+
     gender        = forms.ChoiceField(
         choices=AthleteProfile._meta.get_field('gender').choices,
         widget=forms.Select(attrs={'class':'form-select'})
@@ -1048,28 +1055,40 @@ class OrlandosStrongestSignupForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={'class':'form-control'})
     )
-    height        = forms.IntegerField(
+    height = TypedChoiceField(
         required=False,
-        widget=forms.NumberInput(attrs={'class':'form-control'})
+        choices=[],  # we’ll fill this in __init__
+        coerce=int,  # cleaned_data['height'] will be an int
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text="Select your height (feet & inches)",
+        label="Height"
     )
-    weight        = forms.DecimalField(
+    weight = forms.DecimalField(
         required=False,
-        widget=forms.NumberInput(attrs={'class':'form-control'})
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
 
     # Competition signup fields
-    division      = forms.ModelChoiceField(
+    division = forms.ModelChoiceField(
         queryset=Division.objects.none(),
-        widget=forms.Select(attrs={'class':'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
-    weight_class  = forms.ModelChoiceField(
+    weight_class = forms.ModelChoiceField(
         queryset=WeightClass.objects.none(),
-        widget=forms.Select(attrs={'class':'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select'})
     )
 
     def __init__(self, *args, **kwargs):
         self.competition = kwargs.pop("competition")
         super().__init__(*args, **kwargs)
+
+        choices = []
+        for feet in range(4, 8):  # from 4'0" to 7'11"
+            for inch in range(0, 12):
+                total_in = feet * 12 + inch
+                label = f"{feet}'{inch}\""
+                choices.append((total_in, label))
+        self.fields['height'].choices = choices
 
         # 1) Crispy helper setup
         self.helper = FormHelper()
@@ -1091,7 +1110,7 @@ class OrlandosStrongestSignupForm(forms.Form):
                 "Account Details",
                 Row(
                     Column("first_name", css_class="mb-3"),
-                    Column("last_name",  css_class="mb-3"),
+                    Column("last_name", css_class="mb-3"),
                 ),
                 "email",
                 Row(
@@ -1102,29 +1121,17 @@ class OrlandosStrongestSignupForm(forms.Form):
             # Athlete profile card
             Fieldset(
                 "Athlete Profile",
-                Row(
-                    Column("gender",        css_class="mb-3"),
-                    Column("date_of_birth", css_class="mb-3"),
-                ),
-                Row(
-                    Column("city",  css_class="mb-3"),
-                    Column("state", css_class="mb-3"),
-                ),
-                Row(
-                    Column("home_gym",  css_class="mb-3"),
-                    Column("team_name", css_class="mb-3"),
-                ),
-                Row(
-                    Column("coach",  css_class="mb-3"),
-                    Column("height", css_class="mb-3"),
-                    Column("weight", css_class="mb-3"),
-                ),
+                Row(Column("gender"), Column("date_of_birth")),
+                Row(Column("city"), Column("state")),
+                Row(Column("home_gym"), Column("team_name")),
+                Row(Column("coach"), Column("profile_picture")),  # ← here
+                Row(Column("height"), Column("weight")),
             ),
             # Competition signup card
             Fieldset(
                 "Competition Entry",
                 Row(
-                    Column("division",     css_class="mb-3"),
+                    Column("division", css_class="mb-3"),
                     Column("weight_class", css_class="mb-3"),
                 ),
             ),
@@ -1133,13 +1140,12 @@ class OrlandosStrongestSignupForm(forms.Form):
         )
 
         # 2) Populate the dynamic querysets
-        self.fields["division"].queryset     = self.competition.allowed_divisions.all()
+        self.fields["division"].queryset = self.competition.allowed_divisions.all()
         wc_qs = WeightClass.objects.filter(
             federation=self.competition.federation,
             division__in=self.competition.allowed_divisions.all()
         ).distinct()
         self.fields["weight_class"].queryset = wc_qs
-
 
     def clean_email(self):
         email = self.cleaned_data['email'].lower()
