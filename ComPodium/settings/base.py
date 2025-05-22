@@ -198,13 +198,20 @@ SPECTACULAR_SETTINGS = {
     }],
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Use SMTP backend
-EMAIL_HOST = 'smtp.gmail.com'  # Replace with your SMTP server address
-EMAIL_HOST_USER = 'binford.blake@gmail.com'  # Replace with your SMTP username
-EMAIL_HOST_PASSWORD = 'zbnk dnbl uvso pjls'  # Replace with your SMTP password
-EMAIL_PORT = 587  # Replace with your SMTP port (587 for TLS)
-EMAIL_USE_TLS = True  # Use TLS for secure connection
-DEFAULT_FROM_EMAIL = 'binford.blake@gmail.com'  # Replace with your email address
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST    = os.getenv('SENDGRID_SMTP_HOST',    'smtp.sendgrid.net')
+EMAIL_PORT    = int(os.getenv('SENDGRID_SMTP_PORT', 587))
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER     = os.getenv('SENDGRID_SMTP_USERNAME', 'apikey')
+EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY')   # note: using API_KEY
+
+DEFAULT_FROM_EMAIL  = os.getenv(
+    'DEFAULT_FROM_EMAIL',
+    'Atlas Competition <no-reply@atlascompetition.com>'
+)
+
 
 AXES_FAILURE_LIMIT = 5  # Number of failed login attempts before lockout
 AXES_COOLOFF_TIME = 1  # Lockout duration in hours (e.g., 1 hour)
