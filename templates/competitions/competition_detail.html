@@ -533,16 +533,17 @@
                                                 <td class="ps-3">
                                                      <strong>
 
-          {% if row.weight_class.is_custom  %}
-            Single Class
-          {% elif row.weight_class.weight_d == "u" %}
-            u{{ row.weight_class.name|floatformat:"-1" }}
-          {% elif row.weight_class.weight_d == "+" %}
-            {{ row.weight_class.name|floatformat:"-1" }}+
-          {% else %}
-            {{ row.weight_class.name|floatformat:"-1" }}
-          {% endif %}
-        </strong>
+          {% if not row.weight_class.name %}
+      Single Class
+    {# otherwise fall back to your usual formatting #}
+    {% elif row.weight_class.weight_d == "u" %}
+      u{{ row.weight_class.name|floatformat:"-1" }}
+    {% elif row.weight_class.weight_d == "+" %}
+      {{ row.weight_class.name|floatformat:"-1" }}+
+    {% else %}
+      {{ row.weight_class.name|floatformat:"-1" }}
+    {% endif %}
+  </strong>
                                                 </td>
                                                 {% for event in events %}
                                                 <td class="text-center">
@@ -600,16 +601,17 @@
                                             <tr class="event-row">
                                                 <td class="ps-3">
                                                  <strong>
-          {% if row.weight_class.is_custom  %}
-            Single Class
-          {% elif row.weight_class.weight_d == "u" %}
-            u{{ row.weight_class.name|floatformat:"-1" }}
-          {% elif row.weight_class.weight_d == "+" %}
-            {{ row.weight_class.name|floatformat:"-1" }}+
-          {% else %}
-            {{ row.weight_class.name|floatformat:"-1" }}
-          {% endif %}
-        </strong>
+          {% if not row.weight_class.name %}
+      Single Class
+    {# otherwise fall back to your usual formatting #}
+    {% elif row.weight_class.weight_d == "u" %}
+      u{{ row.weight_class.name|floatformat:"-1" }}
+    {% elif row.weight_class.weight_d == "+" %}
+      {{ row.weight_class.name|floatformat:"-1" }}+
+    {% else %}
+      {{ row.weight_class.name|floatformat:"-1" }}
+    {% endif %}
+  </strong>
                                                 </td>
                                                 {% for event in events %}
                                                 <td class="text-center">
