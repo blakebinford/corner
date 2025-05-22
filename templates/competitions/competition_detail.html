@@ -299,19 +299,16 @@
 
   /* on phones */
   @media (max-width: 576px) {
-    .table th.event-header {
-      font-size: 0.7rem;
-      padding: 0.3rem 0.2rem;
-      min-width: 60px;
-    }
-    .table td {
-      font-size: 0.65rem;
-      padding: 0.2rem 0.2rem;
-    }
-    /* reduce card padding so table fills more vertical space */
-    .card-body {
-      padding: 0.5rem;
-    }
+  /* Allow the table to span the full viewport width */
+  .table-responsive {
+    width: 100vw;                                 /* full viewport */
+    margin-left: calc(50% - 50vw) !important;     /* center it by shifting left */
+    margin-right: calc(50% - 50vw) !important;    /* and right */
+    padding-left: 0 !important;                   /* remove any container padding */
+    padding-right: 0 !important;
+  }
+}
+
 }
 </style>
 {% endblock %}
