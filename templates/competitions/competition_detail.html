@@ -299,15 +299,33 @@
 
   /* on phones */
   @media (max-width: 576px) {
-  /* Allow the table to span the full viewport width */
+  /* 1) Bleed the whole tab section (and its cards) full-width */
+  .tab-content > .container {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* 2) Make the table fit 100% of that width and split columns evenly */
   .table-responsive {
-    width: 100vw;                                 /* full viewport */
-    margin-left: calc(50% - 50vw) !important;     /* center it by shifting left */
-    margin-right: calc(50% - 50vw) !important;    /* and right */
-    padding-left: 0 !important;                   /* remove any container padding */
-    padding-right: 0 !important;
+    width: 100%;  /* let it fill its new container */
+    overflow-x: visible;  /* disable horizontal scroll */
+  }
+  .table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  /* 3) Allow wrapping inside each cell so text breaks instead of causing scroll */
+  .table th,
+  .table td {
+    white-space: normal;
+    word-break: break-word;
   }
 }
+
 
 }
 </style>
@@ -556,15 +574,17 @@
                                             <tr class="event-row">
                                                 <td class="ps-3">
                                                     <strong>
-          {% if row.weight_class.is_custom  %}
-            Single Class
-          {% elif row.weight_class.weight_d == "u" %}
+
+          {% if row.weight_class.weight_d == "u" %}
             u{{ row.weight_class.name|floatformat:"-1" }}
           {% elif row.weight_class.weight_d == "+" %}
             {{ row.weight_class.name|floatformat:"-1" }}+
+          {% elif row.weight_class.is_custom  %}
+            Single Class
           {% else %}
-            {{ row.weight_class.name|floatformat:"-1" }}
+
           {% endif %}
+
         </strong>
                                                 </td>
                                                 {% for event in events %}
