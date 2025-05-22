@@ -268,6 +268,50 @@
     .social-links .btn {
         margin: 0.5rem;
     }
+    .table th.event-header {
+    padding: 0.5rem 0.4rem;      /* cut row/col padding in half */
+    font-size: 0.8rem;           /* smaller header text */
+    min-width: 80px;             /* tighten width slightly */
+  }
+
+  .table td {
+    padding: 0.3rem 0.4rem;      /* tighter cell spacing */
+    font-size: 0.75rem;          /* shrink body text */
+  }
+
+  /* tighten up whitespace around the table itself */
+  .table-responsive {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* on tablets / small desktops */
+  @media (max-width: 992px) {
+    .table th.event-header {
+      font-size: 0.75rem;
+      padding: 0.4rem 0.3rem;
+    }
+    .table td {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.3rem;
+    }
+  }
+
+  /* on phones */
+  @media (max-width: 576px) {
+    .table th.event-header {
+      font-size: 0.7rem;
+      padding: 0.3rem 0.2rem;
+      min-width: 60px;
+    }
+    .table td {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.2rem;
+    }
+    /* reduce card padding so table fills more vertical space */
+    .card-body {
+      padding: 0.5rem;
+    }
 }
 </style>
 {% endblock %}
@@ -447,15 +491,17 @@
                                             {% if row.gender == 'Male' %}
                                             <tr class="event-row">
                                                 <td class="ps-3">
-                                                    <strong>
-                                                        {% if row.weight_class.weight_d == "u" %}
-                                                            u{{ row.weight_class.name|floatformat:"-1" }}
-                                                        {% elif row.weight_class.weight_d == "+" %}
-                                                            {{ row.weight_class.name|floatformat:"-1" }}{{ row.weight_class.weight_d }}
-                                                        {% else %}
-                                                            {{ row.weight_class.name|floatformat:"-1" }}
-                                                        {% endif %}
-                                                    </strong>
+                                                     <strong>
+          {% if row.weight_class.is_custom  %}
+            Single Class
+          {% elif row.weight_class.weight_d == "u" %}
+            u{{ row.weight_class.name|floatformat:"-1" }}
+          {% elif row.weight_class.weight_d == "+" %}
+            {{ row.weight_class.name|floatformat:"-1" }}+
+          {% else %}
+            {{ row.weight_class.name|floatformat:"-1" }}
+          {% endif %}
+        </strong>
                                                 </td>
                                                 {% for event in events %}
                                                 <td class="text-center">

@@ -1,12 +1,39 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block extra_styles %}
+    <style>
+@media (max-width: 768px) {
+  /* center the logo if its parent still has padding */
+  .logo {
+    /* ensure block/auto-margin centering */
+    display: block;
+    margin: 0 auto !important;
+    /* Optional: cap its size so it never overflows: */
+    max-width: 80%;
+    height: auto;
+  }
+
+  /* Optional: remove the container-fluid side padding on mobile
+     so everything really spans 100% of the viewport */
+  .container-fluid {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+</style>
+
+{% endblock %}
 {% block content %}
 <div class="container-fluid min-vh-100 d-flex align-items-start justify-content-center pt-5" style="background: linear-gradient(to right, #222222, #444444);">
   <div class="col-12 col-md-8 text-center">
     <div class="p-4 text-light">
-      <a class="navbar-brand" href="{% url 'home' %}">
-        <img src="{% static 'images/atlaslogo.png' %}" alt="Atlas Competition Logo" class="logo mb-3">
-      </a>
+      <a class="navbar-brand d-block text-center" href="{% url 'home' %}">
+  <img
+    src="{% static 'images/atlaslogo.png' %}"
+    alt="Atlas Competition Logo"
+    class="logo mb-3 d-block mx-auto">
+</a>
+
       <h1 class="display-4 fw-bold text-shadow-sm" style="font-family: 'Josefin Sans', sans-serif; margin-top: 50px;">Welcome to Atlas Competition</h1>
       <p class="lead text-shadow-sm" style="font-family: 'Josefin Sans', sans-serif;">Find your next challenge, connect with athletes, and unleash your strength.</p>
       <div class="d-grid gap-2">
