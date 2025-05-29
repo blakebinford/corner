@@ -648,61 +648,56 @@ class AthleteCompetitionForm(forms.ModelForm):
         model = AthleteCompetition
         fields = ['division', 'weight_class', 'tshirt_size']
         widgets = {
-            'division': forms.Select(attrs={'class': 'form-select'}),
-            'weight_class': forms.Select(attrs={'class': 'form-select'}),
-            'tshirt_size': forms.Select(attrs={'class': 'form-select'}),
+            'division':     forms.Select(attrs={'class': 'form-select',    'required': True}),
+            'weight_class': forms.Select(attrs={'class': 'form-select',    'required': True}),
+            'tshirt_size':  forms.Select(attrs={'class': 'form-select',    'required': True}),
         }
 
     def __init__(self, *args, **kwargs):
         competition = kwargs.pop('competition', None)
-        self.request = kwargs.pop('request', None)
+        self.request   = kwargs.pop('request',     None)
         super().__init__(*args, **kwargs)
 
-        if competition:
-            # Filter divisions based on the competition
-            self.fields['division'].queryset = competition.allowed_divisions.all()
+        if not competition:
+            return
 
-            # Determine athlete gender
+        # 1) Figure out athlete gender
+        athlete_gender = None
+        try:
+            athlete_gender = self.request.user.athlete_profile.gender.strip().capitalize()
+        except (AttributeError, ObjectDoesNotExist):
             athlete_gender = None
-            print(f"Request available: {self.request is not None}")
-            print(f"Instance exists: {self.instance and self.instance.pk}")
-            if self.instance and hasattr(self.instance, 'athlete') and self.instance.athlete_id:
-                athlete_gender = self.instance.athlete.gender
-                print(f"Gender from instance: {athlete_gender} (Athlete: {self.instance.athlete.user.username})")
-            elif self.request and hasattr(self.request.user, 'athlete_profile'):
-                try:
-                    athlete_gender = self.request.user.athlete_profile.gender
-                    print(f"Gender from request.user.athlete_profile: {athlete_gender} (User: {self.request.user.username})")
-                except ObjectDoesNotExist:
-                    print("No AthleteProfile for user")
-                    athlete_gender = None
-            else:
-                print("No instance or request available to determine gender")
 
-            # Filter weight classes
-            weight_class_queryset = WeightClass.objects.filter(federation=competition.federation)
-            print(f"Initial Weight Classes: {list(weight_class_queryset.values('name', 'gender'))}")
-            if athlete_gender in ['male', 'female']:
-                # Capitalize to match WeightClass.gender
-                filtered_gender = athlete_gender.capitalize()
-                weight_class_queryset = weight_class_queryset.filter(gender=filtered_gender)
-                print(f"Weight Classes after gender filter ({filtered_gender}): {list(weight_class_queryset.values('name', 'gender'))}")
-            else:
-                print(f"No gender filter applied (athlete_gender: {athlete_gender})")
+        # 2) Filter divisions by gender
+        div_qs = competition.allowed_divisions.all()
+        if athlete_gender in ('Male', 'Female'):
+            div_qs = div_qs.filter(weight_classes__gender=athlete_gender).distinct()
+        self.fields['division'].queryset = div_qs
 
-            # Further filter by divisions allowed in the competition
-            weight_class_queryset = weight_class_queryset.filter(
-                division__in=competition.allowed_divisions.all()
-            ).distinct()
-            print(f"Final Weight Class Queryset: {list(weight_class_queryset)}")
+        # 3) Start with no weight-classes
+        self.fields['weight_class'].queryset = WeightClass.objects.none()
 
-            self.fields['weight_class'].queryset = weight_class_queryset
+        # 4) If a division is already selected (bound form or editing), populate it
+        division_id = None
+        if self.is_bound:
+            division_id = self.data.get(self.add_prefix('division'))
+        elif self.instance and self.instance.pk:
+            division_id = self.instance.division_id
 
-            # Handle T-shirt sizes dynamically based on competition settings
-            if competition.provides_shirts:
-                self.fields['tshirt_size'].queryset = competition.allowed_tshirt_sizes.all()
-            else:
-                self.fields.pop('tshirt_size', None)
+        if division_id:
+            wc_qs = WeightClass.objects.filter(
+                federation=competition.federation,
+                division_id=division_id
+            )
+            if athlete_gender in ('Male', 'Female'):
+                wc_qs = wc_qs.filter(gender=athlete_gender)
+            self.fields['weight_class'].queryset = wc_qs
+
+        # 5) T-shirts as before
+        if competition.provides_shirts:
+            self.fields['tshirt_size'].queryset = competition.allowed_tshirt_sizes.all()
+        else:
+            self.fields.pop('tshirt_size', None)
 
 
 class CombineWeightClassesForm(forms.Form):

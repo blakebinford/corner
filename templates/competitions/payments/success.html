@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Thank you!</h2>
+  <p>Your payment of ${{ registration.competition.signup_price }} went through.</p>
+  <p>You’re now registered for {{ competition.name }}.</p>
+  <a href="{% url 'competitions:competition_detail' competition.pk %}" class="btn btn-primary">
+    Back to Competition
+  </a>
+{% endblock %}

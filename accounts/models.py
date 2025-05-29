@@ -49,6 +49,10 @@ class OrganizerProfile(models.Model):
     organization_name = models.CharField(max_length=255)
     contact_phone = PhoneNumberField(blank=True)
     org_email = models.EmailField(max_length=35, blank=False)
+    stripe_account_id = models.CharField(
+        max_length=64, blank=True, null=True,
+        help_text="ID of the connected Stripe account"
+    )
 
 class AthleteProfile(models.Model):
     """

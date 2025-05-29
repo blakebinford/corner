@@ -31,6 +31,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 
 urlpatterns = [
     path('dashboard/', admin.site.urls),
+    path('auth/', include('django.contrib.auth.urls')),
     path("__reload__/", include("django_browser_reload.urls")),
     path('competitions/', include('competitions.urls', namespace='competitions')),  # HTML views
     path('api/', include('competitions.api_urls')),  # API views

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Pay for {{ competition.name }}</h2>
+
+  <button id="checkout-button" class="btn btn-primary">
+    Pay ${{ competition.signup_price }}
+  </button>
+
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    const stripe = Stripe("{{ stripe_pub_key }}");
+    document.getElementById("checkout-button")
+      .addEventListener("click", () => {
+        window.location.href = "{% url 'competitions:start_checkout' competition.id registration.id %}";
+      });
+  </script>
+{% endblock %}
+

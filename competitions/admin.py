@@ -1,5 +1,5 @@
 from django.contrib import admin
-
+from rest_framework.authtoken.models import Token
 from accounts.models import AthleteProfile
 from .models import (
     Competition, Event, AthleteCompetition, EventImplement,
@@ -14,8 +14,8 @@ class AthleteCompetitionInline(admin.TabularInline):
 
 @admin.register(Competition)
 class CompetitionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'comp_date', 'city', 'state', 'publication_status', 'organizer', 'status',)
-    list_filter = ('status', 'comp_date', 'publication_status')
+    list_display = ('name', 'comp_date', 'city', 'state', 'approval_status', 'publication_status', 'organizer', 'status',)
+    list_filter = ('status', 'comp_date', 'approval_status')
     search_fields = ('name', 'city', 'state', 'organizer__username', 'organizer__email')
 
     def get_tags(self, obj):
@@ -125,3 +125,15 @@ class CompetitionRunOrderAdmin(admin.ModelAdmin):
     list_display = ('competition', 'event', 'athlete_competition', 'order', 'status')
     list_filter = ('competition', 'event', 'status')
     search_fields = ('athlete_competition__athlete__user__username', 'athlete_competition__athlete__user__first_name', 'athlete_competition__athlete__user__last_name')
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+
+@admin.register(Token)
+class TokenAdmin(admin.ModelAdmin):
+    list_display = ('key', 'user', 'created')
+    search_fields = ('key', 'user__username')
+    list_filter = ('created',)

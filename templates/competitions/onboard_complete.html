@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="alert alert-success">
+    <h3>🎉 Stripe Onboarding Complete!</h3>
+  </div>
+
+  <h4>Account Status</h4>
+  <ul>
+    <li><strong>ID:</strong> {{ account.id }}</li>
+    <li><strong>Charges Enabled:</strong> {{ account.charges_enabled }}</li>
+    <li><strong>Payouts Enabled:</strong> {{ account.payouts_enabled }}</li>
+    <li><strong>Currently Due:</strong>
+      <pre>{{ account.requirements.currently_due|join:", " }}</pre>
+    </li>
+  </ul>
+
+  <a href="{% url 'competitions:competition_list' %}" class="btn btn-secondary">
+    Back to Dashboard
+  </a>
+{% endblock %}

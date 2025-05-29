@@ -224,6 +224,10 @@ footer {
               <li class="nav-item">
               <a class="nav-link" href="{% url 'competitions:organizer_competitions' %}">My Competitions</a>
             </li>
+                  <a href="{% url 'competitions:login_stripe_express' %}" class="nav-link">
+  Manage Payouts & Account
+</a>
+
                   {% endif %}
             <li class="nav-item">
               <form action="{% url 'accounts:logout' %}" method="post" id="logout-form" style="display: none;">

@@ -1,7 +1,7 @@
 import csv
 from collections import defaultdict
 from itertools import groupby
-
+from decimal import Decimal
 from django.db import transaction
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone

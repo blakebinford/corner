@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_styles %}
+<style>
+    /* Stripe Onboarding Page Styles */
+
+/* Global resets */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Open Sans', sans-serif;
+  background-color: #f5f7fa;
+  color: #2c3e50;
+  height: 100%;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Container */
+#container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+/* Card layout */
+.content {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  width: 100%;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Banner */
+.banner {
+  background-color: #3498db;
+  padding: 1rem;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  margin-bottom: 1rem;
+}
+.banner h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1.5rem;
+}
+
+/* Headings */
+h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+p {
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+/* Buttons */
+button {
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin: 0.5rem;
+}
+#sign-up-button {
+  background-color: #3498db;
+  color: #ffffff;
+}
+#sign-up-button:hover {
+  background-color: #2980b9;
+}
+#add-information-button {
+  background-color: #2ecc71;
+  color: #ffffff;
+}
+#add-information-button:hover {
+  background-color: #27ae60;
+}
+
+/* Dev callout and status text */
+.dev-callout {
+  margin-top: 1rem;
+  background: #ecf0f1;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  text-align: left;
+}
+.dev-callout p {
+  margin: 0.25rem 0;
+}
+
+/* Error message */
+.error {
+  color: #e74c3c;
+  font-weight: bold;
+  margin-top: 1rem;
+}
+.btn-custom {
+  background-color: #e63946;
+  color: #ffffff;
+  border: none;
+}
+.btn-custom:hover,
+.btn-custom:focus {
+  background-color: #d62839;
+  color: #ffffff;
+}
+
+/* Hide utility */
+.hidden {
+  display: none !important;
+}
+
+/* Dev callout styling (inside card-body) */
+.dev-callout {
+  background: #f1f3f5;
+  padding: 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+/* Error message */
+.error {
+  color: #e63946;
+  font-weight: 600;
+}
+/* Onboarding details */
+#details-submitted-title,
+#details-submitted-subtitle {
+  margin-top: 1rem;
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center min-vh-100">
+  <div class="row w-100">
+    <div class="col-lg-6 offset-lg-3 col-md-8 offset-md-2">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white text-center">
+          <h2 class="m-0">Atlas Competition Sandbox</h2>
+        </div>
+        <div class="card-body text-center">
+          <h4 id="title" class="mb-3">Get ready to receive payments</h4>
+          <p id="subtitle" class="mb-4">
+            Atlas Competition partners with Stripe to handle payouts to event organizers securely.
+          </p>
+          <button id="sign-up-button" class="btn btn-custom mb-2">Sign up</button>
+          <button id="add-information-button" class="btn btn-custom mb-2 hidden">
+            Add information
+          </button>
+          <h4 id="details-submitted-title" class="hidden mt-3">Details submitted</h4>
+          <p id="details-submitted-subtitle" class="hidden mb-3">
+            That’s everything we need for now.
+          </p>
+          <p id="error" class="error hidden">Something went wrong!</p>
+          <div id="dev-callout" class="dev-callout hidden mt-4 text-start">
+            <p id="connected-account-id" class="hidden"></p>
+            <p id="creating-connected-account" class="hidden">Creating account…</p>
+            <p id="adding-onboarding-information" class="hidden">Redirecting to Stripe…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'competitions/js/stripe_onboarding.js' %}" defer></script>
+{% endblock %}
+

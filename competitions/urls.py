@@ -4,7 +4,11 @@ from .consumers import ScoreUpdateConsumer
 from competitions.views import SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
     CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView, AthleteCheckInView, \
     toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView, AssignWeightClassesView, \
-    CustomDivisionCreateView, add_custom_weight_class, OrlandosStrongestSignupView
+    CustomDivisionCreateView, add_custom_weight_class, OrlandosStrongestSignupView, athlete_views
+
+from competitions.views import stripe_views as sv
+from competitions.views import payments
+from .views.stripe_webhook import stripe_webhook
 
 app_name = 'competitions'
 
@@ -86,4 +90,42 @@ urlpatterns = [
         OrlandosStrongestSignupView.as_view(),
         name='orlandos_strongest_signup'
     ),
+    path("connect/", sv.connect_stripe, name="connect"),
+    path("onboard-complete/", sv.onboard_complete, name="onboard_complete"),
+    path(
+        "<int:competition_id>/checkout/<int:athlete_competition_id>/",
+        payments.payment_page,
+        name="payment_page",
+    ),
+
+    path(
+        "<int:competition_id>/checkout/<int:athlete_competition_id>/start/",
+        payments.start_checkout,
+        name="start_checkout",
+    ),
+    path(
+        "<int:competition_id>/checkout/<int:athlete_competition_id>/success/",
+        payments.checkout_success,
+        name="checkout_success",
+    ),
+    path(
+        "<int:competition_id>/checkout/<int:athlete_competition_id>/cancel/",
+        payments.checkout_cancel,
+        name="checkout_cancel",
+    ),
+# competitions/urls.py
+    path("stripe/webhook/", stripe_webhook, name="stripe_webhook"),
+    path("connect/", sv.connect_stripe,       name="connect"),
+    path("onboard-complete/", sv.onboard_complete, name="onboard_complete"),
+    path(
+            "express/login/",
+            sv.login_stripe_express,
+            name="login_stripe_express",
+        ),
+    path(
+          'ajax/weight-classes/',
+          athlete_views.ajax_weight_classes,
+          name='ajax_weight_classes'
+        ),
+
 ]

@@ -1,12 +1,14 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
+from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.views import generic
 from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
-
+from ComPodium.settings import base as settings
 from accounts.models import User, AthleteProfile
 from competitions.models import Competition, AthleteCompetition, TshirtSize, Division, WeightClass
 from competitions.forms import AthleteCompetitionForm, AthleteProfileForm, ManualAthleteAddForm
@@ -108,61 +110,92 @@ class AthleteCompetitionCreateView(LoginRequiredMixin, generic.CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['competition'] = self.get_competition()
+        context['stripe_pub_key'] = settings.STRIPE_PUBLISHABLE_KEY
         return context
 
     def get_competition(self):
         return get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
 
     def form_valid(self, form):
-        form.instance.athlete = self.request.user.athlete_profile
+        # 1) Pre-set athlete & competition
+        form.instance.athlete     = self.request.user.athlete_profile
         form.instance.competition = self.get_competition()
-
-        if AthleteCompetition.objects.filter(
-                athlete=self.request.user.athlete_profile,
-                competition=form.instance.competition
-        ).exists():
-            messages.warning(self.request, "You are already registered for this competition.")
-            return redirect('competitions:competition_detail', pk=form.instance.competition.pk)
-
         competition = form.instance.competition
+
+        # 2) Duplicate check
+        if AthleteCompetition.objects.filter(
+            athlete=form.instance.athlete,
+            competition=competition
+        ).exists():
+            messages.warning(
+                self.request,
+                "You are already registered for this competition."
+            )
+            return redirect(
+                'competitions:competition_detail',
+                pk=competition.pk
+            )
+
+        # 3) Capacity check
         if competition.athletecompetition_set.count() >= competition.capacity:
-            return render(self.request, 'competitions/registration_full.html', {'competition': competition})
+            return render(
+                self.request,
+                'competitions/registration_full.html',
+                {'competition': competition}
+            )
 
-        athlete_competition = form.save()
+        # 4) Save in PENDING state
+        athlete_competition = form.save(commit=False)
+        athlete_competition.payment_status      = 'pending'
+        athlete_competition.registration_status = 'pending'
+        athlete_competition.signed_up           = False
+        athlete_competition.save()
 
+        # 5) Notify organizer by email
         if competition.email_notifications:
             athlete = athlete_competition.athlete
             athlete_user = athlete.user
-            email_subject = f"🎉 New Athlete Registration for {competition.name}!"
-            email_message = (
-                f"Hello {competition.organizer.first_name},\n\n"
-                f"Exciting news! A new athlete has just signed up for {competition.name}.\n\n"
-                f"🏋️ Athlete Details:\n"
-                f"  - Name: {athlete_user.get_full_name()}\n"
-                f"  - Email: {athlete_user.email}\n"
-                f"  - Gender: {athlete.gender}\n"
-                f"  - Weight Class: {athlete_competition.weight_class}\n"
-                f"  - Division: {athlete_competition.division}\n"
-                f"  - Registration Date: {athlete_competition.registration_date.strftime('%B %d, %Y')}\n"
-                f"  - T-shirt Size: {athlete_competition.tshirt_size or 'N/A'}\n\n"
-                f"Let’s make this competition an unforgettable experience for all athletes!\n\n"
-                f"Stay strong,\n"
-                f"The Atlas Competition Team\n"
+            subject = f"🎉 New Athlete Registration for {competition.name}!"
+            message = (
+                f"Hello {competition.organizer.get_full_name()},\n\n"
+                f"A new athlete has signed up for {competition.name}.\n\n"
+                f"Name: {athlete_user.get_full_name()}\n"
+                f"Email: {athlete_user.email}\n"
+                f"Weight class: {athlete_competition.weight_class}\n"
+                f"Division: {athlete_competition.division}\n"
+                f"Date: {athlete_competition.registration_date:%B %d, %Y}\n\n"
+                "They must now complete payment to finalize their registration."
             )
-
-            from django.core.mail import send_mail
             send_mail(
-                subject=email_subject,
-                message=email_message,
-                from_email="noreply@example.com",
+                subject,
+                message,
+                from_email="no-reply@atlascompetition.com",
                 recipient_list=[competition.organizer.email],
                 fail_silently=False,
             )
 
-        return render(self.request, 'competitions/registration_success.html', {
-            'competition': competition,
-            'athlete_competition': athlete_competition
-        })
+        # 6) Redirect to payment page with both IDs
+        return redirect(
+            'competitions:start_checkout',
+            competition_id=competition.pk,
+            athlete_competition_id=athlete_competition.pk
+        )
+
+@login_required
+def ajax_weight_classes(request):
+    division_id = request.GET.get('division_id')
+    wc_qs = WeightClass.objects.filter(division_id=division_id)
+    # Apply athlete’s gender filter
+    try:
+        gender = request.user.athlete_profile.gender.strip().capitalize()
+    except AthleteProfile.DoesNotExist:
+        gender = None
+
+    if gender in ('Male', 'Female'):
+        wc_qs = wc_qs.filter(gender=gender)
+
+    data = [{'id': wc.id, 'name': str(wc)} for wc in wc_qs.order_by('name')]
+    return JsonResponse({'weight_classes': data})
 
 class AthleteCompetitionUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
     model = AthleteCompetition

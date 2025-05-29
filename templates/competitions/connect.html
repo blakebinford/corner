@@ -1,0 +1,11 @@
+<!-- templates/stripe/connect.html -->
+{% extends "base.html" %}
+{% block content %}
+  {% if request.user.organizerprofile.stripe_account_id %}
+    <p>✅ You’re connected to Stripe! ID: {{ request.user.organizerprofile.stripe_account_id }}</p>
+  {% else %}
+    <a href="{% url 'stripe:connect' %}" class="btn btn-primary">
+      Connect with Stripe
+    </a>
+  {% endif %}
+{% endblock %}

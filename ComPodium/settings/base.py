@@ -11,12 +11,84 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 from competitions.tinymce import TINYMCE_DEFAULT_CONFIG
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 TINYMCE_DEFAULT_CONFIG = TINYMCE_DEFAULT_CONFIG
+
+STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),  # This is your app's static directory
+]
+
+
+UNFOLD = {
+    'SITE_TITLE': 'Atlas Competition',
+    'SITE_HEADER': 'Atlas Competition Admin',
+    'SITE_URL': '/dashboard/',
+    'SITE_ICON': lambda request: static('images/favicon.svg'),
+    'DASHBOARD_CALLBACK': 'core.dashboard.dashboard_callback',
+
+    # ——————— Sidebar navigation ———————
+    'SIDEBAR': {
+        'navigation': [
+            {
+                'title': _('Main'),
+                'items': [
+                    {'title': _('Dashboard'),      'icon': 'dashboard',       'link': reverse_lazy('admin:index')},
+                    {'title': _('Users'),          'icon': 'people',          'link': reverse_lazy('admin:accounts_user_changelist')},
+                    {'title': _('Competitions'),   'icon': 'calendar_today',  'link': reverse_lazy('admin:competitions_competition_changelist')},
+                    {'title': _('Registrations'),  'icon': 'how_to_reg',      'link': reverse_lazy('admin:competitions_athletecompetition_changelist')},
+
+                    # — your new entries —
+                    {'title': _('Events'),         'icon': 'event',           'link': reverse_lazy('admin:competitions_event_changelist')},
+                    {'title': _('Tags'),           'icon': 'label',           'link': reverse_lazy('admin:competitions_tag_changelist')},
+                    {'title': _('Tokens'),         'icon': 'vpn_key',         'link': reverse_lazy('admin:authtoken_token_changelist')},
+                    {'title': _('Federations'),    'icon': 'public',          'link': reverse_lazy('admin:competitions_federation_changelist')},
+                    {'title': _('Results'),        'icon': 'bar_chart',       'link': reverse_lazy('admin:competitions_result_changelist')},
+                    {'title': _('T-Shirt Sizes'),  'icon': 'checkroom',       'link': reverse_lazy('admin:competitions_tshirtsize_changelist')},
+                    {'title': _('Weight Classes'), 'icon': 'fitness_center',  'link': reverse_lazy('admin:competitions_weightclass_changelist')},
+                    {'title': _('Event Bases'),    'icon': 'layers',          'link': reverse_lazy('admin:competitions_eventbase_changelist')},
+                ],
+            },
+        ],
+    },
+
+    # ——————— Custom CSS only lives here ———————
+    'STYLES': [
+        # either:
+        '/static/css/admin-custom.css',
+        # or, if you prefer the static() helper, wrap it:
+        # lambda request: static('css/admin-custom.css'),
+    ],
+}
+
+# Load Chart.js for dashboard charts
+UNFOLD.setdefault("SCRIPTS", []).append(
+    "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+)
+
+# Keep your existing STYLES entry here (e.g. admin-custom.css)
+
+# Point Unfold at your new dashboard callback
+UNFOLD["DASHBOARD_CALLBACK"] = "core.dashboard.dashboard_callback"
+UNFOLD["SITE_ICON"] = "https://atlascompetition.com/static/images/navabarlogo.png"
+
+
+STRIPE_SECRET_KEY      = config('STRIPE_SECRET_KEY')
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY')
+STRIPE_CLIENT_ID       = config('STRIPE_CLIENT_ID')
+STRIPE_WEBHOOK_SECRET  = config('STRIPE_WEBHOOK_SECRET')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -25,6 +97,8 @@ TINYMCE_DEFAULT_CONFIG = TINYMCE_DEFAULT_CONFIG
 
 
 INSTALLED_APPS = [
+    'unfold',
+    'unfold.contrib.filters',
     'accounts',
     'django.contrib.auth',
     'django.contrib.admin',
@@ -32,6 +106,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'django_extensions',
 
     'axes',
@@ -45,10 +120,13 @@ INSTALLED_APPS = [
     'django_filters',
     'channels',
     'chat',
+    'core',
     'widget_tweaks',
     'rest_framework',
     'rest_framework.authtoken',
     'drf_spectacular',
+    'stripe',
+
 ]
 
 MIDDLEWARE = [
@@ -124,13 +202,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"),  # This is your app's static directory
-]
 
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 4 * 1024 * 1024
@@ -199,18 +271,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST    = os.getenv('SENDGRID_SMTP_HOST',    'smtp.sendgrid.net')
-EMAIL_PORT    = int(os.getenv('SENDGRID_SMTP_PORT', 587))
-EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER     = os.getenv('SENDGRID_SMTP_USERNAME', 'apikey')
-EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY')   # note: using API_KEY
-
-DEFAULT_FROM_EMAIL  = os.getenv(
-    'DEFAULT_FROM_EMAIL',
-    'Atlas Competition <no-reply@atlascompetition.com>'
-)
 
 
 AXES_FAILURE_LIMIT = 5  # Number of failed login attempts before lockout

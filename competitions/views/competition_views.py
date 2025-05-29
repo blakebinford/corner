@@ -1,8 +1,9 @@
 import math
 from datetime import date
 from collections import defaultdict
+from decimal import Decimal
 
-
+import stripe
 from django.utils.timezone import now
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -257,58 +258,88 @@ class ManageCompetitionView(TemplateView):
         competition_pk = self.kwargs['competition_pk']
         competition = get_object_or_404(Competition, pk=competition_pk)
 
+        # Get the organizer's Stripe account ID
+        organizer_profile = get_object_or_404(OrganizerProfile, user=competition.organizer)
+        stripe_account_id = organizer_profile.stripe_account_id
+
         # Fetch weight classes linked to divisions in this competition
         weight_classes = WeightClass.objects.filter(division__competition=competition)
         context["weight_classes"] = weight_classes
 
-        # Add competition, athletes, and events
+        # Core objects
         context['competition'] = competition
-        context['athletes'] = (
-            AthleteCompetition.objects
-            .filter(competition=competition)
-            .select_related('division', 'weight_class')  # ✅ Optimized query
-        )
+        context['athletes'] = AthleteCompetition.objects.filter(
+            competition=competition
+        ).select_related('division', 'weight_class')
         context['events'] = competition.events.all()
 
-        # T-shirt size summary
-        allowed_sizes = {size.size: 0 for size in competition.allowed_tshirt_sizes.all()}
-        tshirt_counts = (
-            AthleteCompetition.objects.filter(competition=competition, tshirt_size__isnull=False)
-            .values('tshirt_size__size')
-            .annotate(count=Count('tshirt_size'))
+        # ——— PAYMENT / INCOME STATS ———
+        # only those who have fully paid
+        paid_athletes = AthleteCompetition.objects.filter(
+            competition=competition,
+            payment_status="paid"
         )
+        paid_count = paid_athletes.count()
+        signup_price = competition.signup_price or Decimal("0.00")
+        total_paid = signup_price * paid_count
 
+        # platform fee is 10%, so organizer nets 90%
+        organizer_income = (total_paid * Decimal("0.90")).quantize(Decimal("0.01"))
+
+        # Fetch balance from Stripe connected account
+        try:
+            stripe_balance = stripe.Balance.retrieve(stripe_account=stripe_account_id)
+            stripe_available = sum(item['amount'] for item in stripe_balance['available'])
+            stripe_pending = sum(item['amount'] for item in stripe_balance['pending'])
+            total_stripe_balance = (stripe_available + stripe_pending) / 100  # Convert from cents to dollars
+        except stripe.error.StripeError as e:
+            total_stripe_balance = 0  # Handle Stripe errors gracefully
+
+        context.update({
+            "paid_count": paid_count,
+            "total_paid": total_paid,
+            "organizer_income": organizer_income,
+            "total_stripe_balance": total_stripe_balance,
+        })
+
+        # ——— T-SHIRT SUMMARY ———
+        allowed_sizes = {sz.size: 0 for sz in competition.allowed_tshirt_sizes.all()}
+        tshirt_counts = (
+            AthleteCompetition.objects
+            .filter(competition=competition, tshirt_size__isnull=False)
+            .values('tshirt_size__size')
+            .annotate(count=Count('id'))
+        )
         for entry in tshirt_counts:
             size = entry['tshirt_size__size']
             count = entry['count']
             if size in allowed_sizes:
                 allowed_sizes[size] = count
-
         context['tshirt_summary'] = allowed_sizes
 
-        # Optimized athlete summary by division & weight class
+        # ——— ATHLETE SUMMARY BY DIVISION & WEIGHT CLASS ———
         athlete_summary = defaultdict(int)
-
-        # Fetch all athlete counts in one query
         athlete_counts = (
             AthleteCompetition.objects
             .filter(competition=competition, division__isnull=False, weight_class__isnull=False)
             .values('division_id', 'weight_class_id')
             .annotate(count=Count('id'))
         )
-
         for entry in athlete_counts:
             key = (entry['division_id'], entry['weight_class_id'])
             athlete_summary[key] = entry['count']
 
-        # Ensure all division & weight class combos exist in summary
+        # ensure zero‐counts for any combo that didn’t appear above
         for division in competition.allowed_divisions.all():
-            for weight_class in weight_classes.filter(division=division):
-                key = (division.id, weight_class.id)
-                athlete_summary.setdefault(key, 0)  # Avoids overwriting existing counts
+            for wc in weight_classes.filter(division=division):
+                athlete_summary.setdefault((division.id, wc.id), 0)
 
         context['athlete_summary'] = athlete_summary
-        print("Athlete Summary:", athlete_summary)
+
+        # DEBUG
+        print("Athlete Summary:", dict(athlete_summary))
+        print("Total Stripe Balance:", total_stripe_balance)
+
         return context
 
 class CompleteCompetitionView(LoginRequiredMixin, View):
@@ -398,7 +429,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.contrib import messages
 from django.db import transaction
 
-from accounts.models import User, AthleteProfile
+from accounts.models import User, AthleteProfile, OrganizerProfile
 from competitions.models import Competition, AthleteCompetition
 from competitions.forms import OrlandosStrongestSignupForm
 

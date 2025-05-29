@@ -4,11 +4,13 @@ from .models import User, AthleteProfile, OrganizerProfile
 
 class AthleteProfileInline(admin.StackedInline):
     model = AthleteProfile
+    ordering_field = None
     can_delete = False
     verbose_name_plural = 'Athlete Profile'
 
 class OrganizerProfileInline(admin.StackedInline):
     model = OrganizerProfile
+    ordering_field = None
     can_delete = False
     verbose_name_plural = 'Organizer Profile'
 

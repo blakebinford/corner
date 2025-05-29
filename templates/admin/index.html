@@ -1,0 +1,174 @@
+{% extends 'unfold/layouts/base.html' %}
+{% load humanize i18n static get_item %}
+
+{% block content %}
+  <h1 class="text-2xl font-bold mb-4">{% trans "Dashboard" %}</h1>
+
+  <!-- Filters -->
+  <form method="get" class="flex flex-wrap gap-4 mb-6">
+    <input type="date" name="start_date" value="{{ start_date }}" class="border p-1 rounded" />
+    <input type="date" name="end_date"   value="{{ end_date }}"   class="border p-1 rounded" />
+
+    <select name="role" class="border p-1 rounded">
+      <option value="">{% trans "All Roles" %}</option>
+      {% for r in trend_roles %}
+        <option value="{{ r }}" {% if r == selected_role %}selected{% endif %}>
+          {{ r|title }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <select name="competition" class="border p-1 rounded">
+      <option value="">{% trans "All Competitions" %}</option>
+      {% for comp in competitions_list %}
+        <option value="{{ comp.id }}" {% if comp.id == selected_competition %}selected{% endif %}>
+          {{ comp.name }}
+        </option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" class="btn btn-primary">{% trans "Filter" %}</button>
+  </form>
+
+  <!-- Key Metrics -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="card p-4">
+      <h2 class="text-lg font-semibold">{{ total_users }}</h2>
+      <p>{% trans "Total Users" %}</p>
+    </div>
+    <div class="card p-4">
+      <h2 class="text-lg font-semibold">{{ total_comps }}</h2>
+      <p>{% trans "Total Competitions" %}</p>
+    </div>
+    <div class="card p-4">
+      <h2 class="text-lg font-semibold">{{ total_regs }}</h2>
+      <p>{% trans "Total Registrations" %}</p>
+    </div>
+    <div class="card p-4">
+      <h2 class="text-lg font-semibold">{{ pending_regs }}</h2>
+      <p>{% trans "Pending Payments" %}</p>
+    </div>
+  </div>
+
+  <!-- Trends -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+    <div class="card p-4">
+      <h3 class="text-lg font-semibold mb-2">{% trans "Sign-ups Over Time" %}</h3>
+      <canvas id="signupsChart" class="w-full h-64"></canvas>
+    </div>
+    <div class="card p-4">
+      <h3 class="text-lg font-semibold mb-2">{% trans "Competitions Over Time" %}</h3>
+      <canvas id="compsChart" class="w-full h-64"></canvas>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+    <div class="card p-4">
+      <h4 class="font-semibold">{% trans "Recent Users" %}</h4>
+      <ul class="list-disc list-inside">
+        {% for u in recent_users %}
+          <li>{{ u.username }} — {{ u.date_joined|date:"Y-m-d" }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="card p-4">
+      <h4 class="font-semibold">{% trans "Recent Registrations" %}</h4>
+      <ul class="list-disc list-inside">
+        {% for r in recent_regs %}
+          <li>{{ r.athlete.user.username }} — {{ r.registration_date|date:"Y-m-d" }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="card p-4">
+      <h4 class="font-semibold">{% trans "Recent Competitions" %}</h4>
+      <ul class="list-disc list-inside">
+        {% for c in recent_comps %}
+          <li>{{ c.name }} — {{ c.comp_date|date:"Y-m-d" }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Awaiting Approval -->
+  <div class="mt-8">
+    <h3 class="text-xl font-semibold mb-2">{% trans "Competitions Awaiting Approval" %}</h3>
+    {% if awaiting_comps %}
+      <table class="min-w-full table-auto border-collapse">
+        <thead>
+          <tr>
+            <th class="border p-2">{% trans "Name" %}</th>
+            <th class="border p-2">{% trans "Date" %}</th>
+            <th class="border p-2">{% trans "Location" %}</th>
+            <th class="border p-2">{% trans "Action" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for comp in awaiting_comps %}
+            <tr>
+              <td class="border p-2">{{ comp.name }}</td>
+              <td class="border p-2">{{ comp.comp_date|date:"Y-m-d" }}</td>
+              <td class="border p-2">{{ comp.city }}, {{ comp.state }}</td>
+              <td class="border p-2">
+                <a href="{% url 'admin:competitions_competition_change' comp.id %}"
+                   class="btn btn-sm btn-primary">{% trans "Review" %}</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="italic">{% trans "None awaiting approval." %}</p>
+    {% endif %}
+  </div>
+
+  {{ block.super }}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // smoke-test
+      console.log('📊 DOM ready. Chart is', typeof Chart);
+
+      // your data from the callback
+      const days    = {{ trend_days|safe }};
+      const regs    = {{ trend_reg_counts|safe }};
+      const comps   = {{ trend_comp_counts|safe }};
+      const roles   = {{ trend_roles|safe }};
+      const signups = {{ trend_signups|safe }};
+
+      // Sign-ups chart
+      new Chart(
+        document.getElementById('signupsChart'),
+        {
+          type: 'line',
+          data: {
+            labels: days,
+            datasets: roles.map(role => ({
+              label: role.charAt(0).toUpperCase() + role.slice(1),
+              data: signups[role],
+              tension: 0.3
+            }))
+          }
+        }
+      );
+
+      // Registrations chart
+      new Chart(
+        document.getElementById('regsChart'),
+        {
+          type: 'bar',
+          data: { labels: days, datasets: [{ label: 'Registrations', data: regs }] }
+        }
+      );
+
+      // Competitions chart
+      new Chart(
+        document.getElementById('compsChart'),
+        {
+          type: 'bar',
+          data: { labels: days, datasets: [{ label: 'Competitions', data: comps }] }
+        }
+      );
+    });
+  </script>
+{% endblock %}
+

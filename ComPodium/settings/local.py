@@ -8,6 +8,10 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 
 ALLOWED_HOSTS = ['*']
+# settings/local.py
+
+# during development, dump all emails to the terminal
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 if DEBUG:
     INSTALLED_APPS += ['django_browser_reload']
