@@ -51,6 +51,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER     = os.getenv('SENDGRID_SMTP_USERNAME', 'apikey')
 EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY')   # note: using API_KEY
 
+
+
+
 DEFAULT_FROM_EMAIL  = os.getenv(
     'DEFAULT_FROM_EMAIL',
     'Atlas Competition <no-reply@atlascompetition.com>'
