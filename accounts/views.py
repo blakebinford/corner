@@ -36,11 +36,15 @@ class SignUpView(generic.CreateView):
         # Send email verification
         current_site = get_current_site(self.request)
         mail_subject = 'Activate your account.'
+        # Update the domain to always use the base domain (e.g., atlascompetition.com)
+        domain = 'atlascompetition.com'
+
+        # Generate activation link with token in the query string
+        activation_url = f"http://{domain}{reverse('verify_email')}?uid={urlsafe_base64_encode(force_bytes(user.pk))}&token={account_activation_token.make_token(user)}"
+
         message = render_to_string('registration/acc_active_email.html', {
             'user': user,
-            'domain': 'atlascompetition.com',
-            'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-            'token': account_activation_token.make_token(user),
+            'activation_url': activation_url,
         })
         to_email = form.cleaned_data.get('email')
 
