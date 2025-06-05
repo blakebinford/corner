@@ -4,7 +4,7 @@ from decouple import config
 import dj_database_url
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = False
 
 ALLOWED_HOSTS = ['atlascompetition.com']
 

@@ -4,7 +4,7 @@ from decouple import config
 import dj_database_url
 
 SECRET_KEY = config('SECRET_KEY', default='fallback-secret-key')
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = True
 
 
 ALLOWED_HOSTS = ['*']
