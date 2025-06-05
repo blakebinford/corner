@@ -15,7 +15,11 @@ from competitions.forms import AthleteCompetitionForm, AthleteProfileForm, Manua
 
 
 def athlete_profile(request, athlete_id):
-    athlete = get_object_or_404(AthleteProfile, pk=athlete_id)
+    try:
+        athlete = AthleteProfile.objects.get(user_id=athlete_id)
+    except AthleteProfile.DoesNotExist:
+        messages.error(request, "This athlete has not set up a profile yet.")
+        return redirect('competitions:competition_list')
     competition_history = AthleteCompetition.objects.filter(athlete=athlete)
     print(athlete.__dict__)
     context = {
