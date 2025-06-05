@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container text-center mt-5">
+    <h1 class="display-3">💪 404 - Wrong Event Arena!</h1>
+    <p class="lead">Looks like you wandered into the wrong lane, strongman.</p>
+    <p>The page you're lifting for doesn't exist anymore — or never did.</p>
+    <a href="{% url 'home' %}" class="btn btn-warning mt-4">Back to Competition Hub</a>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container text-center mt-5">
+    <h1 class="display-3">🤷 400 - Bad Form!</h1>
+    <p class="lead">That request had worse technique than a press out.</p>
+    <p>Try fixing your form and submitting again.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary mt-4">Back to the Warmup Area</a>
+</div>
+{% endblock %}

@@ -2,7 +2,7 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views import generic
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.contrib.auth.decorators import login_required
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -26,21 +26,15 @@ class SignUpView(generic.CreateView):
     template_name = 'registration/signup.html'
 
     def form_valid(self, form):
-        """
-        If the form is valid, save the user and create their profile based on their role.
-        """
         user = form.save(commit=False)
-        user.is_active = False  # Deactivate account until email is verified
+        user.is_active = False
         user.save()
 
         # Send email verification
-        current_site = get_current_site(self.request)
-        mail_subject = 'Activate your account.'
-        # Update the domain to always use the base domain (e.g., atlascompetition.com)
         domain = 'atlascompetition.com'
-
-        # Generate activation link with token in the query string
-        activation_url = f"http://{domain}{reverse('verify_email')}?uid={urlsafe_base64_encode(force_bytes(user.pk))}&token={account_activation_token.make_token(user)}"
+        uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+        token = account_activation_token.make_token(user)
+        activation_url = f"http://{domain}{reverse('activate', args=[uidb64, token])}"
 
         message = render_to_string('registration/acc_active_email.html', {
             'user': user,
@@ -48,9 +42,7 @@ class SignUpView(generic.CreateView):
         })
         to_email = form.cleaned_data.get('email')
 
-        email = EmailMessage(
-            mail_subject, message, to=[to_email]
-        )
+        email = EmailMessage('Activate your account.', message, to=[to_email])
         email.send()
 
         if user.role == 'athlete':

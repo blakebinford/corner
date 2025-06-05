@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container text-center mt-5">
+    <h1 class="display-3">🚫 403 - Unauthorized Lift!</h1>
+    <p class="lead">You're not cleared for this event, competitor.</p>
+    <p>Check your credentials or try another lift.</p>
+    <a href="{% url 'login' %}" class="btn btn-secondary mt-4">Login Again</a>
+</div>
+{% endblock %}
