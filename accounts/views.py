@@ -50,9 +50,11 @@ class SignUpView(generic.CreateView):
         email.send()
 
         if user.role == 'athlete':
-            AthleteProfile.objects.create(user=user)  # Create AthleteProfile here
+            AthleteProfile.objects.get_or_create(user=user)
         elif user.role == 'organizer':
-            OrganizerProfile.objects.create(user=user)
+            OrganizerProfile.objects.get_or_create(user=user)
+        else:
+            AthleteProfile.objects.get_or_create(user=user)
 
         return render(self.request, 'registration/email_verification_sent.html')
 
