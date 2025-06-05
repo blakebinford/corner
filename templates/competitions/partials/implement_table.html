@@ -1,0 +1,27 @@
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Name</th><th>Base Weight</th><th>Unit</th><th>Load Pts</th><th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for implement in implements %}
+    <tr>
+      <td>{{ implement.name }}</td>
+      <td>{{ implement.base_weight }}</td>
+      <td>{{ implement.get_unit_display }}</td>
+      <td>{{ implement.loading_points }}</td>
+      <td>
+        <button class="btn btn-sm btn-secondary"
+                hx-get="{% url 'competitions:implement_edit' implement.pk %}"
+                hx-target="#modal-body"
+                data-bs-toggle="modal" data-bs-target="#modal">Edit</button>
+        <button class="btn btn-sm btn-danger"
+                hx-get="{% url 'competitions:implement_delete' implement.pk %}"
+                hx-target="#modal-body"
+                data-bs-toggle="modal" data-bs-target="#modal">Delete</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

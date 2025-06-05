@@ -89,6 +89,11 @@ STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY')
 STRIPE_CLIENT_ID       = config('STRIPE_CLIENT_ID')
 STRIPE_WEBHOOK_SECRET  = config('STRIPE_WEBHOOK_SECRET')
 
+# Twilio
+# TWILIO_ACCOUNT_SID = config('TWILIO_ACCOUNT_SID')
+# TWILIO_AUTH_TOKEN = config('TWILIO_AUTH_TOKEN')
+# TWILIO_PHONE_NUMBER = config('TWILIO_PHONE_NUMBER')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/

@@ -48,6 +48,7 @@ class SignUpView(generic.CreateView):
             mail_subject, message, to=[to_email]
         )
         email.send()
+
         if user.role == 'athlete':
             AthleteProfile.objects.create(user=user)  # Create AthleteProfile here
         elif user.role == 'organizer':

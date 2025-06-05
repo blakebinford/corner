@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-5">
+    <h3>Reorder Events for {{ competition.name }}</h3>
+    <ul id="event-list" class="list-group mb-3">
+        {% for event in events %}
+            <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ event.id }}">
+                <span><i class="bi bi-grip-vertical me-2"></i>{{ event.name }}</span>
+            </li>
+        {% endfor %}
+    </ul>
+    <button id="save-order" class="btn btn-primary">Save Order</button>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script>
+    const sortable = new Sortable(document.getElementById('event-list'), {
+        animation: 150
+    });
+
+    $('#save-order').on('click', function () {
+        const order = [];
+        $('#event-list li').each(function () {
+            order.push($(this).data('id'));
+        });
+
+        $.post("{% url 'competitions:edit_event_order' competition.pk %}", {
+            'csrfmiddlewaretoken': '{{ csrf_token }}',
+            'order[]': order
+        }, function (response) {
+            if (response.success) {
+                location.reload();
+            }
+        });
+    });
+</script>
+{% endblock %}

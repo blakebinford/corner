@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-3">Implements</h2>
+  <button class="btn btn-primary mb-3" hx-get="{% url 'competitions:implement_add' %}" hx-target="#modal-body" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#modal">Add Implement</button>
+
+  <div id="implements-table">
+  {% include "competitions/partials/implement_table.html" %}
+</div>
+</div>
+
+<!-- Modal Container -->
+<div class="modal fade" id="modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" id="modal-body">
+      <!-- HTMX loads form here -->
+    </div>
+  </div>
+</div>
+
+<script>
+  document.body.addEventListener('htmx:afterRequest', function (event) {
+    console.log("HTMX afterRequest fired");
+
+    const xhr = event.detail.xhr;
+
+    try {
+      const data = JSON.parse(xhr.responseText);
+      console.log("Parsed response:", data);
+
+      if (data.close_modal) {
+        const modalEl = document.getElementById('modal');
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.hide();
+
+        const table = document.getElementById('implements-table');
+        if (table && data.html) {
+          table.innerHTML = data.html;
+        }
+      }
+    } catch (err) {
+      console.error("Error parsing JSON:", err);
+    }
+  });
+</script>
+{% endblock %}
+
+

@@ -48,17 +48,23 @@
         <div class="form-group mb-3" id="number-of-implements-container" style="{% if not form.has_multiple_implements.value %}display: none;{% endif %}">
             {{ form.number_of_implements|as_crispy_field }}
         </div>
-        <div class="form-group mb-3">
+                <div class="form-group mb-3">
             {{ form.number_of_lanes|as_crispy_field }}
         </div>
+
+        <div class="form-group mb-4">
+            {{ form.description|as_crispy_field }}
+        </div>
+
         <div class="text-center">
             <button type="submit" class="btn btn-primary w-100">
                 {% if event %}Update Event{% else %}Create Event{% endif %}
             </button>
         </div>
     </form>
-</div>
 
+</div>
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Initialize Select2 for the event_base field
@@ -89,4 +95,8 @@
         hasMultipleImplementsCheckbox.addEventListener('change', toggleNumberOfImplementsField);
     });
 </script>
+    {% block extra_scripts %}
+    {{ form.media }}
+{% endblock %}
+
 {% endblock %}

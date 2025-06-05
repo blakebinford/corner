@@ -101,6 +101,12 @@
         .table-responsive {
             overflow-x: auto; /* Ensure table scrolls horizontally if needed */
         }
+        .grid-template {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 1rem;
+}
+
 
     </style>
 {% endblock %}
@@ -349,51 +355,62 @@
 
 
                     <!-- T-shirt Summary Section -->
-                    <div class="card shadow-lg border-0 mb-5">
-                        <div class="card-header bg-primary text-white text-center py-3">
-                            <h4 class="mb-0"><i class="bi bi-shirt"></i> T-shirt Size Summary</h4>
-                        </div>
-                        <div class="card-body tshirt-summary">
-                            {% if competition.provides_shirts %}
-                                <div class="row g-3 justify-content-center">
-                                    {% for size, count in tshirt_summary.items %}
-                                        <div class="col-auto">
-                                            <div class="card">
-                                                <div class="card-body">
-                                                    <div class="circle-bg">
-                                                        <h5>{{ size }}</h5>
-                                                    </div>
-                                                    <p>{{ count }}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p class="text-muted text-center">This competition does not provide T-shirts.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-<div class="col-md-12 mb-12">
+               <div class="card-body">
+    {% if competition.provides_shirts %}
+        <div class="d-grid gap-3 grid-template text-center" style="grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));">
+            {% for size, count in tshirt_summary.items %}
+                <div class="border rounded py-2 bg-light">
+                    <div class="fw-bold fs-5">{{ size }}</div>
+                    <div class="text-muted">{{ count }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted text-center">This competition does not provide T-shirts.</p>
+    {% endif %}
+</div>
+
+
 
 
 
 <div class="card shadow-lg border-0 mb-5">
-                                <div class="card-header bg-primary text-white text-center">
-                                    <h4 class="mb-0"><i class="bi bi-calendar-event me-2"></i> Competition Income</h4>
-                                </div>
-                                <div class="card-body">
-                                     <div class="col-md-3 mb-3">
-    <h5 class="text-muted">Organizer Income</h5>
-    <p class="fw-bold">${{ organizer_income }}</p>
+    <div class="card-header bg-dark text-white text-center">
+        <h4 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Payout Summary</h4>
+    </div>
+    <div class="card-body">
+        <div class="row text-center g-4">
+            <div class="col-md-4">
+                <div class="border rounded py-3 px-2 bg-light">
+                    <h6 class="text-muted mb-1">Gross Income</h6>
+                    <h4 class="text-success fw-bold">${{ organizer_income }}</h4>
+                    <small class="text-muted">Total earned from athlete registrations</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded py-3 px-2 bg-light">
+                    <h6 class="text-muted mb-1">Stripe Balance</h6>
+                    <h4 class="text-primary fw-bold">${{ total_stripe_balance }}</h4>
+                    <small class="text-muted">Available in Stripe for payout</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded py-3 px-2 bg-light">
+                    <h6 class="text-muted mb-1">Next Payout</h6>
+                    {% if next_payout %}
+                        <h4 class="text-info fw-bold">${{ next_payout.amount }}</h4>
+                        <small class="text-muted">On {{ next_payout.date|date:"F j, Y" }}</small>
+                    {% else %}
+                        <h4 class="text-warning fw-bold">N/A</h4>
+                        <small class="text-muted">No scheduled payout</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="col-md-3 mb-3">
-    <h5 class="text-muted">Stripe Account Balance</h5>
-    <p class="fw-bold">${{ total_stripe_balance }}</p>
 </div>
-                                </div>
-</div></div>
 
                     <!-- Events and Sponsors Row -->
                     <div class="row">
@@ -414,18 +431,41 @@
                                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>
                                     <strong>{{ event.name }}</strong> <br>
-                                    <small>Order: {{ event.order }}</small>
+
                                 </span>
-                                                    <div class="btn-group">
-                                                        <a href="{% url 'competitions:update_event' event.pk %}"
-                                                           class="btn btn-outline-primary btn-sm">
-                                                            <i class="bi bi-pencil-square"></i> Edit Event
-                                                        </a>
-                                                        <a href="{% url 'competitions:competition_run_order' competition.pk event.pk %}"
-                                                           class="btn btn-outline-secondary btn-sm">
-                                                            <i class="bi bi-list-ol"></i> Run Order
-                                                        </a>
-                                                    </div>
+                                                   <div class="btn-group">
+    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-gear-fill"></i> Actions
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+            <a class="dropdown-item" href="{% url 'competitions:update_event' event.pk %}">
+                <i class="bi bi-pencil-square me-2"></i> Edit Event
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" href="{% url 'competitions:competition_run_order' competition.pk event.pk %}">
+                <i class="bi bi-list-ol me-2"></i> Run Order
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'competitions:edit_event_order' competition.pk %}" class="dropdown-item">
+                     <i class="bi bi-arrow-down-up"></i> Reorder Events
+            </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <form method="post" action="{% url 'competitions:delete_event' event.pk %}" onsubmit="return confirm('Are you sure you want to delete this event?');">
+                {% csrf_token %}
+                <button type="submit" class="dropdown-item text-danger">
+                    <i class="bi bi-trash3 me-2"></i> Delete Event
+                </button>
+            </form>
+        </li>
+    </ul>
+</div>
+
+
                                                 </li>
                                             {% endfor %}
                                         </ul>

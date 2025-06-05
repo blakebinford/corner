@@ -3,7 +3,15 @@
 {% load height_filter %}
 
 {% block title %}Athlete Profile - {{ athlete.user.get_full_name|upper }}{% endblock %}
+{% block extra_styles %}
+<style>
+.table th, .table td {
+  vertical-align: middle;
+  text-align: center;
+}
 
+</style>
+{% endblock %}
 {% block content %}
 <div class="container-fluid p-3 d-flex justify-content-center" style="background: linear-gradient(45deg, #222222, #555555);">
 
@@ -64,6 +72,12 @@
               <li class="nav-item">
                 <button class="nav-link" id="competition-history-tab" data-bs-toggle="tab" data-bs-target="#competition-history" type="button" role="tab" aria-controls="competition-history" aria-selected="false">Competition History</button>
               </li>
+            <li class="nav-item">
+              <button class="nav-link" id="competition-prs-tab" data-bs-toggle="tab" data-bs-target="#competition-prs" type="button" role="tab" aria-controls="competition-prs" aria-selected="false">
+                Competition PRs
+              </button>
+            </li>
+
             </ul>
             <div class="tab-content" id="myTabContent">
               <div class="tab-pane fade show active p-3" id="profile" role="tabpanel" aria-labelledby="profile-tab">
@@ -147,6 +161,53 @@
                 <h4 class="text-center">No Competitions Yet</h4>
                 {% endif %}
               </div>
+            <div class="tab-pane fade p-3" id="competition-prs" role="tabpanel" aria-labelledby="competition-prs-tab">
+  <h4 class="mb-3 text-center text-md-start" style="color: #333;">Best Finishes by Event</h4>
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle">
+      <thead class="table-light">
+        <tr class="text-center">
+          <th>Event Name</th>
+          <th>Best Finish</th>
+          <th>Competition</th>
+          <th>Date</th>
+          <th>Placement</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Axle Clean & Press</td>
+          <td>275 lbs</td>
+          <td><a href="#" class="text-decoration-none">Texas State Open 2024</a></td>
+          <td>April 6, 2024</td>
+          <td><span class="badge bg-success">1st</span></td>
+        </tr>
+        <tr>
+          <td>Sandbag Steeplechase</td>
+          <td>Finished in 41.3 sec</td>
+          <td><a href="#" class="text-decoration-none">Capital Clash 2024</a></td>
+          <td>June 18, 2024</td>
+          <td><span class="badge bg-warning text-dark">3rd</span></td>
+        </tr>
+        <tr>
+          <td>18" Deadlift</td>
+          <td>845 lbs</td>
+          <td><a href="#" class="text-decoration-none">Lone Star Classic 2023</a></td>
+          <td>October 14, 2023</td>
+          <td><span class="badge bg-info text-dark">2nd</span></td>
+        </tr>
+        <tr>
+          <td>Sandbag Throw</td>
+          <td>5 bags in 17.8 sec</td>
+          <td><a href="#" class="text-decoration-none">West Coast Showdown</a></td>
+          <td>July 22, 2023</td>
+          <td><span class="badge bg-success">1st</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
             </div>
           </div>
         </div>

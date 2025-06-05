@@ -4,7 +4,8 @@ from .consumers import ScoreUpdateConsumer
 from competitions.views import SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
     CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView, AthleteCheckInView, \
     toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView, AssignWeightClassesView, \
-    CustomDivisionCreateView, add_custom_weight_class, OrlandosStrongestSignupView, athlete_views
+    CustomDivisionCreateView, add_custom_weight_class, OrlandosStrongestSignupView, athlete_views, \
+    ImplementListView, ImplementCreateView, ImplementUpdateView, ImplementDeleteView
 
 from competitions.views import stripe_views as sv
 from competitions.views import payments
@@ -30,7 +31,7 @@ urlpatterns = [
     # Event URLs
     path('competition/<int:competition_pk>/event/create/', views.create_event, name='create_event'),
     path('event/<int:event_pk>/implements/assign/', views.assign_implements, name='assign_implements'),
-    path('event/<int:pk>/delete/', views.EventDeleteView.as_view(), name='event_delete'),
+    path('event/<int:pk>/delete/', views.EventDeleteView.as_view(), name='delete_event'),
     path('ws/competitions/<int:competition_pk>/', ScoreUpdateConsumer.as_asgi()),
     path('<int:pk>/score/', views.CompetitionScoreView.as_view(), name='competition_score'),
     path('<int:competition_id>/update_score/<int:athlete_competition_id>/<int:event_order_id>/', views.update_score, name='update_score'),
@@ -82,7 +83,7 @@ urlpatterns = [
     # AthleteCompetition URLs
     path('<int:competition_pk>/register/', views.AthleteCompetitionCreateView.as_view(), name='athletecompetition_create'),
     path('athletecompetition/<int:pk>/edit/', views.AthleteCompetitionUpdateView.as_view(), name='athletecompetition_update'),
-
+    path('competition/<int:competition_pk>/edit-event-order/', views.EditEventOrderView.as_view(), name='edit_event_order'),
     path('athletecompetition/<int:pk>/delete/', views.AthleteCompetitionDeleteView.as_view(), name='athletecompetition_delete'),
     path('athlete/<int:athlete_id>/', views.athlete_profile, name='athlete_profile'),
     path(
@@ -127,5 +128,8 @@ urlpatterns = [
           athlete_views.ajax_weight_classes,
           name='ajax_weight_classes'
         ),
-
+    path('organizer/implements/', ImplementListView.as_view(), name='organizer_implements'),
+    path('organizer/implements/add/', ImplementCreateView.as_view(), name='implement_add'),
+    path('organizer/implements/<int:pk>/edit/', ImplementUpdateView.as_view(), name='implement_edit'),
+    path('organizer/implements/<int:pk>/delete/', ImplementDeleteView.as_view(), name='implement_delete'),
 ]

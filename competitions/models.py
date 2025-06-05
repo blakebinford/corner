@@ -290,6 +290,8 @@ class Event(models.Model):
         help_text="Number of lanes for this event. Set to 1 for single-lane events."
     )
 
+    description = HTMLField(blank=True, null=True)
+
     class Meta:
         ordering = ['order']
 
@@ -306,6 +308,12 @@ class EventImplement(models.Model):
     division = models.ForeignKey(Division, on_delete=models.CASCADE, related_name='event_implements')
     weight_class = models.ForeignKey(WeightClass, on_delete=models.CASCADE, related_name='event_implements')
     implement_name = models.CharField(max_length=100, blank=True, help_text="Name of the implement (e.g., Log, Sandbag).")
+    implement_definition = models.ForeignKey(
+        'ImplementDefinition',
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='event_uses'
+    )
     implement_order = models.PositiveIntegerField(default=1, help_text="Order of the implement within the event.")
     weight = models.IntegerField(help_text="Weight of the implement.")
     weight_unit = models.CharField(
@@ -314,6 +322,17 @@ class EventImplement(models.Model):
         default='lbs',
         help_text="Weight unit (lbs or kg)."
     )
+
+  #  def get_loadable_weight(self, athlete=None):
+    #    base_weight = self.implement_definition.base_weight if self.implement_definition else 0
+   #     event_weight = self.weight
+
+    #    if self.event.weight_type == 'max' and athlete:
+     #       next_attempt = get_athlete_next_attempt_from_notes(athlete, self.event)
+     #       if next_attempt:
+      #          event_weight = next_attempt
+
+     #   return max(event_weight - base_weight, 0)
 
     class Meta:
         ordering = ['event', 'implement_order']  # Ensure correct ordering of implements
@@ -506,3 +525,36 @@ class CompetitionRunOrder(models.Model):
     def __str__(self):
         return (f"{self.athlete_competition.athlete.user.get_full_name()} - "
                 f"{self.event.name} (Order {self.order}, Status: {self.status})")
+
+UNIT_CHOICES = [
+    ('lbs', 'Pounds (lbs)'),
+    ('kg', 'Kilograms (kg)'),
+]
+
+class ImplementDefinition(models.Model):
+    organizer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='implements'
+    )
+    name = models.CharField(max_length=100)
+    base_weight = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    unit = models.CharField(max_length=3, choices=UNIT_CHOICES, default='lbs')
+    loading_points = models.PositiveSmallIntegerField(default=2)
+
+    class Meta:
+        unique_together = ('organizer', 'name')
+        ordering = ['name']
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.loading_points == 0 and self.base_weight != 0:
+            raise ValidationError("Base weight must be 0 if loading points is 0.")
+
+    def save(self, *args, **kwargs):
+        if self.loading_points == 0:
+            self.base_weight = 0
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.base_weight}{self.unit}, {self.loading_points} pts)"

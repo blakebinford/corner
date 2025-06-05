@@ -99,6 +99,10 @@
                                                                             <strong>Weight Class:</strong> {{ lane_data.current.athlete_competition.weight_class.weight_d }}{{ lane_data.current.athlete_competition.weight_class.name }}<br>
                                                                             <strong>Heat:</strong> {{ lane_data.current.heat_number }}
                                                                         </p>
+
+                                                                     <!-- Load Chart -->
+
+
                                                                         <!-- Notes Display -->
                                                                         {% with athlete_notes=event_notes|get_item:lane_data.current.athlete_competition.pk %}
                                                                             {% if athlete_notes %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+  <div class="card shadow-lg border-danger">
+    <div class="card-body text-center">
+      <div class="mb-4">
+        <i class="bi bi-x-circle-fill text-danger display-4"></i>
+      </div>
+      <h2 class="card-title text-danger mb-3">Payment Failed</h2>
+      <p class="lead">We couldn’t process your payment. Please try again or contact support if the issue persists.</p>
+
+      {% if error_message %}
+        <div class="alert alert-warning mt-4">
+          {{ error_message }}
+        </div>
+      {% endif %}
+
+      <a href="{% url 'competitions:competition_list' %}" class="btn btn-secondary mt-4">
+        Back to Competitions
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

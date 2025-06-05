@@ -95,7 +95,6 @@ thead th {
         {% csrf_token %}
         {{ formset.management_form }}
 
-        <!-- Table -->
         <div class="table-container">
             <table class="table table-bordered table-striped align-middle">
                 <thead class="table-dark">
@@ -123,14 +122,12 @@ thead th {
                 </thead>
                 <tbody>
                     {% for division, gender_groups in grouped_forms.items %}
-                        <!-- Division Header with Collapse Toggle -->
                         <tbody class="division-group" data-division-id="division-{{ forloop.counter }}">
+                            <!-- Division Header -->
                             <tr class="table-primary division-row" data-bs-toggle="collapse" data-bs-target=".division-{{ forloop.counter }}" style="cursor: pointer;">
                                 <td colspan="{% if event.has_multiple_implements %}5{% else %}3{% endif %}">
                                     <strong>{{ division }}</strong>
-                                    <span class="float-end">
-                                        <i class="bi bi-chevron-down"></i>
-                                    </span>
+                                    <span class="float-end"><i class="bi bi-chevron-down"></i></span>
                                 </td>
                             </tr>
                             {% for gender, entries in gender_groups.items %}
@@ -149,24 +146,50 @@ thead th {
                                             {{ entry.form.weight_class.as_hidden }}
                                             <strong>{{ entry.weight_class_label }} ({{ gender }})</strong>
                                         </td>
+
                                         {% if event.has_multiple_implements %}
+                                            <!-- Implement Name Dropdown -->
                                             <td>
-                                                {{ entry.form.implement_name|default_if_none:'' }}
-                                            </td>
-                                            <td class="implement-order">
-                                                {{ entry.form.implement_order|default_if_none:'1' }}
-                                            </td>
-                                            {% else %}
-                                                <!-- Always include implement_order but hide it when not needed -->
-                                                <div style="display: none;">
-                                                    {{ entry.form.implement_order }}
+                                                <div class="input-group">
+                                                  {{ entry.form.implement_definition }}
+                                                  <button type="button" class="btn btn-outline-primary"
+                                                          hx-get="{% url 'competitions:implement_add' %}"
+                                                          hx-target="#modal-body"
+                                                          data-bs-toggle="modal"
+                                                          data-bs-target="#modal">
+                                                    Add
+                                                  </button>
                                                 </div>
+
+                                                {% for err in entry.form.implement_name.errors %}
+                                                  <div class="invalid-feedback">{{ err }}</div>
+                                                {% endfor %}
+                                            </td>
+                                            <!-- Implement Order -->
+                                            <td class="implement-order">
+                                                {{ entry.form.implement_order }}
+                                                {% for err in entry.form.implement_order.errors %}
+                                                  <div class="invalid-feedback">{{ err }}</div>
+                                                {% endfor %}
+                                            </td>
+                                        {% else %}
+                                            <!-- Hidden order when not multiple -->
+                                            <td style="display:none;">{{ entry.form.implement_order }}</td>
                                         {% endif %}
+
+                                        <!-- Weight -->
                                         <td class="weight">
-                                            {{ entry.form.weight|default_if_none:'0' }}
+                                            {{ entry.form.weight }}
+                                            {% for err in entry.form.weight.errors %}
+                                              <div class="invalid-feedback">{{ err }}</div>
+                                            {% endfor %}
                                         </td>
+                                        <!-- Weight Unit -->
                                         <td>
-                                            {{ entry.form.weight_unit|default_if_none:'lbs' }}
+                                            {{ entry.form.weight_unit }}
+                                            {% for err in entry.form.weight_unit.errors %}
+                                              <div class="invalid-feedback">{{ err }}</div>
+                                            {% endfor %}
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -181,6 +204,7 @@ thead th {
             <button type="submit" class="btn btn-primary">Save Implements</button>
         </div>
     </form>
+
 
     <!-- Bulk Edit Modal -->
 <div class="modal fade" id="bulkEditModal" tabindex="-1" aria-labelledby="bulkEditModalLabel" aria-hidden="true">

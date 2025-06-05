@@ -16,7 +16,7 @@ from django.views import View, generic
 from django.views.generic import TemplateView, CreateView
 
 from competitions.models import Competition, AthleteCompetition, Division, WeightClass, AthleteEventNote, \
-    LaneAssignment, CompetitionRunOrder, Event, Result
+    LaneAssignment, CompetitionRunOrder, Event, Result, EventImplement
 from competitions.forms import EditWeightClassesForm, CustomWeightClassForm, CustomDivisionForm, \
     CombineWeightClassesForm
 from competitions.views import calculate_points_and_rankings
@@ -459,29 +459,21 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
     def get(self, request, competition_pk, event_pk=None):
         competition = get_object_or_404(Competition, pk=competition_pk)
 
-        # Check if user is the organizer
         if request.user != competition.organizer:
             messages.error(request, "You are not authorized to view this page.")
             return redirect('competitions:manage_competition', competition_pk=competition.pk)
 
-        # Get all events for this competition
         events = competition.events.all().order_by('order')
-
-        # If no specific event is selected, choose the first event
         if not event_pk and events.exists():
             event_pk = events.first().pk
-
-        # Get the selected event
         current_event = get_object_or_404(Event, pk=event_pk) if event_pk else None
 
-        # Initialize event_notes as an empty dictionary
         event_notes = {}
-        # Initialize lanes data structure
         lanes_data = {}
-        first_pending_index = 0  # For backward compatibility
+        first_pending_index = 0
 
-        # Get run orders for the current event
         if current_event:
+            # --- Fetch run orders, results, and notes as before ---
             run_orders = CompetitionRunOrder.objects.filter(
                 competition=competition,
                 event=current_event
@@ -491,90 +483,63 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
                 'athlete_competition__weight_class'
             ).order_by('order')
 
-            # Fetch results for all athletes in this event
             results = Result.objects.filter(
                 event=current_event,
-                athlete_competition__in=[ro.athlete_competition for ro in run_orders]
+                athlete_competition__competition=competition
             ).select_related('athlete_competition')
+            results_map = {r.athlete_competition_id: r for r in results}
 
-            results_map = {result.athlete_competition_id: result for result in results}
-
-            # Fetch event notes for athletes in this event
-            athlete_event_notes = AthleteEventNote.objects.filter(
+            notes_qs = AthleteEventNote.objects.filter(
                 athlete_competition__competition=competition,
                 event=current_event
-            ).select_related(
-                'athlete_competition__athlete__user',
-                'event'
             )
+            for note in notes_qs:
+                ac_id = note.athlete_competition_id
+                event_notes.setdefault(ac_id, {}).setdefault(note.event_id, {})[note.note_type] = note.note_value
 
-            # Organize notes by athlete competition and event
-            for note in athlete_event_notes:
-                athlete_id = note.athlete_competition_id
-                if athlete_id not in event_notes:
-                    event_notes[athlete_id] = {}
+            for ro in run_orders:
+                ac_id = ro.athlete_competition_id
+                event_notes.setdefault(ac_id, {})
 
-                if note.event_id not in event_notes[athlete_id]:
-                    event_notes[athlete_id][note.event_id] = {}
+                lane = ro.lane_number or 1
+                heat = ro.heat_number or 1
+                lanes_data.setdefault(lane, {
+                    'current': None, 'on_deck': None,
+                    'pending': [], 'completed': [], 'heats': set()
+                })
+                lanes_data[lane]['heats'].add(heat)
 
-                event_notes[athlete_id][note.event_id][note.note_type] = note.note_value
+                if ro.status == 'current':
+                    lanes_data[lane]['current'] = ro
+                elif ro.status == 'completed':
+                    ro.score = results_map.get(ac_id, None) and results_map[ac_id].value
+                    ro.points = results_map.get(ac_id, None) and results_map[ac_id].points_earned or 0
+                    lanes_data[lane]['completed'].append(ro)
+                else:  # 'pending'
+                    lanes_data[lane]['pending'].append(ro)
 
-            # Initialize empty dictionary for athlete_competitions with no notes
-            for run_order in run_orders:
-                athlete_id = run_order.athlete_competition_id
-                if athlete_id not in event_notes:
-                    event_notes[athlete_id] = {}
-
-                # Group by lane and heat
-                lane_number = run_order.lane_number or 1  # Default to lane 1 if not assigned
-                heat_number = run_order.heat_number or 1  # Default to heat 1 if not assigned
-
-                # Initialize lane if not exists
-                if lane_number not in lanes_data:
-                    lanes_data[lane_number] = {
-                        'current': None,
-                        'on_deck': None,
-                        'pending': [],
-                        'completed': [],
-                        'heats': set()
-                    }
-
-                # Add heat to the set of heats for this lane
-                lanes_data[lane_number]['heats'].add(heat_number)
-
-                # Categorize run orders by status
-                if run_order.status == 'current':
-                    lanes_data[lane_number]['current'] = run_order
-                elif run_order.status == 'completed':
-                    lanes_data[lane_number]['completed'].append(run_order)
-                    # Attach score and points
-                    athlete_comp_id = run_order.athlete_competition_id
-                    if athlete_comp_id in results_map:
-                        run_order.score = results_map[athlete_comp_id].value
-                        run_order.points = results_map[athlete_comp_id].points_earned
-                    else:
-                        run_order.score = None
-                        run_order.points = 0
-                elif run_order.status == 'pending':
-                    lanes_data[lane_number]['pending'].append(run_order)
-
-            # Sort pending athletes and find first on-deck athlete for each lane
-            for lane_number in lanes_data:
-                lanes_data[lane_number]['pending'].sort(key=lambda x: x.order)
-                if lanes_data[lane_number]['pending']:
-                    lanes_data[lane_number]['on_deck'] = lanes_data[lane_number]['pending'][0]
-                    # Remove on-deck from pending to avoid duplication
-                    lanes_data[lane_number]['pending'] = lanes_data[lane_number]['pending'][1:]
-
-                # Find index of first pending athlete (for backward compatibility)
+            for lane, data in lanes_data.items():
+                data['pending'].sort(key=lambda x: x.order)
+                if data['pending']:
+                    data['on_deck'] = data['pending'].pop(0)
                 for i, ro in enumerate(run_orders):
                     if ro.status == 'pending':
                         first_pending_index = i
                         break
+
+            load_chart = {}
+            for ro in run_orders:
+                ac_pk = ro.athlete_competition_id
+                load_chart.setdefault(ac_pk, [])
+
+                athlete_div = ro.athlete_competition.division
+                athlete_wc = ro.athlete_competition.weight_class
+
+
         else:
             run_orders = []
+            load_chart = {}
 
-        # Determine note types based on current event
         note_types = self.get_note_types_for_event(current_event) if current_event else []
 
         context = {
@@ -586,300 +551,180 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
             'first_pending_index': first_pending_index,
             'event_notes': event_notes,
             'note_types': note_types,
+            'load_chart': load_chart,
         }
 
         return render(request, self.template_name, context)
 
     def get_note_types_for_event(self, event):
-        """
-        Determine appropriate note types based on the event's weight type.
-        """
         if not event:
             return []
-
-        base_types = ['general', 'equipment', 'custom']
-
-        if event.weight_type == 'max':
-            return base_types + ['opening_weight', 'next_attempt', 'rack_height']
-        elif event.weight_type == 'time':
-            return base_types + ['target_time', 'strategy']
-        elif event.weight_type == 'distance':
-            return base_types + ['implement_selection']
-        elif event.weight_type == 'reps':
-            return base_types + ['target_reps']
-
-        return base_types
+        base = ['general', 'equipment', 'custom']
+        w = event.weight_type
+        if w == 'max':
+            return base + ['opening_weight', 'next_attempt', 'rack_height']
+        if w == 'time':
+            return base + ['target_time', 'strategy']
+        if w == 'distance':
+            return base + ['implement_selection']
+        if w == 'reps':
+            return base + ['target_reps']
+        return base
 
     def post(self, request, competition_pk, event_pk):
         competition = get_object_or_404(Competition, pk=competition_pk)
         event = get_object_or_404(Event, pk=event_pk)
 
-        # Check if user is the organizer
         if request.user != competition.organizer:
             messages.error(request, "You are not authorized to modify the run order.")
             return redirect('competitions:manage_competition', competition_pk=competition.pk)
 
         action = request.POST.get('action')
-        lane_number = request.POST.get('lane_number')  # Added lane parameter for lane-specific actions
+        lane_number = request.POST.get('lane_number')
 
         with transaction.atomic():
             if action == 'generate_run_order':
-                # Clear existing run orders for this event
-                CompetitionRunOrder.objects.filter(
-                    competition=competition,
-                    event=event
-                ).delete()
-
-                # Get athletes for this event and competition
-                athlete_competitions = AthleteCompetition.objects.filter(
-                    competition=competition
-                ).select_related(
-                    'athlete__user',
-                    'division',
-                    'weight_class'
-                ).order_by('athlete__user__last_name', 'athlete__user__first_name')
-
-                # Determine if this event needs lane assignments
+                CompetitionRunOrder.objects.filter(competition=competition, event=event).delete()
+                athlete_comps = AthleteCompetition.objects.filter(competition=competition)\
+                    .select_related('athlete__user','division','weight_class')\
+                    .order_by('athlete__user__last_name','athlete__user__first_name')
                 needs_lanes = event.number_of_lanes > 1
 
                 if needs_lanes:
-                    # Group athletes by existing lane assignments or create new ones
                     lane_assignments = {}
-
-                    # Get existing lane assignments
-                    existing_assignments = LaneAssignment.objects.filter(
-                        athlete_competition__in=athlete_competitions,
-                        event=event
+                    existing = LaneAssignment.objects.filter(
+                        athlete_competition__in=athlete_comps, event=event
                     )
+                    assigned = set()
+                    for a in existing:
+                        lane_assignments.setdefault(a.lane_number, {})\
+                            .setdefault(a.heat_number, [])\
+                            .append(a.athlete_competition)
+                        assigned.add(a.athlete_competition.id)
 
-                    assigned_athletes = set()
-                    for assignment in existing_assignments:
-                        lane_assignments.setdefault(assignment.lane_number, {}).setdefault(assignment.heat_number, [])
-                        lane_assignments[assignment.lane_number][assignment.heat_number].append(
-                            assignment.athlete_competition)
-                        assigned_athletes.add(assignment.athlete_competition.id)
-
-                    # Assign remaining athletes evenly across lanes and heats
-                    unassigned = [ac for ac in athlete_competitions if ac.id not in assigned_athletes]
-
-                    # Simple assignment logic - distribute evenly
-                    lane_counter = 1
-                    heat_counter = 1
-                    athletes_per_heat = event.number_of_lanes  # We'll put this many athletes in each heat
-
-                    for athlete in unassigned:
-                        lane_assignments.setdefault(lane_counter, {}).setdefault(heat_counter, [])
-                        lane_assignments[lane_counter][heat_counter].append(athlete)
-
-                        # Create the lane assignment record
+                    unassigned = [ac for ac in athlete_comps if ac.id not in assigned]
+                    lane_c, heat_c = 1, 1
+                    per_heat = event.number_of_lanes
+                    for ac in unassigned:
+                        lane_assignments.setdefault(lane_c, {})\
+                            .setdefault(heat_c, []).append(ac)
                         LaneAssignment.objects.update_or_create(
-                            athlete_competition=athlete,
-                            event=event,
-                            defaults={
-                                'lane_number': lane_counter,
-                                'heat_number': heat_counter
-                            }
+                            athlete_competition=ac, event=event,
+                            defaults={'lane_number': lane_c, 'heat_number': heat_c}
                         )
+                        lane_c += 1
+                        if lane_c > event.number_of_lanes:
+                            lane_c = 1
+                            if len(lane_assignments[1][heat_c]) >= per_heat:
+                                heat_c += 1
 
-                        # Move to next lane
-                        lane_counter += 1
-                        if lane_counter > event.number_of_lanes:
-                            lane_counter = 1
-                            if len(lane_assignments[1][heat_counter]) >= athletes_per_heat:
-                                heat_counter += 1
-
-                    # Create run orders based on lane assignments
-                    order_counter = 1
+                    order = 1
                     for lane in range(1, event.number_of_lanes + 1):
-                        if lane in lane_assignments:
-                            for heat in sorted(lane_assignments[lane].keys()):
-                                for athlete_comp in lane_assignments[lane][heat]:
-                                    status = 'pending'
-                                    # First athlete in first heat of each lane starts as current
-                                    if heat == min(lane_assignments[lane].keys()) and athlete_comp == \
-                                            lane_assignments[lane][heat][0]:
-                                        status = 'current'
-
-                                    CompetitionRunOrder.objects.create(
-                                        competition=competition,
-                                        event=event,
-                                        athlete_competition=athlete_comp,
-                                        order=order_counter,
-                                        lane_number=lane,
-                                        heat_number=heat,
-                                        status=status,
-                                        started_at=timezone.now() if status == 'current' else None
-                                    )
-                                    order_counter += 1
-
+                        for heat in sorted(lane_assignments.get(lane, {})):
+                            for ac in lane_assignments[lane][heat]:
+                                status = 'current' if heat == min(lane_assignments[lane]) and ac == lane_assignments[lane][heat][0] else 'pending'
+                                CompetitionRunOrder.objects.create(
+                                    competition=competition,
+                                    event=event,
+                                    athlete_competition=ac,
+                                    order=order,
+                                    lane_number=lane,
+                                    heat_number=heat,
+                                    status=status,
+                                    started_at=timezone.now() if status=='current' else None
+                                )
+                                order += 1
                 else:
-                    # Create run order without lanes (original logic)
-                    for order, athlete_comp in enumerate(athlete_competitions, 1):
-                        status = 'pending'
-                        if order == 1:  # First athlete starts as current
-                            status = 'current'
-
+                    for idx, ac in enumerate(athlete_comps, start=1):
+                        status = 'current' if idx == 1 else 'pending'
                         CompetitionRunOrder.objects.create(
                             competition=competition,
                             event=event,
-                            athlete_competition=athlete_comp,
-                            order=order,
-                            lane_number=1,  # All in lane 1 for single-lane events
-                            heat_number=1,  # All in heat 1 for single-lane events
+                            athlete_competition=ac,
+                            order=idx,
+                            lane_number=1,
+                            heat_number=1,
                             status=status,
-                            started_at=timezone.now() if status == 'current' else None
+                            started_at=timezone.now() if status=='current' else None
                         )
 
                 messages.success(request, f"Run order generated for {event.name}")
 
             elif action == 'update_current_lifter':
-                run_order_id = request.POST.get('run_order_id')
-                run_order = get_object_or_404(CompetitionRunOrder, pk=run_order_id)
-
-                # Reset current lifter for the specific lane only
+                ro = get_object_or_404(CompetitionRunOrder, pk=request.POST.get('run_order_id'))
                 CompetitionRunOrder.objects.filter(
-                    competition=competition,
-                    event=event,
-                    lane_number=run_order.lane_number,
-                    status='current'
+                    competition=competition, event=event, lane_number=ro.lane_number, status='current'
                 ).update(status='pending')
-
-                # Set the selected lifter as current
-                run_order.status = 'current'
-                run_order.started_at = timezone.now()
-                run_order.save()
-
-                messages.success(request,
-                                 f"Current lifter updated to {run_order.athlete_competition.athlete.user.get_full_name()} in Lane {run_order.lane_number}")
-
-            elif action == 'save_event_note':
-                # Save or update an event note
-                athlete_competition_id = request.POST.get('athlete_competition_id')
-                note_type = request.POST.get('note_type')
-                note_value = request.POST.get('note_value')
-
-                athlete_competition = get_object_or_404(AthleteCompetition, pk=athlete_competition_id)
-
-                # Update or create the note
-                AthleteEventNote.objects.update_or_create(
-                    athlete_competition=athlete_competition,
-                    event=event,
-                    note_type=note_type,
-                    defaults={'note_value': note_value}
-                )
-
-                messages.success(request, f"Note saved for {athlete_competition.athlete.user.get_full_name()}")
-
-            elif action == 'complete_current_lifter':
-                run_order_id = request.POST.get('run_order_id')
-                score_value = request.POST.get('score_value')  # New field for score input
-                current_run_order = get_object_or_404(CompetitionRunOrder, pk=run_order_id, status='current')
-                lane_number = current_run_order.lane_number
-
-                # Mark current lifter as completed
-                current_run_order.status = 'completed'
-                current_run_order.completed_at = timezone.now()
-                current_run_order.save()
-
-                # Save the score to the Result model if provided
-                if score_value:
-                    athlete_competition = current_run_order.athlete_competition
-                    event = current_run_order.event
-                    result, created = Result.objects.get_or_create(
-                        athlete_competition=athlete_competition,
-                        event=event,
-                        defaults={'value': score_value}
-                    )
-                    if not created and result.value != score_value:
-                        result.value = score_value
-                        result.save()
-                    # Recalculate points and rankings
-                    calculate_points_and_rankings(competition.pk, event.pk)
-                    # Debugging: Verify the result was saved
-                    updated_result = Result.objects.get(athlete_competition=athlete_competition, event=event)
-                    print(f"Saved score for {athlete_competition.athlete.user.get_full_name()}: {updated_result.value}")
-
-                # Find the pending lifters in the same lane
-                pending_lifters = CompetitionRunOrder.objects.filter(
-                    competition=competition,
-                    event=event,
-                    lane_number=lane_number,
-                    status='pending'
-                ).order_by('heat_number', 'order')
-
-                if pending_lifters.exists():
-                    # Move first pending to current
-                    next_lifter = pending_lifters.first()
-                    next_lifter.status = 'current'
-                    next_lifter.started_at = timezone.now()
-                    next_lifter.save()
-
-                    # Check if there's a second pending lifter to become on-deck
-                    if pending_lifters.count() > 1:
-                        on_deck_lifter = pending_lifters[1]  # Get the second pending lifter
-
-                        # Update success message to include score info if provided
-                        if score_value:
-                            messages.success(
-                                request,
-                                f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
-                                f"marked as completed with score {score_value}. "
-                                f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
-                                f"{on_deck_lifter.athlete_competition.athlete.user.get_full_name()} is on deck."
-                            )
-                        else:
-                            messages.success(
-                                request,
-                                f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
-                                f"marked as completed. "
-                                f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
-                                f"{on_deck_lifter.athlete_competition.athlete.user.get_full_name()} is on deck."
-                            )
-                    else:
-                        if score_value:
-                            messages.success(
-                                request,
-                                f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
-                                f"marked as completed with score {score_value}. "
-                                f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
-                                f"No more lifters in this lane's queue."
-                            )
-                        else:
-                            messages.success(
-                                request,
-                                f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
-                                f"marked as completed. "
-                                f"{next_lifter.athlete_competition.athlete.user.get_full_name()} is now the current lifter. "
-                                f"No more lifters in this lane's queue."
-                            )
-                else:
-                    if score_value:
-                        messages.success(
-                            request,
-                            f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
-                            f"marked as completed with score {score_value}. No more lifters in this lane's queue."
-                        )
-                    else:
-                        messages.success(
-                            request,
-                            f"Lift completed in Lane {lane_number}. {current_run_order.athlete_competition.athlete.user.get_full_name()} "
-                            f"marked as completed. No more lifters in this lane's queue."
-                        )
-
-            elif action == 'reactivate_lifter':
-                run_order_id = request.POST.get('run_order_id')
-                completed_run_order = get_object_or_404(CompetitionRunOrder, pk=run_order_id, status='completed')
-
-                # Change the status back to pending
-                completed_run_order.status = 'pending'
-                completed_run_order.completed_at = None
-                completed_run_order.save()
-
+                ro.status, ro.started_at = 'current', timezone.now()
+                ro.save()
                 messages.success(
                     request,
-                    f"{completed_run_order.athlete_competition.athlete.user.get_full_name()} reactivated and moved back to upcoming lifters in Lane {completed_run_order.lane_number}."
+                    f"Current lifter updated to {ro.athlete_competition.athlete.user.get_full_name()} in Lane {ro.lane_number}"
                 )
 
-        return redirect('competitions:competition_run_order',
-                        competition_pk=competition.pk,
-                        event_pk=event.pk)
+            elif action == 'save_event_note':
+                ac = get_object_or_404(AthleteCompetition, pk=request.POST.get('athlete_competition_id'))
+                AthleteEventNote.objects.update_or_create(
+                    athlete_competition=ac,
+                    event=event,
+                    note_type=request.POST.get('note_type'),
+                    defaults={'note_value': request.POST.get('note_value')}
+                )
+                messages.success(request, f"Note saved for {ac.athlete.user.get_full_name()}")
+
+            elif action == 'complete_current_lifter':
+                current = get_object_or_404(CompetitionRunOrder, pk=request.POST.get('run_order_id'), status='current')
+                lane = current.lane_number
+                score = request.POST.get('score_value')
+                current.status, current.completed_at = 'completed', timezone.now()
+                current.save()
+                if score:
+                    result, created = Result.objects.get_or_create(
+                        athlete_competition=current.athlete_competition,
+                        event=event,
+                        defaults={'value': score}
+                    )
+                    if not created and result.value != score:
+                        result.value = score
+                        result.save()
+                    calculate_points_and_rankings(competition.pk, event.pk)
+
+                pending = CompetitionRunOrder.objects.filter(
+                    competition=competition, event=event, lane_number=lane, status='pending'
+                ).order_by('heat_number','order')
+                if pending:
+                    next_ro = pending[0]
+                    next_ro.status, next_ro.started_at = 'current', timezone.now()
+                    next_ro.save()
+                    if len(pending) > 1:
+                        on_deck = pending[1]
+                        messages.success(
+                            request,
+                            f"Lift completed in Lane {lane}. {current.athlete_competition.athlete.user.get_full_name()} "
+                            f"marked as completed{' with score '+score if score else ''}. "
+                            f"{next_ro.athlete_competition.athlete.user.get_full_name()} is now current. "
+                            f"{on_deck.athlete_competition.athlete.user.get_full_name()} is on deck."
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            f"Lift completed in Lane {lane}. {current.athlete_competition.athlete.user.get_full_name()} "
+                            f"marked as completed{' with score '+score if score else ''}. No more lifters in lane {lane}."
+                        )
+                else:
+                    messages.success(
+                        request,
+                        f"Lift completed in Lane {lane}. {current.athlete_competition.athlete.user.get_full_name()} "
+                        f"marked as completed{' with score '+score if score else ''}. No more lifters in lane {lane}."
+                    )
+
+            elif action == 'reactivate_lifter':
+                comp_ro = get_object_or_404(CompetitionRunOrder, pk=request.POST.get('run_order_id'), status='completed')
+                comp_ro.status, comp_ro.completed_at = 'pending', None
+                comp_ro.save()
+                messages.success(
+                    request,
+                    f"{comp_ro.athlete_competition.athlete.user.get_full_name()} reactivated in Lane {comp_ro.lane_number}."
+                )
+
+        return redirect('competitions:competition_run_order', competition_pk=competition.pk, event_pk=event.pk)

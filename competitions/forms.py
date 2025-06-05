@@ -10,7 +10,8 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.forms import TypedChoiceField
 
 from .models import Competition, AthleteCompetition, Event, EventImplement, Result, Tag, \
-    EventBase, ZipCode, Federation, Sponsor, TshirtSize, Division, WeightClass, AthleteEventNote
+    EventBase, ZipCode, Federation, Sponsor, TshirtSize, Division, WeightClass, AthleteEventNote, \
+    ImplementDefinition
 from accounts.models import AthleteProfile
 
 
@@ -395,18 +396,26 @@ class EventCreationForm(forms.ModelForm):
 
     class Meta:
         model = Event
-        fields = ['name', 'event_base', 'weight_type', 'has_multiple_implements', 'number_of_implements', 'number_of_lanes']
+        fields = [
+            'name',
+            'event_base',
+            'weight_type',
+            'has_multiple_implements',
+            'number_of_implements',
+            'number_of_lanes',
+            'description',  # <-- add this
+        ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Event Name'}),
             'event_base': forms.Select(attrs={'class': 'form-control'}),
             'weight_type': forms.Select(attrs={'class': 'form-control'}),
             'number_of_implements': forms.NumberInput(attrs={'min': 1, 'class': 'form-control'}),
+            'description': TinyMCE(attrs={'cols': 80, 'rows': 10}),  # <-- add this
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Ensure the checkbox value reflects the instance value
         if self.instance and self.instance.pk:
             self.fields['has_multiple_implements'].initial = self.instance.has_multiple_implements
 
@@ -422,7 +431,7 @@ class EventCreationForm(forms.ModelForm):
             raise forms.ValidationError("Please specify the number of implements.")
 
         if not has_multiple:
-            cleaned_data['number_of_implements'] = None  # Reset if not using multiple implements
+            cleaned_data['number_of_implements'] = None
 
         return cleaned_data
 
@@ -438,6 +447,7 @@ class EventImplementForm(forms.ModelForm):
         required=True,
         initial=1
     )
+
     event = forms.ModelChoiceField(
         queryset=Event.objects.all(),
         widget=forms.HiddenInput(),
@@ -454,15 +464,17 @@ class EventImplementForm(forms.ModelForm):
         required=True
     )
 
+    implement_definition = forms.ModelChoiceField(
+        queryset=ImplementDefinition.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True,
+        label="Implement"
+    )
+
     class Meta:
         model = EventImplement
-        fields = ['event', 'division', 'weight_class', 'implement_order', 'implement_name', 'weight', 'weight_unit']
+        fields = ['event', 'division', 'weight_class', 'implement_definition', 'implement_order', 'weight', 'weight_unit']
         widgets = {
-            'implement_name': forms.TextInput(attrs={
-                'class': 'form-control implement-name',
-                'placeholder': 'Implement Name',
-                'required': 'required'
-            }),
             'weight': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Weight',
@@ -477,20 +489,25 @@ class EventImplementForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         event = kwargs.pop('event', None)
+        organizer = kwargs.pop('organizer', None)
         super().__init__(*args, **kwargs)
 
+        # Initial event reference
         if event:
             self.fields['event'].initial = event
-            if event and not event.has_multiple_implements:
-                self.fields['implement_order'].initial = 1
+            if not event.has_multiple_implements:
                 self.fields['implement_order'].widget = forms.HiddenInput()
+                self.fields['implement_order'].initial = 1
 
-        # Update querysets dynamically if we have initial data
+        # Restrict implement definitions to organizer
+        if organizer:
+            self.fields['implement_definition'].queryset = ImplementDefinition.objects.filter(organizer=organizer)
+
+        # Filter division and weight class if present in initial
         if self.initial:
             division_id = self.initial.get('division')
             weight_class_id = self.initial.get('weight_class')
 
-            # Set the querysets to include only the relevant objects
             if division_id:
                 self.fields['division'].queryset = Division.objects.filter(id=division_id)
                 self.fields['division'].initial = division_id
@@ -499,10 +516,13 @@ class EventImplementForm(forms.ModelForm):
                 self.fields['weight_class'].queryset = WeightClass.objects.filter(id=weight_class_id)
                 self.fields['weight_class'].initial = weight_class_id
 
-        # Hide implement_order if not multiple implements
-        if event and not event.has_multiple_implements:
-            self.fields['implement_order'].widget = forms.HiddenInput()
-            self.fields['implement_order'].initial = 1
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.cleaned_data.get("implement_definition"):
+            instance.implement_name = self.cleaned_data["implement_definition"].name
+        if commit:
+            instance.save()
+        return instance
 
 class ManualAthleteAddForm(forms.Form):
     """
@@ -654,30 +674,40 @@ class AthleteCompetitionForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        # pop our two extra args
         competition = kwargs.pop('competition', None)
-        self.request   = kwargs.pop('request',     None)
+        self.request = kwargs.pop('request', None)
         super().__init__(*args, **kwargs)
 
         if not competition:
             return
 
-        # 1) Figure out athlete gender
+        # 1) Figure out athlete gender (capitalize to match WC.gender)
         athlete_gender = None
         try:
-            athlete_gender = self.request.user.athlete_profile.gender.strip().capitalize()
+            profile = self.request.user.athlete_profile
+            athlete_gender = profile.gender.strip().capitalize()  # e.g. "Male" or "Female"
         except (AttributeError, ObjectDoesNotExist):
             athlete_gender = None
 
-        # 2) Filter divisions by gender
+        # 2) Build division queryset: allowed_divisions ∩ has at least one WC of that gender
         div_qs = competition.allowed_divisions.all()
         if athlete_gender in ('Male', 'Female'):
-            div_qs = div_qs.filter(weight_classes__gender=athlete_gender).distinct()
+            div_qs = div_qs.filter(
+                weight_classes__gender=athlete_gender
+            ).distinct()
         self.fields['division'].queryset = div_qs
 
-        # 3) Start with no weight-classes
-        self.fields['weight_class'].queryset = WeightClass.objects.none()
+        # 3) Build base weight-class queryset: federation ∩ those divisions
+        wc_qs = WeightClass.objects.filter(
+            federation=competition.federation,
+            division__in=div_qs
+        )
+        # 4) Filter by athlete gender
+        if athlete_gender in ('Male', 'Female'):
+            wc_qs = wc_qs.filter(gender=athlete_gender)
 
-        # 4) If a division is already selected (bound form or editing), populate it
+        # 5) If the form is bound (POST) or editing, narrow further to the chosen division
         division_id = None
         if self.is_bound:
             division_id = self.data.get(self.add_prefix('division'))
@@ -685,15 +715,11 @@ class AthleteCompetitionForm(forms.ModelForm):
             division_id = self.instance.division_id
 
         if division_id:
-            wc_qs = WeightClass.objects.filter(
-                federation=competition.federation,
-                division_id=division_id
-            )
-            if athlete_gender in ('Male', 'Female'):
-                wc_qs = wc_qs.filter(gender=athlete_gender)
-            self.fields['weight_class'].queryset = wc_qs
+            wc_qs = wc_qs.filter(division_id=division_id)
 
-        # 5) T-shirts as before
+        self.fields['weight_class'].queryset = wc_qs
+
+        # 6) T-shirt sizes only if the competition provides them
         if competition.provides_shirts:
             self.fields['tshirt_size'].queryset = competition.allowed_tshirt_sizes.all()
         else:
@@ -1154,4 +1180,18 @@ class OrlandosStrongestSignupForm(forms.Form):
         if p1 and p2 and p1 != p2:
             raise ValidationError("The two password fields didn’t match.")
         password_validation.validate_password(p2, user=None)
-        return p2
+        return
+
+        # competitions/forms.py
+
+
+class ImplementDefinitionForm(forms.ModelForm):
+    class Meta:
+        model = ImplementDefinition
+        fields = ['name', 'base_weight', 'unit', 'loading_points']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'base_weight': forms.NumberInput(attrs={'class': 'form-control'}),
+            'unit': forms.Select(attrs={'class': 'form-select'}),
+            'loading_points': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
+        }
