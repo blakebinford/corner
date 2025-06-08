@@ -148,57 +148,53 @@ class AthleteCheckInView(View):
         competition = get_object_or_404(Competition, pk=competition_pk)
         events = competition.events.all().order_by('order')
 
+        # Get all registered athletes
         athletes = AthleteCompetition.objects.filter(competition=competition) \
             .select_related('athlete__user', 'division', 'weight_class', 'tshirt_size') \
-            .order_by('athlete__gender', 'weight_class__name', 'weight_class__weight_d', 'athlete__user__last_name',
-                      'athlete__user__first_name')
+            .order_by(
+                'athlete__gender',
+                'weight_class__name',
+                'weight_class__weight_d',
+                'athlete__user__last_name',
+                'athlete__user__first_name'
+            )
 
-        # Prefetch event notes to avoid N+1 queries
-        athlete_notes = AthleteEventNote.objects.filter(
-            athlete_competition__competition=competition
-        ).select_related('event').prefetch_related('athlete_competition')
+        # Prefetch maps for event notes and lane assignments
+        notes_map = defaultdict(lambda: defaultdict(dict))
+        lanes_map = defaultdict(lambda: defaultdict(dict))
 
-        # Prefetch lane assignments
-        lane_assignments = LaneAssignment.objects.filter(
-            athlete_competition__competition=competition
-        ).select_related('event')
-
-        # Initialize empty dictionaries for all athletes and events
-        notes_map = {}
-        lanes_map = {}
-
-        # Initialize maps with empty dicts for each athlete and event
-        for athlete in athletes:
-            athlete_id = athlete.pk
-            notes_map[athlete_id] = {}
-            lanes_map[athlete_id] = {}
-
-            for event in events:
-                notes_map[athlete_id][event.pk] = {}  # Initialize with empty dict
-
-        # Group notes by athlete_competition and event
-        for note in athlete_notes:
-            if note.event_id not in notes_map[note.athlete_competition_id]:
-                notes_map[note.athlete_competition_id][note.event_id] = {}
+        for note in AthleteEventNote.objects.filter(athlete_competition__competition=competition):
             notes_map[note.athlete_competition_id][note.event_id][note.note_type] = note.note_value
 
-        # Group lane assignments by athlete_competition and event
-        for lane in lane_assignments:
+        for lane in LaneAssignment.objects.filter(athlete_competition__competition=competition):
             lanes_map[lane.athlete_competition_id][lane.event_id] = {
                 'lane': lane.lane_number,
                 'heat': lane.heat_number
             }
 
-        # Group athletes
-        grouped_athletes = {}
-        for gender, gender_group in groupby(athletes, key=lambda x: x.athlete.gender):
-            grouped_athletes[gender] = {}
-            for weight_class, weight_class_group in groupby(list(gender_group), key=lambda x: x.weight_class):
-                grouped_athletes[gender][weight_class] = list(weight_class_group)
+        # Group athletes: gender > weight class (as string label)
+        grouped_athletes = defaultdict(lambda: defaultdict(list))
+        for athlete in athletes:
+            gender = athlete.athlete.gender or "Unknown"
+            weight_class = athlete.weight_class
+            if weight_class:
+                wc_key = str(weight_class)
+            else:
+                # Include division in key to avoid grouping across divisions
+                wc_key = f"Single Class – {athlete.division.name}"
+
+            grouped_athletes[gender][wc_key].append(athlete)
+
+        # Optional debug output
+        print("Grouped Athletes:")
+        for gender, wc_dict in grouped_athletes.items():
+            print(f" Gender: {gender}")
+            for wc_key, group in wc_dict.items():
+                print(f"   - Weight Class: {wc_key} -> {len(group)} athletes")
 
         return render(request, self.template_name, {
             'competition': competition,
-            'grouped_athletes': grouped_athletes,
+            'grouped_athletes': {k: dict(v) for k, v in grouped_athletes.items()},
             'events': events,
             'notes_map': notes_map,
             'lanes_map': lanes_map,

@@ -14,19 +14,26 @@ from competitions.models import Competition, AthleteCompetition, TshirtSize, Div
 from competitions.forms import AthleteCompetitionForm, AthleteProfileForm, ManualAthleteAddForm
 
 
+from django.shortcuts import get_object_or_404, render
+from accounts.models import AthleteProfile, User
+from competitions.models import AthleteCompetition
+
 def athlete_profile(request, athlete_id):
-    try:
-        athlete = AthleteProfile.objects.get(user_id=athlete_id)
-    except AthleteProfile.DoesNotExist:
-        messages.error(request, "This athlete has not set up a profile yet.")
-        return redirect('competitions:competition_list')
+    # athlete_id is the User.pk
+    athlete = get_object_or_404(AthleteProfile, user__pk=athlete_id)
+
+    # Get competition history for this athlete profile
     competition_history = AthleteCompetition.objects.filter(athlete=athlete)
-    print(athlete.__dict__)
+
+    # DEBUG: print who we got
+    print(f"AthleteProfile for {athlete.user.username}: {athlete}")
+
     context = {
         'athlete': athlete,
         'competition_history': competition_history
     }
     return render(request, 'registration/athlete_profile.html', context)
+
 
 class AthleteProfileUpdateView(LoginRequiredMixin, generic.UpdateView):
     model = AthleteProfile

@@ -71,6 +71,19 @@
         background-color: #6c757d;
         color: white;
     }
+      .checkin-table th,
+  .checkin-table td {
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  /* Consistent fixed widths */
+  .col-athlete { min-width: 220px; }
+  .col-division { min-width: 120px; }
+  .col-present { min-width: 100px; text-align: center; }
+  .col-weighin { min-width: 120px; }
+  .col-notes { min-width: 150px; }
+  .col-lanes { min-width: 160px; }
 </style>
 {% endblock %}
 
@@ -134,19 +147,25 @@
                     {% for weight_class, athletes in weight_classes.items %}
                         <div class="card weight-class-card mb-4">
                             <div class="card-header">
-                                <h5 class="mb-0">{{ weight_class }}</h5>
+                               <h5 class="mb-0">
+                                  {% if weight_class == "Single Class" %}
+                                    Single Class
+                                  {% else %}
+                                    {{ weight_class }}
+                                  {% endif %}
+                                </h5>
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">
                                     <table class="table table-hover mb-0">
                                         <thead>
                                             <tr class="header-row">
-                                                <th>Athlete</th>
-                                                <th>Division</th>
-                                                <th>Present</th>
-                                                <th>Weigh-In (lbs)</th>
-                                                <th>Event Notes</th>
-                                                <th>Lane Assignments</th>
+                                              <th class="col-athlete">Athlete</th>
+                                              <th class="col-division">Division</th>
+                                              <th class="col-present">Present</th>
+                                              <th class="col-weighin">Weigh-In (lbs)</th>
+                                              <th class="col-notes">Event Notes</th>
+                                              <th class="col-lanes">Lane Assignments</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -156,8 +175,8 @@
                                                     data-name="{{ athlete.athlete.user.get_full_name }}" 
                                                     data-gender="{{ athlete.athlete.gender }}" 
                                                     data-division="{{ athlete.division.pk }}" 
-                                                    data-weight-class="{{ athlete.weight_class.pk }}">
-                                                    <td>
+                                                    data-weight-class="{{ athlete.weight_class.pk|default:'single' }}">
+                                                    <td class="col-athlete">
                                                         <div class="d-flex align-items-center">
                                                             <div>
                                                                 <strong>{{ athlete.athlete.user.get_full_name }}</strong>
@@ -167,8 +186,8 @@
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td>{{ athlete.division.name }}</td>
-                                                    <td>
+                                                    <td class="col-division">{{ athlete.division.name|capfirst }}</td>
+                                                    <td class="col-present">
                                                         <div class="form-check form-switch">
                                                             <input class="form-check-input" 
                                                                    type="checkbox" 
@@ -182,7 +201,7 @@
                                                             </label>
                                                         </div>
                                                     </td>
-                                                    <td>
+                                                    <td class="col-weighin">
                                                         <input type="number" 
                                                                step="0.1" 
                                                                class="form-control form-control-sm weigh-in-input"
@@ -190,7 +209,7 @@
                                                                value="{{ athlete.weigh_in|default:'' }}"
                                                                placeholder="Weight">
                                                     </td>
-                                                    <td>
+                                                    <td class="col-notes">
                                                         <button type="button" 
                                                                 class="btn btn-outline-primary btn-sm" 
                                                                 data-bs-toggle="modal" 
@@ -230,86 +249,89 @@
                                                                                         <div class="accordion-body">
                                                                                             <div class="notes-container" data-athlete="{{ athlete.pk }}" data-event="{{ event.pk }}">
                                                                                                 {% with athlete_notes=notes_map|get_item:athlete.pk %}
-                                                                                                    {% with event_notes=athlete_notes|get_item:event.pk %}
-                                                                                                        {% if event_notes %}
-                                                                                                            {% for note_type, note_value in event_notes.items %}
-                                                                                                                <div class="note-row mb-2 row">
-                                                                                                                    <div class="col-md-4">
-                                                                                                                        <select name="note_type_{{ athlete.pk }}_{{ event.pk }}" class="form-select note-type-select">
-                                                                                                                            <option value="">-- Select Type --</option>
-                                                                                                                            <option value="general" {% if note_type == 'general' %}selected{% endif %}>General Note</option>
-                                                                                                                            <option value="equipment" {% if note_type == 'equipment' %}selected{% endif %}>Equipment Note</option>
-                                                                                                                            
-                                                                                                                            {% if event.weight_type == 'max' %}
-                                                                                                                                <option value="opening_weight" {% if note_type == 'opening_weight' %}selected{% endif %}>Opening Weight</option>
-                                                                                                                                <option value="next_attempt" {% if note_type == 'next_attempt' %}selected{% endif %}>Next Attempt</option>
-                                                                                                                                <option value="rack_height" {% if note_type == 'rack_height' %}selected{% endif %}>Rack Height</option>
-                                                                                                                            {% elif event.weight_type == 'time' %}
-                                                                                                                                <option value="target_time" {% if note_type == 'target_time' %}selected{% endif %}>Target Time</option>
-                                                                                                                                <option value="strategy" {% if note_type == 'strategy' %}selected{% endif %}>Strategy</option>
-                                                                                                                            {% elif event.weight_type == 'distance' %}
-                                                                                                                                <option value="implement_selection" {% if note_type == 'implement_selection' %}selected{% endif %}>Implement Selection</option>
-                                                                                                                            {% elif event.weight_type == 'reps' %}
-                                                                                                                                <option value="target_reps" {% if note_type == 'target_reps' %}selected{% endif %}>Target Reps</option>
-                                                                                                                            {% endif %}
-                                                                                                                            
-                                                                                                                            <option value="custom" {% if note_type == 'custom' %}selected{% endif %}>Custom</option>
-                                                                                                                        </select>
-                                                                                                                    </div>
-                                                                                                                    <div class="col-md-6">
-                                                                                                                        <input type="text" 
-                                                                                                                            name="note_value_{{ athlete.pk }}_{{ event.pk }}" 
-                                                                                                                            class="form-control"
-                                                                                                                            placeholder="Note value" 
-                                                                                                                            value="{{ note_value }}">
-                                                                                                                    </div>
-                                                                                                                    <div class="col-md-2">
-                                                                                                                        <button type="button" class="btn btn-danger btn-sm remove-note">
-                                                                                                                            <i class="bi bi-trash"></i>
-                                                                                                                        </button>
-                                                                                                                    </div>
-                                                                                                                </div>
-                                                                                                            {% endfor %}
-                                                                                                        {% else %}
-                                                                                                            <!-- Empty state - show one empty note row -->
-                                                                                                            <div class="note-row mb-2 row">
-                                                                                                                <div class="col-md-4">
-                                                                                                                    <select name="note_type_{{ athlete.pk }}_{{ event.pk }}" class="form-select note-type-select">
-                                                                                                                        <option value="">-- Select Type --</option>
-                                                                                                                        <option value="general">General Note</option>
-                                                                                                                        <option value="equipment">Equipment Note</option>
-                                                                                                                        
-                                                                                                                        {% if event.weight_type == 'max' %}
-                                                                                                                            <option value="opening_weight">Opening Weight</option>
-                                                                                                                            <option value="next_attempt">Next Attempt</option>
-                                                                                                                            <option value="rack_height">Rack Height</option>
-                                                                                                                        {% elif event.weight_type == 'time' %}
-                                                                                                                            <option value="target_time">Target Time</option>
-                                                                                                                            <option value="strategy">Strategy</option>
-                                                                                                                        {% elif event.weight_type == 'distance' %}
-                                                                                                                            <option value="implement_selection">Implement Selection</option>
-                                                                                                                        {% elif event.weight_type == 'reps' %}
-                                                                                                                            <option value="target_reps">Target Reps</option>
-                                                                                                                        {% endif %}
-                                                                                                                        
-                                                                                                                        <option value="custom">Custom</option>
-                                                                                                                    </select>
-                                                                                                                </div>
-                                                                                                                <div class="col-md-6">
-                                                                                                                    <input type="text" 
-                                                                                                                        name="note_value_{{ athlete.pk }}_{{ event.pk }}" 
-                                                                                                                        class="form-control"
-                                                                                                                        placeholder="Note value">
-                                                                                                                </div>
-                                                                                                                <div class="col-md-2">
-                                                                                                                    <button type="button" class="btn btn-danger btn-sm remove-note">
-                                                                                                                        <i class="bi bi-trash"></i>
-                                                                                                                    </button>
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        {% endif %}
-                                                                                                    {% endwith %}
-                                                                                                {% endwith %}
+    {% if athlete_notes %}
+        {% with event_notes=athlete_notes|get_item:event.pk %}
+            {% if event_notes %}
+                {% for note_type, note_value in event_notes.items %}
+                    <div class="note-row mb-2 row">
+                        <div class="col-md-4">
+                            <select name="note_type_{{ athlete.pk }}_{{ event.pk }}" class="form-select note-type-select">
+                                <option value="">-- Select Type --</option>
+                                <option value="general" {% if note_type == 'general' %}selected{% endif %}>General Note</option>
+                                <option value="equipment" {% if note_type == 'equipment' %}selected{% endif %}>Equipment Note</option>
+
+                                {% if event.weight_type == 'max' %}
+                                    <option value="opening_weight" {% if note_type == 'opening_weight' %}selected{% endif %}>Opening Weight</option>
+                                    <option value="next_attempt" {% if note_type == 'next_attempt' %}selected{% endif %}>Next Attempt</option>
+                                    <option value="rack_height" {% if note_type == 'rack_height' %}selected{% endif %}>Rack Height</option>
+                                {% elif event.weight_type == 'time' %}
+                                    <option value="target_time" {% if note_type == 'target_time' %}selected{% endif %}>Target Time</option>
+                                    <option value="strategy" {% if note_type == 'strategy' %}selected{% endif %}>Strategy</option>
+                                {% elif event.weight_type == 'distance' %}
+                                    <option value="implement_selection" {% if note_type == 'implement_selection' %}selected{% endif %}>Implement Selection</option>
+                                {% elif event.weight_type == 'reps' %}
+                                    <option value="target_reps" {% if note_type == 'target_reps' %}selected{% endif %}>Target Reps</option>
+                                {% endif %}
+
+                                <option value="custom" {% if note_type == 'custom' %}selected{% endif %}>Custom</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text"
+                                   name="note_value_{{ athlete.pk }}_{{ event.pk }}"
+                                   class="form-control"
+                                   placeholder="Note value"
+                                   value="{{ note_value }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-danger btn-sm remove-note">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <!-- Empty state - show one empty note row -->
+                <div class="note-row mb-2 row">
+                    <div class="col-md-4">
+                        <select name="note_type_{{ athlete.pk }}_{{ event.pk }}" class="form-select note-type-select">
+                            <option value="">-- Select Type --</option>
+                            <option value="general">General Note</option>
+                            <option value="equipment">Equipment Note</option>
+
+                            {% if event.weight_type == 'max' %}
+                                <option value="opening_weight">Opening Weight</option>
+                                <option value="next_attempt">Next Attempt</option>
+                                <option value="rack_height">Rack Height</option>
+                            {% elif event.weight_type == 'time' %}
+                                <option value="target_time">Target Time</option>
+                                <option value="strategy">Strategy</option>
+                            {% elif event.weight_type == 'distance' %}
+                                <option value="implement_selection">Implement Selection</option>
+                            {% elif event.weight_type == 'reps' %}
+                                <option value="target_reps">Target Reps</option>
+                            {% endif %}
+
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <input type="text"
+                               name="note_value_{{ athlete.pk }}_{{ event.pk }}"
+                               class="form-control"
+                               placeholder="Note value">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger btn-sm remove-note">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+{% endwith %}
+
                                                                                                 
                                                                                                 <button type="button" class="btn btn-outline-success btn-sm add-note-btn mt-2" 
                                                                                                     data-athlete="{{ athlete.pk }}" 
@@ -330,7 +352,7 @@
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td>
+                                                    <td class="col-lanes">
                                                         {% with lane_count=lanes_map|get_item:athlete.pk|keys|length %}
                                                             <button type="button" class="btn btn-outline-primary btn-sm" 
                                                                 data-bs-toggle="modal" 
@@ -601,25 +623,55 @@ document.addEventListener('DOMContentLoaded', function() {
     // Notes functionality
     // Add note button functionality
     document.querySelectorAll('.add-note-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const athleteId = this.dataset.athlete;
-            const eventId = this.dataset.event;
-            const container = document.querySelector(`.notes-container[data-athlete="${athleteId}"][data-event="${eventId}"]`);
-            
-            // Clone the first note row as a template
-            const template = container.querySelector('.note-row').cloneNode(true);
-            
-            // Clear the values
-            template.querySelector('select').value = '';
-            template.querySelector('input').value = '';
-            
-            // Insert before the add button
-            container.insertBefore(template, this);
-            
-            // Add event listeners to the new elements
-            addNoteRowListeners(template);
-        });
+    button.addEventListener('click', function () {
+        const athleteId = this.dataset.athlete;
+        const eventId = this.dataset.event;
+        const container = document.querySelector(`.notes-container[data-athlete="${athleteId}"][data-event="${eventId}"]`);
+
+        // Try to find a row to clone
+        let template = container.querySelector('.note-row');
+        let newRow;
+
+        if (template) {
+            newRow = template.cloneNode(true);
+            newRow.querySelector('select').value = '';
+            newRow.querySelector('input').value = '';
+        } else {
+            // Create a new row manually if no template exists
+            newRow = document.createElement('div');
+            newRow.classList.add('note-row', 'mb-2', 'row');
+            newRow.innerHTML = `
+                <div class="col-md-4">
+                    <select name="note_type_${athleteId}_${eventId}" class="form-select note-type-select">
+                        <option value="">-- Select Type --</option>
+                        <option value="general">General Note</option>
+                        <option value="equipment">Equipment Note</option>
+                        <option value="opening_weight">Opening Weight</option>
+                        <option value="next_attempt">Next Attempt</option>
+                        <option value="rack_height">Rack Height</option>
+                        <option value="target_time">Target Time</option>
+                        <option value="strategy">Strategy</option>
+                        <option value="implement_selection">Implement Selection</option>
+                        <option value="target_reps">Target Reps</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" name="note_value_${athleteId}_${eventId}" class="form-control" placeholder="Note value">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger btn-sm remove-note">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        container.insertBefore(newRow, this);  // Add before Add button
+        addNoteRowListeners(newRow);           // Attach remove event
     });
+});
+
     
     // Function to add event listeners to note row elements
     function addNoteRowListeners(row) {

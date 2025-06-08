@@ -32,7 +32,7 @@
               <th rowspan="2" class="frozen-column" style="width: 100px; position: sticky; left: 290px; background: #f8f9fa; z-index: 11;">Total Points</th>
               {% for event_order in ordered_events %}
                 <th colspan="3" class="event-header" style="text-align: center; padding: 8px; border-right: 6px double #4b5563; background: linear-gradient(to bottom, #e5e7eb, #d1d5db);">
-                  <span data-toggle="tooltip" title="{{ event_order.description|default:'No description' }}">
+                  <span data-toggle="tooltip" title="{{ event_order.description|striptags|default:'No description' }}">
                     {{ event_order.name }}
                   </span>
                   <br>
@@ -61,7 +61,7 @@
               {% for athlete_competition in athlete_competitions %}
                 <tr class="athlete-row group-{{ group_key.0|lower }}-{{ group_key.1|lower }}" style="transition: background 0.2s;">
                   <td class="frozen-column" style="padding: 10px; text-align: left; position: sticky; left: 0; background: #fff; z-index: 8;">
-                    <a href="{% url 'competitions:athlete_profile' athlete_competition.athlete.id %}"
+                    <a href="{% url 'competitions:athlete_profile' athlete_competition.athlete.user.id %}"
                        class="athlete-link" style="text-decoration: none; color: #1f2937;"
                        data-toggle="tooltip" title="View {{ athlete_competition.athlete.user.get_full_name }}'s Profile">
                       <i class="fa-regular fa-user" style="margin-right: 8px;"></i>

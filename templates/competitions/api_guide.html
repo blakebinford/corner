@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Broadcast API Integration{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="text-center mb-5">
+    <img src="/static/images/logoapi.jpeg" alt="Atlas Competition Logo" style="height: 150px;">
+    <p class="lead text-muted">A quick reference for pulling athlete and competition data via the Atlas API</p>
+  </div>
+
+  <div class="card shadow-lg border-0 p-4">
+    <h2 class="h4 fw-bold mb-3">Authentication</h2>
+      <p>After creating an account, Atlas will generate an <a href="https://atlascompetition.com/api/get-token/">API token</a> for you. You can retrieve it at the following link:</p>
+    <div class="bg-light p-3 rounded mb-3"><code>https://atlascompetition.com/api/get-token/</code></div>
+    <p>Include this token in the header of all API requests:</p>
+    <div class="bg-light p-3 rounded"><code>Authorization: Token &lt;your-api-token&gt;</code></div>
+
+    <hr class="my-5">
+
+    <h2 class="h4 fw-bold mb-3">Retrieve Athlete Profile by Name</h2>
+    <p>This endpoint returns a full athlete competition profile based on name and competition ID.</p>
+    <div class="bg-light p-3 rounded mb-3"><code>GET /api/competition/&lt;comp_id&gt;/athlete-by-name/?name=First-Last</code></div>
+
+    <h5 class="fw-semibold">Required Parameters:</h5>
+    <ul>
+      <li><strong>comp_id</strong>: Numeric ID of the competition</li>
+      <li><strong>name</strong>: Full name with hyphen (e.g., <code>John-Doe</code>)</li>
+    </ul>
+
+    <h5 class="fw-semibold">Example Request:</h5>
+    <div class="bg-light p-3 rounded mb-3"><code>GET /api/competition/42/athlete-by-name/?name=Matthew-Johnson</code></div>
+
+    <h5 class="fw-semibold">Example Response:</h5>
+    <pre class="bg-dark text-white p-3 rounded small">
+{
+  "id": 111,
+  "athlete": {
+    "id": 88,
+    "user": { "first_name": "Matthew", "last_name": "Johnson" },
+    "nickname": "The Rhino",
+    "bio": "National podium finisher. Training out of Iron Temple.",
+    "gender": "male",
+    "height": 72,
+    "weight": 295,
+    "instagram_name": "@therhino_strong"
+  },
+  "division": "Open Heavyweight",
+  "weight_class": "308+",
+  "tshirt_size": "XL"
+}
+    </pre>
+
+    <hr class="my-5">
+
+    <h2 class="h4 fw-bold mb-3">Get Competition Overview</h2>
+    <p>This endpoint returns core competition details, event structure, and the full athlete roster.</p>
+    <div class="bg-light p-3 rounded mb-3"><code>GET /api/competitions/&lt;id&gt;/</code></div>
+
+    <h5 class="fw-semibold">Example Response:</h5>
+    <pre class="bg-dark text-white p-3 rounded small" style="white-space: pre-wrap;">
+{
+  "name": "Houston's Strongest 2025",
+  "comp_date": "2025-06-08",
+  "comp_end_date": "2025-06-08",
+  "location": "Houston, TX",
+  "status": "upcoming",
+  "events": [
+    {
+      "name": "Log Press",
+      "order": 1,
+      "weight_type": "max",
+      "number_of_lanes": 1
+    }
+  ],
+  "athletes": [
+    {
+      "athlete": {
+        "first_name": "John",
+        "last_name": "Doe",
+        "full_name": "John Doe",
+        "instagram_name": "@johndoe_strong",
+        "gender": "male",
+        "nickname": "The Bull",
+        "city": "Austin",
+        "state": "TX",
+        "home_gym": "Iron Den",
+        "team_name": "Power Crew",
+        "coach": "Coach K",
+        "height": 74,
+        "weight": 305,
+        "bio": "Returning champ"
+      },
+      "division": { "name": "Open", "predefined_name": "open" },
+      "weight_class": { "name": "308+", "gender": "Male" },
+      "total_points": 20,
+      "rank": 1,
+      "results": [
+        {
+          "event": { "name": "Log Press" },
+          "points_earned": "5",
+          "event_rank": 1,
+          "value": "300 lbs"
+        }
+      ]
+    }
+  ]
+}
+    </pre>
+
+    <hr class="my-5">
+
+    <h2 class="h4 fw-bold mb-3">API Documentation</h2>
+      <p>You can explore and test all available <a href="https://atlascompetition.com/api/docs/">API endpoints</a> using the Swagger interface:</p>
+    <div class="bg-light p-3 rounded"><code>https://atlascompetition.com/api/docs/</code></div>
+
+    <hr class="my-5">
+
+    <h2 class="h4 fw-bold mb-3">Support</h2>
+    <p>For any questions, integration help, or access issues, please contact:</p>
+    <p><strong>Email:</strong> <a href="mailto:blake@atlascompetition.com">blake@atlascompetition.com</a></p>
+  </div>
+</div>
+{% endblock %}
