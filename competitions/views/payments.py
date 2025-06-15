@@ -54,7 +54,7 @@ def start_checkout(request, competition_id, athlete_competition_id):
 
     # compute amount (in cents)
     entry_fee_cents = int(competition.signup_price * Decimal(100))
-    application_fee_cents = int(entry_fee_cents * Decimal("0.10"))
+    platform_fee_cents = int(entry_fee_cents * Decimal("0.10"))
 
     # build our success / cancel URLs, with Stripe's session_id placeholder
     base_success = request.build_absolute_uri(
@@ -73,41 +73,49 @@ def start_checkout(request, competition_id, athlete_competition_id):
 
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
-        line_items=[{
-            "price_data": {
-                "currency": "usd",
-                "unit_amount": entry_fee_cents,
-                "product_data": {
-                    "name": f"{competition_name} Entry Fee"
+        line_items=[
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": entry_fee_cents,
+                    "product_data": {
+                        "name": f"{competition.name} Entry Fee"
+                    },
                 },
+                "quantity": 1,
             },
-            "quantity": 1,
-        }],
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "unit_amount": platform_fee_cents,
+                    "product_data": {
+                        "name": "Atlas Service Fee"
+                    },
+                },
+                "quantity": 1,
+            },
+        ],
         mode="payment",
         success_url=success_url,
         cancel_url=cancel_url,
         payment_intent_data={
-            "application_fee_amount": application_fee_cents,
+            "application_fee_amount": platform_fee_cents,  # only this goes to your platform
             "transfer_data": {
                 "destination": organizer_profile.stripe_account_id,
             },
-            # --- START NEW CODE ---
             "metadata": {
                 "competition_id": str(competition.id),
-                "competition_name": competition_name,
+                "competition_name": competition.name,
                 "athlete_competition_id": str(registration.id),
                 "athlete_name": athlete_name,
             },
-            # --- END NEW CODE ---
         },
-        # --- START NEW CODE ---
         metadata={
             "competition_id": str(competition.id),
-            "competition_name": competition_name,
+            "competition_name": competition.name,
             "athlete_competition_id": str(registration.id),
             "athlete_name": athlete_name,
         },
-        # --- END NEW CODE ---
     )
 
     return redirect(session.url)

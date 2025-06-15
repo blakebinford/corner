@@ -62,7 +62,7 @@ urlpatterns = [
     path('<int:competition_pk>/toggle_email_notifications/', views.toggle_email_notifications, name='toggle_email_notifications'),
     path('competitions/<int:competition_pk>/download_athlete_table/', views.download_athlete_table, name='download_athlete_table'),
     path('competitions/<int:competition_pk>/add_athlete/', AddAthleteManuallyView.as_view(), name='add_athlete'),
-    path('competitions/<int:competition_pk>/create_athlete_profile/',views.AthleteProfileUpdateView.as_view(), name='athlete_profile_update'),
+    path('<int:competition_pk>/create_athlete_profile/',views.AthleteProfileUpdateView.as_view(), name='athlete_profile_update'),
     path(
         'competitions/<int:competition_pk>/combine_weight_classes/',
         views.CombineWeightClassesView.as_view(),
