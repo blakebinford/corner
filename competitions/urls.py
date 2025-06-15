@@ -22,7 +22,7 @@ urlpatterns = [
 
     path('get_weight_classes/', views.get_weight_classes, name='get_weight_classes'),
     path(
-        "competitions/<int:pk>/assign-weight-classes/",
+        "<int:pk>/assign-weight-classes/",
         AssignWeightClassesView.as_view(),
         name="assign_weight_classes",
     ),

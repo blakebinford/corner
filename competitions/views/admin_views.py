@@ -305,28 +305,40 @@ class AssignWeightClassesView(View):
 
     def post(self, request, *args, **kwargs):
         competition = get_object_or_404(Competition, pk=kwargs['pk'])
-        weight_class_ids = request.POST.getlist('weight_classes')
-        division_id = request.POST.get('division')
-        division = get_object_or_404(Division, pk=division_id)
 
-        for wc_id in weight_class_ids:
-            wc = get_object_or_404(WeightClass, pk=wc_id)
-            # Prevent uniqueness conflict
-            existing = WeightClass.objects.filter(
-                name=wc.name,
-                gender=wc.gender,
-                division=division
-            ).exclude(pk=wc.pk).first()
+        # Loop through all posted division_<id> keys
+        for key in request.POST:
+            if not key.startswith("division_"):
+                continue
 
-            if existing:
-                # Optionally log or notify
-                continue  # Skip conflicting update
+            try:
+                division_id = int(key.split("_")[1])
+            except (IndexError, ValueError):
+                continue
 
-            wc.division = division
-            wc.save()
+            division = Division.objects.filter(pk=division_id).first()
+            if not division:
+                continue
+
+            weight_class_ids = request.POST.getlist(key)
+
+            for wc_id in weight_class_ids:
+                wc = get_object_or_404(WeightClass, pk=wc_id)
+                existing = WeightClass.objects.filter(
+                    name=wc.name,
+                    gender=wc.gender,
+                    division=division
+                ).exclude(pk=wc.pk).first()
+
+                if existing:
+                    continue
+
+                wc.division = division
+                wc.save()
 
         messages.success(request, "Weight classes successfully assigned.")
-        return redirect('admin_competition_detail', pk=competition.pk)
+        return redirect('competitions:manage_competition', competition_pk=competition.pk)
+
 
 class CombineWeightClassesView(LoginRequiredMixin, UserPassesTestMixin, generic.FormView):
     template_name = "competitions/combine_weight_classes.html"
