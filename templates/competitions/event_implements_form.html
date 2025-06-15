@@ -374,94 +374,102 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('implements-form');
     if (!form) console.error('Form element not found');
     form.addEventListener('submit', function (event) {
-        var isValid = true;
-        var inputs = form.querySelectorAll('input[type="text"], input[type="number"], select, input[type="hidden"]');
-        inputs.forEach(function (input) {
-            // Reset validation state
-            input.classList.remove('is-invalid');
-            var feedback = input.nextElementSibling;
-            if (feedback && feedback.classList.contains('form-text')) {
-                feedback.classList.remove('invalid-feedback');
-                feedback.classList.add('form-text', 'text-muted');
-            }
+    event.preventDefault();
 
-            // Check required fields
-            if (input.hasAttribute('required') && !input.value.trim() && input.type !== 'hidden') {
-                input.classList.add('is-invalid');
-                if (feedback) {
-                    feedback.classList.remove('form-text', 'text-muted');
-                    feedback.classList.add('invalid-feedback');
-                    feedback.textContent = 'This field is required.';
-                }
-                isValid = false;
-            }
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
 
-            // Check numeric fields (implement_order, weight)
-            if (input.type === 'number' && input.value && parseFloat(input.value) <= 0) {
-                input.classList.add('is-invalid');
-                if (feedback) {
-                    feedback.classList.remove('form-text', 'text-muted');
-                    feedback.classList.add('invalid-feedback');
-                    feedback.textContent = 'Must be a positive number.';
-                }
-                isValid = false;
-            }
+    let isValid = true;
+    const safeHiddenNames = ['id', 'event', 'division', 'weight_class'];
 
-            // Check hidden fields to ensure they aren't empty
-            if (input.type === 'hidden' && !input.value.trim()) {
-                console.error('Hidden field empty:', input.name, 'Value:', input.value);
-                isValid = false;
-            }
-        });
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        // Reset validation styling
+        input.classList.remove('is-invalid');
 
-        if (!isValid) {
-            event.preventDefault();
-            event.stopPropagation();
-            alert('Please fill in all required fields correctly. Check hidden fields.');
-        } else {
-            // Show saving indicator
-            const submitButton = form.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.innerHTML = 'Saving... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        const feedback = input.nextElementSibling;
+        if (feedback && feedback.classList.contains('invalid-feedback')) {
+            feedback.remove();  // Remove old validation message
+        }
+
+        const createError = (msg) => {
+            const div = document.createElement('div');
+            div.className = 'invalid-feedback';
+            div.textContent = msg;
+            input.classList.add('is-invalid');
+            input.insertAdjacentElement('afterend', div);
+            isValid = false;
+        };
+
+        // Required visible inputs
+        if (
+            input.hasAttribute('required') &&
+            input.offsetParent !== null &&  // only check visible fields
+            !input.value.trim()
+        ) {
+            createError('This field is required.');
+        }
+
+        // Required hidden inputs (only those not in safe list)
+        if (
+            input.type === 'hidden' &&
+            !input.value.trim() &&
+            !safeHiddenNames.some(name => input.name.includes(name))
+        ) {
+            console.warn('Empty hidden field:', input.name, input.value);
+            isValid = false;
+        }
+
+        // Number validation (weight, implement_order)
+        if (
+            input.type === 'number' &&
+            input.value &&
+            parseFloat(input.value) <= 0
+        ) {
+            createError('Must be a positive number.');
         }
     });
 
-    // Handle form submission response
-    form.addEventListener('submit', function (event) {
-        event.preventDefault();
-        fetch(form.action, {
-            method: 'POST',
-            body: new FormData(form),
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        }).then(response => {
-            if (response.ok) {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
-                alertDiv.role = 'alert';
-                alertDiv.innerHTML = `
-                    Implements saved successfully!
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                `;
-                form.parentNode.insertBefore(alertDiv, form);
-                setTimeout(() => {
-                    window.location.href = response.url || '/competitions/';
-                }, 2000);
-            } else {
-                const submitButton = form.querySelector('button[type="submit"]');
-                submitButton.disabled = false;
-                submitButton.innerHTML = 'Save Implements';
-                alert('Failed to save implements. Please try again.');
-            }
-        }).catch(error => {
-            console.error('Error:', error);
-            const submitButton = form.querySelector('button[type="submit"]');
-            submitButton.disabled = false;
-            submitButton.innerHTML = 'Save Implements';
-            alert('An error occurred. Please try again.');
-        });
+    if (!isValid) {
+        submitButton.disabled = false;
+        alert('Please fill in all required fields correctly. Check highlighted fields.');
+        return;
+    }
+
+    // Valid — proceed with AJAX POST
+    submitButton.innerHTML = 'Saving... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+    fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => {
+        if (response.ok) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                Implements saved successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            form.parentNode.insertBefore(alertDiv, form);
+
+            setTimeout(() => {
+                window.location.href = response.url || '/competitions/';
+            }, 2000);
+        } else {
+            throw new Error('Bad response');
+        }
+    })
+    .catch(error => {
+        console.error('Submission failed:', error);
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Save Implements';
+        alert('Failed to save implements. Please check the form and try again.');
     });
+});
+
 
     // Multiple implements functionality
     {% if event.has_multiple_implements %}

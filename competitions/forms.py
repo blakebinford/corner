@@ -8,6 +8,7 @@ from django import forms
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.forms import TypedChoiceField
+from django_select2.forms import Select2MultipleWidget
 
 from .models import Competition, AthleteCompetition, Event, EventImplement, Result, Tag, \
     EventBase, ZipCode, Federation, Sponsor, TshirtSize, Division, WeightClass, AthleteEventNote, \
@@ -84,7 +85,7 @@ class CompetitionForm(forms.ModelForm):
 
     tags = forms.ModelMultipleChoiceField(
         queryset=Tag.objects.all(),
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-select'}),
+        widget=Select2MultipleWidget(attrs={'style': 'width: 100%'}),
         required=False
     )
 
@@ -127,6 +128,7 @@ class CompetitionForm(forms.ModelForm):
             'signup_price': forms.NumberInput(attrs={'type': 'number', 'step': '0.01', 'min': '0'}),
             'facebook_url': forms.URLInput(attrs={'placeholder': 'https://www.facebook.com/...'}),
             'instagram_url': forms.URLInput(attrs={'placeholder': 'https://www.instagram.com/...'}),
+
         }
 
     def clean_registration_deadline(self):
@@ -193,6 +195,10 @@ class CompetitionForm(forms.ModelForm):
                 competition.allowed_divisions.set(self.cleaned_data['allowed_divisions'])
 
         return competition
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['tags'].queryset = Tag.objects.all()
 
 
 class CustomDivisionForm(forms.ModelForm):
@@ -467,7 +473,7 @@ class EventImplementForm(forms.ModelForm):
     implement_definition = forms.ModelChoiceField(
         queryset=ImplementDefinition.objects.none(),
         widget=forms.Select(attrs={'class': 'form-select'}),
-        required=True,
+        required=False,
         label="Implement"
     )
 

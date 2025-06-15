@@ -130,6 +130,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'drf_spectacular',
+    'django_select2',
     'stripe',
 
 ]

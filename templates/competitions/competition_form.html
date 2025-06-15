@@ -1,210 +1,117 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
-{% load widget_tweaks %}
-{% block extra_styles %}
-    <style>
-.division-preview-tab {
-    width: 125px; /* ✅ Uniform width */
-    text-align: center;
-    padding: 10px 0; /* ✅ Adds padding inside */
-    margin: 5px; /* ✅ Adds space between tabs */
-    border-radius: 5px; /* ✅ Keeps rounded corners */
-}
-/* Floating Button Styles */
-.scroll-to-preview {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    font-size: 16px;
-    font-weight: bold;
-    border-radius: 30px;
-    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    display: none; /* Hidden by default */
-    background-color: #333; /* Dark theme */
-    color: white;
-    border: none;
-    transition: all 0.3s ease-in-out;
-}
+{% load static %}
 
-.scroll-to-preview:hover {
-    background-color: #555;
-    transform: scale(1.05);
-}
-</style>
+{% block extra_head %}
+  {{ block.super }}
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.tiny.cloud/1/coux7priksghfcq9ikj4asj0hykr8m6apaupewea1uqk2hn7/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 {% endblock %}
+
 {% block content %}
-    <!-- Scroll to Live Preview Button -->
-<button id="scrollToPreviewBtn" class="btn btn-dark scroll-to-preview">
-    <i class="bi bi-eye"></i> View Live Preview
-</button>
-<div class="container py-4" style="background: #f8f9fa;">
+<div class="container py-5">
   <div class="row justify-content-center">
-    <div class="col-md-8">
-      <div class="card shadow-sm border-0" style="border-radius: 15px; background-color: #ffffff;">
+    <div class="col-lg-10">
+      <div class="card shadow-sm border-0">
         <div class="card-body p-4">
-          <h2 class="text-center mb-4" style="font-weight: 600; color: #333;">
-            {{ is_update|yesno:"Update Competition,Create Competition" }}
-          </h2>
-          <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+          <h2 class="text-center mb-4">{{ is_update|yesno:"Update Competition,Create Competition" }}</h2>
+          <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
 
-            <div class="row g-3">
-              <div class="col-md-6">
-                {{ form.name|as_crispy_field }}
+            <!-- BASIC INFO -->
+            <fieldset class="mb-4">
+              <legend>Basic Info</legend>
+              <div class="row g-3">
+                <div class="col-md-8">{{ form.name|as_crispy_field }}</div>
+                <div class="col-md-4">{{ form.federation|as_crispy_field }}</div>
+                <div class="col-md-6">{{ form.image|as_crispy_field }}</div>
+                <div class="col-md-6">{{ form.tags|as_crispy_field }}</div>
               </div>
-              <div class="col-md-6">
-                {{ form.event_location_name|as_crispy_field }}
+            </fieldset>
+
+            <!-- DATES & TIMES -->
+            <fieldset class="mb-4">
+              <legend>Schedule</legend>
+              <div class="row g-3">
+                <div class="col-md-4">{{ form.comp_date|as_crispy_field }}</div>
+                <div class="col-md-4">{{ form.comp_end_date|as_crispy_field }}</div>
+                <div class="col-md-4">{{ form.start_time|as_crispy_field }}</div>
+                <div class="col-md-6">{{ form.registration_deadline|as_crispy_field }}</div>
               </div>
-              <div class="col-md-4">
-                {{ form.comp_date|as_crispy_field }}
-                <div class="form-check mt-2">
-                  <input type="checkbox" id="is-multi-day" class="form-check-input" name="is_multi_day">
-                  <label for="is-multi-day" class="form-check-label">Multi-day Competition</label>
+            </fieldset>
+
+            <!-- LOCATION -->
+            <fieldset class="mb-4">
+              <legend>Location</legend>
+              <div class="row g-3">
+                <div class="col-md-6">{{ form.event_location_name|as_crispy_field }}</div>
+                <div class="col-md-6">{{ form.address|as_crispy_field }}</div>
+                <div class="col-md-4">{{ form.city|as_crispy_field }}</div>
+                <div class="col-md-4">{{ form.state|as_crispy_field }}</div>
+                <div class="col-md-4">{{ form.zip_code|as_crispy_field }}</div>
+              </div>
+            </fieldset>
+
+            <!-- PRICE -->
+            <fieldset class="mb-4">
+              <legend>Registration & Capacity</legend>
+              <div class="row g-3">
+                <div class="col-md-6">{{ form.signup_price|as_crispy_field }}</div>
+                <div class="col-md-6">{{ form.capacity|as_crispy_field }}</div>
+              </div>
+            </fieldset>
+
+            <!-- SOCIAL -->
+            <fieldset class="mb-4">
+              <legend>Social Media</legend>
+              <div class="row g-3">
+                <div class="col-md-6">{{ form.facebook_url|as_crispy_field }}</div>
+                <div class="col-md-6">{{ form.instagram_url|as_crispy_field }}</div>
+              </div>
+            </fieldset>
+
+            <!-- DIVISIONS & SHIRTS -->
+            <fieldset class="mb-4">
+              <legend>Divisions & Shirts</legend>
+              <div class="row g-3">
+                <div class="col-md-12">{{ form.allowed_divisions|as_crispy_field }}</div>
+                <div class="col-md-12">{{ form.provides_shirts|as_crispy_field }}</div>
+                <div class="col-md-12" id="tshirt-sizes-container" style="display: none;">
+                  <label><strong>Allowed T-shirt Sizes</strong></label>
+                  {% for checkbox in form.allowed_tshirt_sizes %}
+                    <div class="form-check">
+                      {{ checkbox.tag }}
+                      <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                        {{ checkbox.choice_label }}
+                      </label>
+                    </div>
+                  {% endfor %}
                 </div>
               </div>
-              <div class="col-md-4" id="end-date-container" style="display: none;">
-                {{ form.comp_end_date|as_crispy_field }}
-              </div>
-              <div class="col-md-4">
-                {{ form.start_time|as_crispy_field }}
-              </div>
-              <div class="col-md-12">
-                {{ form.address|as_crispy_field }}
-              </div>
-              <div class="col-md-6">
-                {{ form.city|as_crispy_field }}
-              </div>
-              <div class="col-md-4">
-                {{ form.state|as_crispy_field }}
-              </div>
-              <div class="col-md-2">
-                {{ form.zip_code|as_crispy_field }}
-              </div>
-              <div class="col-md-4">
-                {{ form.federation|as_crispy_field }}
-              </div>
-              <div class="col-md-4">
-                {{ form.signup_price|as_crispy_field }}
-              </div>
-              <div class="col-md-4">
-                {{ form.capacity|as_crispy_field }}
-              </div>
-              <div class="col-md-6">
-                {{ form.registration_deadline|as_crispy_field }}
-              </div>
-              <div class="col-md-6">
-                {{ form.image|as_crispy_field }}
-              </div>
-                  <div class="col-md-12">
-                {{ form.tags|as_crispy_field }}
-              </div>
-              
-              <div class="col-md-6">
-                {{ form.facebook_url|as_crispy_field }}
-              </div>
-              <div class="col-md-6">
-                {{ form.instagram_url|as_crispy_field }}
-              </div>
-              <div class="col-md-12">
-                {{ form.allowed_divisions|as_crispy_field }}
-              </div>
-              <div class="col-md-12">
+            </fieldset>
+
+            <!-- DESCRIPTION -->
+            <fieldset class="mb-4">
+              <legend>Description</legend>
+              <div class="mb-3">
                 {{ form.description|as_crispy_field }}
               </div>
-            </div>
+            </fieldset>
 
-                <div class="col-md-12">
-  <div class="form-check mb-3">
-    {{ form.provides_shirts|as_crispy_field }}
-    <label class="form-check-label" for="{{ form.provides_shirts.id_for_label }}">
-
-    </label>
-  </div>
-
-  <div id="tshirt-sizes-container" style="display: none;">
-    <p class="mb-2"><b>Allowed T-shirt Sizes</b></p>
-    {{ form.allowed_tshirt_sizes.errors }}
-    {{ form.allowed_tshirt_sizes.label_tag }}
-    {% for checkbox in form.allowed_tshirt_sizes %}
-      <div class="form-check">
-        {{ checkbox.tag }}
-        <label class="form-check-label" for="{{ checkbox.id_for_label }}">
-          {{ checkbox.choice_label }}
-        </label>
-      </div>
-    {% endfor %}
-  </div>
-</div>
-              <div class="col-md-12">
-                <div class="form-check">
-                    <input 
-                        type="checkbox" 
-                        class="form-check-input" 
-                        id="{{ form.liability_waiver_accepted.id_for_label }}" 
-                        name="{{ form.liability_waiver_accepted.name }}"
-                        {% if form.initial.liability_waiver_accepted or form.data.liability_waiver_accepted %}checked{% endif %}
-                    >
-                    <label class="form-check-label" for="{{ form.liability_waiver_accepted.id_for_label }}">
-                        I agree to the 
-                        <a href="#" data-bs-toggle="modal" data-bs-target="#liabilityWaiverModal">liability waiver</a>
-                    </label>
-                    
-                    <!-- Modal -->
-<div class="modal fade" id="liabilityWaiverModal" tabindex="-1" aria-labelledby="liabilityWaiverLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="liabilityWaiverLabel">Liability Waiver and Release Form</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p><strong>WAIVER AND RELEASE OF LIABILITY</strong></p>
-        <p>
-          In consideration of being allowed to participate in the <strong>{{ competition.name }}</strong> ("the Competition"), I, the undersigned participant, acknowledge and agree to the following:
-        </p>
-        <ol>
-          <li>
-            <strong>Assumption of Risk:</strong> I understand that participating in the Competition involves inherent risks, including but not limited to, physical injury, property damage, and, in extreme cases, death. I voluntarily accept and assume all such risks.
-          </li>
-          <li>
-            <strong>Release of Liability:</strong> I hereby release and discharge the organizer(s), sponsors, volunteers, and any associated entities from any and all claims, demands, damages, or causes of action, whether known or unknown, arising from or related to my participation in the Competition.
-          </li>
-          <li>
-            <strong>Medical Authorization:</strong> I consent to receive medical treatment deemed necessary in the event of an injury or illness during the Competition. I understand that I am responsible for any medical expenses incurred.
-          </li>
-          <li>
-            <strong>Compliance with Rules:</strong> I agree to follow all rules and instructions provided by the Competition organizers and acknowledge that failure to do so may result in disqualification or removal from the event.
-          </li>
-          <li>
-            <strong>Media Release:</strong> I grant permission to the organizers to use my likeness, name, and image in any photographs, videos, or promotional materials without compensation.
-          </li>
-          <li>
-            <strong>Indemnification:</strong> I agree to indemnify and hold harmless the organizers, sponsors, and their agents against any claims or damages arising out of my actions or participation in the Competition.
-          </li>
-          <li>
-            <strong>Understanding of Agreement:</strong> I have read and fully understand this waiver. I voluntarily sign it, acknowledging that it is binding upon me, my heirs, and assigns.
-          </li>
-        </ol>
-        <p>
-          By participating in the Competition, I confirm that I am at least 18 years old or have obtained parental/guardian consent to participate in the event.
-        </p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-                </div>
+            <!-- LIABILITY -->
+            <fieldset class="mb-4">
+              <legend>Legal</legend>
+              <div class="form-check">
+                {{ form.liability_waiver_accepted }}
+                <label class="form-check-label" for="{{ form.liability_waiver_accepted.id_for_label }}">
+                  I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#waiverModal">liability waiver</a>
+                </label>
               </div>
-            </div>
-      </div>
-      </div>
-            <div class="d-grid mt-4">
-              <button type="submit" class="btn btn-primary btn-lg" style="background-color: #333; border: none;">
+            </fieldset>
+
+            <div class="text-center">
+              <button type="submit" class="btn btn-dark btn-lg px-5">
                 {{ is_update|yesno:"Update Competition,Create Competition" }}
               </button>
             </div>
@@ -215,393 +122,131 @@
   </div>
 </div>
 
+<!-- Waiver Modal -->
+<div class="modal fade" id="waiverModal" tabindex="-1" aria-labelledby="waiverLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="waiverLabel">Liability Waiver</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="liability-waiver">
+  <h2>Atlas Competition LLC – Liability Waiver and Release Agreement</h2>
+  <p><strong>READ CAREFULLY – THIS IS A LEGAL DOCUMENT THAT AFFECTS YOUR RIGHTS. BY CHECKING THE BOX OR SIGNING BELOW, YOU AGREE TO THESE TERMS.</strong></p>
 
-  <!-- Live Preview Section -->
-  <div class="row justify-content-center mt-5">
-    <div class="col-md-10">
-        
-      <h3 class="text-center">Live Preview</h3>
-        <div class="text-center mt-3">
-    <button id="refresh-preview" class="btn btn-secondary">
-        <i class="bi bi-arrow-clockwise"></i> Refresh Preview
-    </button>
-</div>
+  <p>
+    In consideration of being allowed to participate in, attend, or volunteer at any strength sport competition, event, or related activity (“Event”) organized, sanctioned, or hosted by
+    <strong>Atlas Competition LLC</strong> (“Atlas”), I, the undersigned participant, hereby agree to the following terms on behalf of myself and, where applicable, my heirs, executors, administrators, legal representatives, assigns, and next of kin:
+  </p>
 
-      <div class="card shadow-lg">
-        <h2 id="preview-name" class="card-title text-center my-4"><b>Competition Name</b></h2>
-        <img id="preview-image" src="" class="card-img-top img-fluid" style="display: none; max-height: 500px; object-fit: cover;">
-          <div class="row mx-3 mt-3">
-                    <div class="col-10">
-                        <div class="mb-3">
-                            <div class="mb-3" id="preview-tags"></div>                            
-                        </div>
-                    </div>
-                    <div class="col-2 text-end">
-                        <img id="preview-federation-display" class="img-fluid" style="max-height: 50px; display: none;">
-                    </div>
+  <h3>1. Assumption of Risk</h3>
+  <p>
+    I understand that strength sport competitions—including but not limited to strongman, powerlifting, and hybrid strength events—are inherently dangerous. I acknowledge that participation in these Events carries a risk of serious injury, illness
+    (including communicable diseases like COVID-19), permanent disability, property damage, and death.
+  </p>
+  <p>
+    These risks may arise from my own actions or omissions, the actions or omissions of others, the use or failure of equipment, weather, venue conditions, or the ordinary negligence of the <strong>Event organizer</strong>,
+    <strong>Atlas Competition LLC</strong>, the <strong>sanctioning federation</strong>, or other parties.
+  </p>
+  <p><strong>I freely and voluntarily assume all risks</strong>, known and unknown, whether anticipated or not, associated with participating in or being present at any Event, including travel to and from the venue.</p>
 
-                </div>
-        <div class="row mx-3 mt-3">
-          <div class="col-6">
-            <p id="preview-date" class="text-muted"><i class="bi bi-calendar-event"></i> Competition Date</p>
-            <p id="preview-location" class="text-muted"><i class="bi bi-geo-alt-fill"></i> City, State</p>
-            <p id="preview-price" class="text-muted"><i class="bi bi-cash"></i> $Price</p>
-          </div>
-            <div class="col-6">
-            <p id="preview-date" class="text-muted">Organizer: {{ user.first_name }} {{ user.last_name }}</p>
-            <p id="preview-location" class="text-muted">Status: <span class="badge bg-success">Upcoming</span></p>
-            <p id="preview-capacity" class="text-muted">Capacity: 0 out of capacity spots</p>
-          </div>
-        </div>
-        <div class="px-3">
-          <h4 class="text-center">Description</h4>
-          <p id="preview-description" class="card-text">Competition details will appear here.</p>
-        </div>
-        <div class="text-center mt-3" id="social-section" style="display: none;">
-            <h5 class="card-title">Stay up to Date</h5>
-            <a id="preview-instagram-btn" href="#" target="_blank" class="btn btn-danger" style="display: none;">
-                <i class="bi bi-instagram"></i> Instagram
-            </a>
-            <a id="preview-facebook-btn" href="#" target="_blank" class="btn btn-primary" style="display: none;">
-                <i class="bi bi-facebook"></i> Facebook
-            </a>
-        </div>
-          <div>
-              <br>
-           <h2 class="text-center">Divisions and Events</h2>
-              
-<div id="preview-divisions" class="d-flex flex-wrap justify-content-center gap-2 mt-3"></div>
+  <h3>2. Release of Liability</h3>
+  <p>
+    To the fullest extent permitted by law, I hereby <strong>waive, release, and discharge</strong> the following entities and individuals from any and all claims, demands, causes of action, damages, or liability, whether arising from negligence or otherwise:
+  </p>
+  <ul>
+    <li><strong>Atlas Competition LLC</strong></li>
+    <li>The <strong>Event Organizer</strong> (including all directors, employees, staff, and volunteers)</li>
+    <li>The <strong>Sanctioning Federation</strong></li>
+    <li>All <strong>event staff, judges, referees, spotters, loaders, and volunteers</strong></li>
+    <li>Any and all <strong>sponsors, contractors, and affiliated partners</strong></li>
+    <li>The <strong>venue owner and property managers</strong></li>
+    <li>Any <strong>media, livestream, or production personnel</strong></li>
+    <li>All <strong>officers, directors, managers, employees, agents, affiliates, and assigns</strong> of the above</li>
+  </ul>
+  <p>This release applies to any loss, injury, illness, death, or property damage suffered during participation in or attendance at the Event, regardless of cause.</p>
 
+  <h3>3. Indemnification</h3>
+  <p>
+    I agree to <strong>indemnify and hold harmless</strong> all Released Parties listed above from and against any and all claims, liabilities, damages, costs, or expenses (including reasonable attorneys’ fees) arising from my participation in or presence at any Event,
+    including any claim brought by a third party due to my actions or omissions.
+  </p>
 
-          </div>
+  <h3>4. Media Release</h3>
+  <p>
+    I grant Atlas, the Event organizer, the sanctioning federation, and their respective affiliates, sponsors, media partners, and licensees the <strong>perpetual, worldwide, royalty-free right</strong> to record, use, reproduce, publish, and distribute my name, likeness,
+    voice, and biographical details in all media formats—existing or yet to be developed—for promotional, commercial, and archival purposes, without compensation.
+  </p>
+  <p>
+    This includes photographs, video footage, livestreams, social media, marketing content, and promotional materials.
+  </p>
+
+  <h3>5. Medical Authorization</h3>
+  <p>
+    I certify that I am physically and medically fit to participate in strength sport competitions. In the case of a medical emergency, I authorize Atlas, the Event organizer, or their designees to obtain medical care on my behalf and agree to be financially responsible
+    for any resulting treatment, transport, or related costs.
+  </p>
+
+  <h3>6. Governing Law and Venue</h3>
+  <p>
+    This agreement shall be governed by and interpreted in accordance with the laws of the <strong>State of Texas</strong>. Any disputes arising from this agreement or participation in an Event shall be resolved exclusively in the state or federal courts located in
+    <strong>Harris County, Texas</strong>.
+  </p>
+
+  <h3>7. Severability</h3>
+  <p>
+    If any provision of this waiver is found unenforceable by a court of law, the remaining provisions shall remain in full force and effect.
+  </p>
+
+  <h3>Acknowledgment and Acceptance</h3>
+  <p>
+    I have read and fully understand this waiver. I understand that I am giving up substantial legal rights, including the right to sue, and that I am doing so freely and voluntarily. This waiver applies to <strong>all Atlas Competition events</strong>, regardless of date or location, unless revoked in writing.
+  </p>
+
       </div>
     </div>
   </div>
 </div>
+
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const providesShirtsCheckbox = document.getElementById('{{ form.provides_shirts.id_for_label }}');
-  const tshirtSizesContainer = document.getElementById('tshirt-sizes-container');
-
-  // Function to toggle the visibility of the T-shirt sizes container
-  function toggleTshirtSizes() {
-    if (providesShirtsCheckbox.checked) {
-      tshirtSizesContainer.style.display = 'block';
-    } else {
-      tshirtSizesContainer.style.display = 'none';
+  document.addEventListener('DOMContentLoaded', function () {
+    const checkbox = document.getElementById('{{ form.provides_shirts.id_for_label }}');
+    const tshirtBlock = document.getElementById('tshirt-sizes-container');
+    function toggleShirts() {
+      tshirtBlock.style.display = checkbox.checked ? 'block' : 'none';
     }
-  }
-
-  // Add event listener for changes in the checkbox
-  providesShirtsCheckbox.addEventListener('change', toggleTshirtSizes);
-
-  // Initialize the correct visibility state on page load
-  toggleTshirtSizes();
-});
+    checkbox.addEventListener('change', toggleShirts);
+    toggleShirts();
+  });
 </script>
 
-    
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const multiDayCheckbox = document.getElementById('is-multi-day');
-  const endDateContainer = document.getElementById('end-date-container');
-
-  multiDayCheckbox.addEventListener('change', function () {
-    if (this.checked) {
-      endDateContainer.style.display = 'block';
-    } else {
-      endDateContainer.style.display = 'none';
+  document.addEventListener("DOMContentLoaded", function () {
+    const select2 = document.getElementById("id_tags");
+    if (select2) {
+      $(select2).select2({
+        placeholder: "Select tags",
+        width: '100%'
+      });
     }
   });
-
-  const federationSelect = document.getElementById('id_federation');
-  const weightClassesContainer = document.getElementById('weight-classes-container');
-  const weightClassesWrapper = document.getElementById('weight-classes-wrapper');
-
-  if (!federationSelect || !weightClassesContainer || !weightClassesWrapper) return;
-
-  federationSelect.addEventListener('change', function () {
-    const federationId = this.value;
-
-    if (federationId) {
-      fetch(`/competitions/get_weight_classes/?federation_id=${federationId}`)
-        .then((response) => response.json())
-        .then((data) => {
-          weightClassesWrapper.innerHTML = '';
-          if (data.weight_classes && data.weight_classes.length > 0) {
-            data.weight_classes.forEach((weightClass) => {
-              const checkbox = document.createElement('input');
-              checkbox.type = 'checkbox';
-              checkbox.className = 'form-check-input me-2';
-              checkbox.name = 'allowed_weight_classes';
-              checkbox.value = weightClass.id;
-              checkbox.id = `id_allowed_weight_classes_${weightClass.id}`;
-
-              const label = document.createElement('label');
-              label.className = 'form-check-label me-4';
-              label.htmlFor = checkbox.id;
-              label.textContent = weightClass.name;
-
-              const wrapper = document.createElement('div');
-              wrapper.className = 'form-check d-inline-block';
-              wrapper.appendChild(checkbox);
-              wrapper.appendChild(label);
-
-              weightClassesWrapper.appendChild(wrapper);
-            });
-            weightClassesContainer.style.display = 'block';
-          } else {
-            weightClassesContainer.style.display = 'none';
-          }
-        });
-    } else {
-      weightClassesContainer.style.display = 'none';
-    }
-  });
-});
-document.addEventListener("DOMContentLoaded", function () {
-    let scrollToPreviewBtn = document.getElementById("scrollToPreviewBtn");
-    let previewSection = document.querySelector(".row.justify-content-center.mt-5");
-
-    if (!scrollToPreviewBtn || !previewSection) {
-        console.error("❌ Scroll button or preview section not found.");
-        return;
-    }
-
-    // Show button when scrolling down
-    window.addEventListener("scroll", function () {
-        if (window.scrollY > 200) {
-            scrollToPreviewBtn.style.display = "block";
-        } else {
-            scrollToPreviewBtn.style.display = "none";
-        }
-    });
-
-    // Scroll to preview section when button is clicked
-    scrollToPreviewBtn.addEventListener("click", function () {
-        previewSection.scrollIntoView({ behavior: "smooth" });
-    });
-});
-
 </script>
     <script>
-document.addEventListener("DOMContentLoaded", function () {
-    console.log("✅ TinyMCE Loaded - Initializing...");
-
+  document.addEventListener('DOMContentLoaded', function () {
     tinymce.init({
-        selector: "#id_description",
-        height: 500,
-        menubar: true,
-        plugins: [
-            "advlist autolink lists link image charmap print preview anchor",
-            "searchreplace visualblocks code fullscreen",
-            "insertdatetime media table paste code help wordcount"
-        ],
-        toolbar: "undo redo | formatselect | bold italic backcolor | \
-                  alignleft aligncenter alignright alignjustify | \
-                  bullist numlist outdent indent | removeformat | help",
-        setup: function (editor) {
-            editor.on('input change', function () {
-                console.log("🔄 TinyMCE Content Updated");
-                updatePreview();
-            });
-        }
+      selector: '#id_description',
+      height: 400,
+      menubar: false,
+      plugins: [
+        'advlist autolink lists link image charmap preview anchor',
+        'searchreplace visualblocks code fullscreen',
+        'insertdatetime media table paste code help wordcount'
+      ],
+      toolbar: 'undo redo | formatselect | bold italic backcolor | ' +
+               'alignleft aligncenter alignright alignjustify | ' +
+               'bullist numlist outdent indent | removeformat | help'
     });
-
-    console.log("✅ TinyMCE Initialized!");
-});
+  });
 </script>
-<script>
-window.onload = function () {
-    console.log("✅ JavaScript Loaded - Debugging Starts Here");
-
-    function updatePreview() {
-        console.log("🔄 Updating preview...");
-
-        // Get input elements
-        let nameInput = document.getElementById('id_name');
-        let dateInput = document.getElementById('id_comp_date');
-        let cityInput = document.getElementById('id_city');
-        let stateInput = document.getElementById('id_state');
-        let priceInput = document.getElementById('id_signup_price');
-        let descriptionInput = document.getElementById('id_description');
-        let imageInput = document.getElementById('id_image');
-        let capacityInput = document.getElementById('id_capacity');
-        let federationSelect = document.getElementById('id_federation');
-
-        // Get preview elements
-        let previewName = document.getElementById('preview-name');
-        let previewDate = document.getElementById('preview-date');
-        let previewLocation = document.getElementById('preview-location');
-        let previewPrice = document.getElementById('preview-price');
-        let previewCapacity = document.getElementById('preview-capacity');
-        let previewDescription = document.getElementById('preview-description');
-        let previewImage = document.getElementById('preview-image');
-        let previewFederationImage = document.getElementById('preview-federation-display');
-        let previewTagsContainer = document.getElementById('preview-tags'); // Tag preview container
-        let previewDivisionsContainer = document.getElementById('preview-divisions'); // Division preview container
-
-        // ✅ Update Text Fields
-        if (nameInput) previewName.innerText = nameInput.value || "Competition Name";
-        if (dateInput) previewDate.innerHTML = `<i class="bi bi-calendar-event"></i> ${dateInput.value || "Competition Date"}`;
-        if (cityInput && stateInput) previewLocation.innerHTML = `<i class="bi bi-geo-alt-fill"></i> ${cityInput.value}, ${stateInput.value || "City, State"}`;
-        if (priceInput) previewPrice.innerHTML = `<i class="bi bi-cash"></i> $${priceInput.value || "Price"}`;
-        if (capacityInput) previewCapacity.innerText = `Capacity: 0 out of ${capacityInput.value || "Capacity"} spots`;
-        if (descriptionInput) previewDescription.innerHTML = tinymce.get('id_description').getContent() || "Competition details will appear here.";
-        // ✅ Fix Competition Image Preview
-        if (imageInput && imageInput.files.length > 0) {
-            let reader = new FileReader();
-            reader.onload = function (e) {
-                previewImage.src = e.target.result;
-                previewImage.style.display = 'block';
-                console.log("✅ Competition image updated");
-            };
-            reader.readAsDataURL(imageInput.files[0]);
-        } else {
-            previewImage.style.display = 'none';
-            console.log("❌ No competition image selected, hiding preview");
-        }
-
-        // ✅ Federation Logo Mapping
-        const federationLogos = {
-            "1": "/media/federation_logos/nas_Z6xYsy6.png",  // Strongman Corporation
-            "2": "/media/federation_logos/uss_7MzBt3N.png",  // United States Strongman
-            "3": "/media/federation_logos/IMG_4217_wz8NJB8.jpg" // Unsanctioned
-        };
-
-        if (federationSelect) {
-            let selectedFederation = federationSelect.value;
-            console.log(`📌 Selected Federation Value: "${selectedFederation}"`);
-
-            if (federationLogos[selectedFederation]) {
-                previewFederationImage.src = federationLogos[selectedFederation];
-                previewFederationImage.style.display = 'block';
-                console.log(`✅ Federation logo updated: ${federationLogos[selectedFederation]}`);
-            } else {
-                previewFederationImage.style.display = 'none';
-                console.log("❌ No federation selected, hiding logo.");
-            }
-        }
-
-        // ✅ TAGS PREVIEW UPDATE
-        if (previewTagsContainer) {
-            previewTagsContainer.innerHTML = ""; // Clear existing tags
-            let selectedTags = document.querySelectorAll("input[name='tags']:checked");
-
-            selectedTags.forEach(tag => {
-                let tagLabel = tag.nextElementSibling.innerText; // Get label text
-                let tagBadge = document.createElement("span");
-                tagBadge.className = "badge rounded-pill bg-primary me-1"; // Uniform color
-                tagBadge.innerText = tagLabel;
-                previewTagsContainer.appendChild(tagBadge);
-            });
-
-            console.log(`✅ Tags updated: ${selectedTags.length} selected`);
-        }
-
-        // ✅ DIVISIONS PREVIEW UPDATE
-        if (previewDivisionsContainer) {
-            previewDivisionsContainer.innerHTML = ""; // Clear previous divisions
-            let selectedDivisions = document.querySelectorAll("input[name='allowed_divisions']:checked");
-
-            if (selectedDivisions.length > 0) {
-                let divisionList = document.createElement("ul");
-                divisionList.className = "nav nav-pills justify-content-center mb-4"; // Match competition_detail.html style
-
-                selectedDivisions.forEach(division => {
-                    let divisionLabel = division.nextElementSibling.innerText; // Get label text
-                    let divisionItem = document.createElement("li");
-                    divisionItem.className = "nav-item";
-                    divisionItem.className = "division-preview-tab";
-                    
-                    let divisionLink = document.createElement("span");
-                    divisionLink.className = "nav-link active"; // Make it look like an active tab
-                    divisionLink.innerText = divisionLabel;
-
-                    divisionItem.appendChild(divisionLink);
-                    divisionList.appendChild(divisionItem);
-                });
-
-                previewDivisionsContainer.appendChild(divisionList);
-            }
-
-            console.log(`✅ Divisions updated: ${selectedDivisions.length} selected`);
-        }
-
-        // ✅ SOCIAL ICONS HANDLING
-        let facebookInput = document.getElementById('id_facebook_url');
-        let instagramInput = document.getElementById('id_instagram_url');
-        let facebookButton = document.getElementById('preview-facebook-btn');
-        let instagramButton = document.getElementById('preview-instagram-btn');
-        let socialSection = document.getElementById('social-section');
-
-        let fbValue = facebookInput.value.trim();
-        let igValue = instagramInput.value.trim();
-
-        let showFacebook = fbValue !== "" && (fbValue.startsWith("http://") || fbValue.startsWith("https://"));
-        let showInstagram = igValue !== "" && (igValue.startsWith("http://") || igValue.startsWith("https://"));
-
-        if (showFacebook) {
-            facebookButton.href = fbValue;
-            facebookButton.style.display = 'inline-block';
-            console.log("✅ Facebook button shown");
-        } else {
-            facebookButton.style.display = 'none';
-            console.log("❌ Facebook button hidden");
-        }
-
-        if (showInstagram) {
-            instagramButton.href = igValue;
-            instagramButton.style.display = 'inline-block';
-            console.log("✅ Instagram button shown");
-        } else {
-            instagramButton.style.display = 'none';
-            console.log("❌ Instagram button hidden");
-        }
-
-        if (showFacebook || showInstagram) {
-            socialSection.style.display = 'block';
-            console.log("✅ Social section displayed");
-        } else {
-            socialSection.style.display = 'none';
-            console.log("❌ Social section hidden");
-        }
-    }
-
-    function attachEventListeners() {
-        let formInputs = document.querySelectorAll(
-            '#id_name, #id_comp_date, #id_city, #id_state, #id_signup_price, #id_description, #id_image, #id_capacity, #id_federation, #id_facebook_url, #id_instagram_url'
-        );
-
-        formInputs.forEach(input => {
-            if (input) {
-                ['input', 'change', 'paste', 'keyup'].forEach(evt =>
-                    input.addEventListener(evt, updatePreview)
-                );
-            }
-        });
-
-        let federationSelect = document.getElementById('id_federation');
-        if (federationSelect) {
-            federationSelect.addEventListener('change', updatePreview);
-        }
-
-        let imageInput = document.getElementById('id_image');
-        if (imageInput) {
-            imageInput.addEventListener('change', updatePreview);
-        }
-
-        let divisionCheckboxes = document.querySelectorAll("input[name='allowed_divisions']");
-        divisionCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updatePreview);
-        });
-    }
-
-    updatePreview();
-    attachEventListeners();
-    console.log("✅ Event Listeners Attached");
-};
-
-</script>
-    
 {% endblock %}

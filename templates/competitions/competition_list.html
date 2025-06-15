@@ -14,6 +14,17 @@
       width: 100% !important; /* Full width on smaller screens (e.g., mobile) */
     }
   }
+  .card-footer {
+    font-size: 0.85rem;
+    background-color: #f8f9fa;
+}
+
+.card-footer .badge {
+    font-size: 0.75rem;
+    padding: 0.4em 0.6em;
+}
+
+
 </style>
 {% endblock %}
 
@@ -95,41 +106,45 @@
                     <p class="text-dark" style="font-size: 1rem;">{{ competition.description|safe|truncatewords_html:45 }}</p>
                     {% endif %}
                 </div>
-                <div class="card-footer d-flex justify-content-between align-items-center">
-    <small class="text-muted m-0">
-        <i class="bi bi-person-circle"></i>
-        <strong>Organizer:</strong>
-        {{ competition.organizer.first_name|capfirst }} {{ competition.organizer.last_name|capfirst }}
-    </small>
+                <div class="card-footer">
+    <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted m-0">
+            <i class="bi bi-person-circle"></i>
+            <strong>Organizer:</strong>
+            {{ competition.organizer.first_name|capfirst }} {{ competition.organizer.last_name|capfirst }}
+        </small>
 
-    {% if competition.federation %}
+        {% if competition.federation %}
         <div class="federation-logo">
             <img src="{{ competition.federation.logo.url }}"
                  alt="{{ competition.federation.name }} logo"
                  class="img-fluid"
-                 style="max-width: 100px; max-height: 50px;">
+                 style="max-height: 40px; max-width: 100px;">
         </div>
+        {% endif %}
+    </div>
 
-                    {% endif %}
-                        {% for tag in competition.tags.all %}
-                        <span class="badge 
-                            {% if tag.name == 'Pro/Am' %}bg-primary
-                            {% elif tag.name == 'Masters Only' %}bg-secondary
-                            {% elif tag.name == 'Novice Only' %}bg-success
-                            {% elif tag.name == 'Record Breaker' %}bg-warning
-                            {% elif tag.name == 'All-Women' %}bg-warning
-                            {% elif tag.name == 'Charity' %}bg-info
-                            {% elif tag.name == 'Qualifier' %}bg-dark
-                            {% elif tag.name == 'Championship' %}bg-primary
-                            {% elif tag.name == 'Highland Games' %}bg-success
-                            {% elif tag.name == 'Purse' %}bg-success
-                            {% else %}bg-info
-                            {% endif %}">
-                            {{ tag.name }}
-                        </span>
-                        {% endfor %}
-                    </small>
-                </div>
+    <div class="d-flex flex-wrap gap-1 mt-2">
+        {% for tag in competition.tags.all %}
+        <span class="badge
+            {% if tag.name == 'Pro/Am' %}bg-primary
+            {% elif tag.name == 'Masters Only' %}bg-secondary
+            {% elif tag.name == 'Natural Stones' %}bg-success
+            {% elif tag.name == 'Record Breaker' %}bg-warning
+            {% elif tag.name == 'All-Women' %}bg-warning
+            {% elif tag.name == 'Charity Event' %}bg-info
+            {% elif tag.name == 'Grip Focused' %}bg-dark
+            {% elif tag.name == 'Novice Only' %}bg-primary
+            {% elif tag.name == 'Pro/AM' %}bg-success
+            {% elif tag.name == 'Prize Money' %}bg-success
+            {% else %}bg-info
+            {% endif %}">
+            {{ tag.name }}
+        </span>
+        {% endfor %}
+    </div>
+</div>
+
             </div>
         </div>
             {% endif %}

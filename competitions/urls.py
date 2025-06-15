@@ -1,4 +1,4 @@
-from django.urls import path, re_path
+from django.urls import path, include
 from . import views
 from .consumers import ScoreUpdateConsumer
 from competitions.views import SponsorEditView, OrganizerCompetitionsView, ManageCompetitionView, AthleteListView, \
@@ -132,4 +132,5 @@ urlpatterns = [
     path('organizer/implements/add/', ImplementCreateView.as_view(), name='implement_add'),
     path('organizer/implements/<int:pk>/edit/', ImplementUpdateView.as_view(), name='implement_edit'),
     path('organizer/implements/<int:pk>/delete/', ImplementDeleteView.as_view(), name='implement_delete'),
+    path("select2/", include("django_select2.urls")),
 ]
