@@ -225,9 +225,12 @@ footer {
               <li class="nav-item">
               <a class="nav-link" href="{% url 'competitions:organizer_competitions' %}">My Competitions</a>
             </li>
-                  <a href="{% url 'competitions:login_stripe_express' %}" class="nav-link">
-  Manage Payouts & Account
-</a>
+                  {% if user.organizer_profile.stripe_account_id %}
+    <a href="{% url 'competitions:login_stripe_express' %}" class="nav-link">Manage Stripe Account</a>
+{% else %}
+    <a href="{% url 'competitions:connect' %}" class="nav-link">Connect Bank</a>
+{% endif %}
+
 
                   {% endif %}
             <li class="nav-item">

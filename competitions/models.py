@@ -438,6 +438,8 @@ class AthleteEventNote(models.Model):
     note_type = models.CharField(max_length=100, blank=True,
                                  help_text="Type of note (e.g., 'yoke_height', 'opening_weight')")
     note_value = models.CharField(max_length=255, blank=True)
+    note_value_float = models.FloatField(null=True, blank=True)
+    attempt_number = models.PositiveIntegerField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

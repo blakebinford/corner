@@ -21,7 +21,7 @@
                                 {% for event in events %}
                                     <a href="{% url 'competitions:competition_run_order' competition.pk event.pk %}"
                                        class="list-group-item list-group-item-action {% if event == current_event %}active{% endif %}">
-                                        {{ event.name }}
+                                        {{ event.name|title }}
                                     </a>
                                 {% endfor %}
                             </div>
@@ -33,18 +33,25 @@
 
         <div class="col-md-10 main-content">
             {% if current_event %}
-                <h2>{{ current_event.name }} Run Order</h2>
+                <h2>{{ current_event.name|title }} Run Order</h2>
 
                 <!-- Event Controls -->
                 <div class="row mb-3">
                     <div class="col">
-                        <form method="post" class="d-inline">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="generate_run_order">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-sync"></i> Generate Run Order
-                            </button>
-                        </form>
+                       <form method="post" class="d-flex align-items-center gap-2">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="generate_run_order">
+
+    <select name="run_order_method" class="form-select w-auto">
+        <option value="division_signup">Division Order (Default)</option>
+        <option value="last_man_standing">Last Man Standing Order</option>
+    </select>
+
+    <button type="submit" class="btn btn-primary">
+        <i class="fas fa-sync"></i> Generate Run Order
+    </button>
+</form>
+
                     </div>
                 </div>
 
@@ -111,9 +118,19 @@
                                                                                         <div class="alert alert-info mb-0">
                                                                                             <strong>Notes:</strong>
                                                                                             <ul class="list-unstyled mb-0">
-                                                                                                {% for note_type, note_value in event_specific_notes.items %}
-                                                                                                    <li><strong>{{ note_type|title }}:</strong> {{ note_value }}</li>
-                                                                                                {% endfor %}
+                                                                                      {% for note in event_specific_notes.next_attempt %}
+                                                                                            <li><strong>Next Attempt (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+                                                                                        {% endfor %}
+
+                                                                                                {% if event_specific_notes.next_attempt %}
+                                                                                                  <li><strong>Next Attempt:</strong> {{ event_specific_notes.next_attempt.0 }}</li>
+                                                                                                {% endif %}
+                                                                                                {% if event_specific_notes.general %}
+                                                                                                  {% for note in event_specific_notes.general %}
+                                                                                                    <li><strong>Note:</strong> {{ note }}</li>
+                                                                                                  {% endfor %}
+                                                                                                {% endif %}
+
                                                                                             </ul>
                                                                                         </div>
                                                                                     {% endif %}
@@ -147,9 +164,19 @@
                                                                                         <div class="alert alert-info mb-0">
                                                                                             <strong>Notes:</strong>
                                                                                             <ul class="list-unstyled mb-0">
-                                                                                                {% for note_type, note_value in event_specific_notes.items %}
-                                                                                                    <li><strong>{{ note_type|title }}:</strong> {{ note_value }}</li>
-                                                                                                {% endfor %}
+                                                                                                {% for note in event_specific_notes.opening_weight %}
+    <li><strong>Opening Weight (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+{% endfor %}
+
+{% for note in event_specific_notes.next_attempt %}
+    <li><strong>Next Attempt (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+{% endfor %}
+
+{% for note in event_specific_notes.general %}
+    <li><strong>Note:</strong> {{ note.value }}</li>
+{% endfor %}
+
+
                                                                                             </ul>
                                                                                         </div>
                                                                                     {% endif %}
@@ -169,6 +196,7 @@
                                                                 {% csrf_token %}
                                                                 <input type="hidden" name="action" value="complete_current_lifter">
                                                                 <input type="hidden" name="run_order_id" value="{{ lane_data.current.pk }}">
+
                                                                 <button type="submit" class="btn btn-success">
                                                                     <i class="fas fa-check-circle"></i> Complete Lift & Advance
                                                                 </button>
@@ -267,9 +295,18 @@
                                                                                             </div>
                                                                                             <div class="card-body py-2">
                                                                                                 <ul class="list-unstyled mb-0">
-                                                                                                    {% for note_type, note_value in event_specific_notes.items %}
-                                                                                                        <li><strong>{{ note_type|title }}:</strong> {{ note_value }}</li>
-                                                                                                    {% endfor %}
+                                                                                                  {% for note in event_specific_notes.opening_weight %}
+    <li><strong>Opening Weight (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+{% endfor %}
+
+{% for note in event_specific_notes.next_attempt %}
+    <li><strong>Next Attempt (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+{% endfor %}
+
+{% for note in event_specific_notes.general %}
+    <li><strong>Note:</strong> {{ note.value }}</li>
+{% endfor %}
+
                                                                                                 </ul>
                                                                                             </div>
                                                                                         </div>
@@ -328,9 +365,18 @@
                                                                                             </div>
                                                                                             <div class="card-body py-2">
                                                                                                 <ul class="list-unstyled mb-0">
-                                                                                                    {% for note_type, note_value in event_specific_notes.items %}
-                                                                                                        <li><strong>{{ note_type|title }}:</strong> {{ note_value }}</li>
-                                                                                                    {% endfor %}
+                                                                                                    {% if event_specific_notes.opening_weight %}
+    <li><strong>Opening Weight:</strong> {{ event_specific_notes.opening_weight.0 }}</li>
+{% endif %}
+{% if event_specific_notes.next_attempt %}
+    <li><strong>Next Attempt:</strong> {{ event_specific_notes.next_attempt.0 }}</li>
+{% endif %}
+{% if event_specific_notes.general %}
+    {% for note in event_specific_notes.general %}
+        <li><strong>Note:</strong> {{ note }}</li>
+    {% endfor %}
+{% endif %}
+
                                                                                                 </ul>
                                                                                             </div>
                                                                                         </div>
@@ -371,6 +417,7 @@
                                                                     <th>Order</th>
                                                                     <th>Athlete</th>
                                                                     <th>Division</th>
+                                                                    <th>Gender</th>
                                                                     <th>Weight Class</th>
                                                                     <th>Heat</th>
                                                                     <th>Notes</th>
@@ -383,6 +430,7 @@
                                                                         <td>{{ pending.order }}</td>
                                                                         <td>{{ pending.athlete_competition.athlete.user.get_full_name }}</td>
                                                                         <td>{{ pending.athlete_competition.division.name|capfirst }}</td>
+                                                                        <td>{{ pending.athlete_competition.athlete.gender|capfirst }}</td>
                                                                         <td>{{ pending.athlete_competition.weight_class.weight_d }}{{ pending.athlete_competition.weight_class.name }}</td>
                                                                         <td>{{ pending.heat_number }}</td>
                                                                         <td>
@@ -516,9 +564,18 @@
                                                                             </div>
                                                                             <div class="card-body py-2">
                                                                                 <ul class="list-unstyled mb-0">
-                                                                                    {% for note_type, note_value in event_specific_notes.items %}
-                                                                                        <li><strong>{{ note_type|title }}:</strong> {{ note_value }}</li>
-                                                                                    {% endfor %}
+                                                                                 {% for note in event_specific_notes.opening_weight %}
+    <li><strong>Opening Weight (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+{% endfor %}
+
+{% for note in event_specific_notes.next_attempt %}
+    <li><strong>Next Attempt (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+{% endfor %}
+
+{% for note in event_specific_notes.general %}
+    <li><strong>Note:</strong> {{ note.value }}</li>
+{% endfor %}
+
                                                                                 </ul>
                                                                             </div>
                                                                         </div>
@@ -534,6 +591,13 @@
                                                     {% csrf_token %}
                                                     <input type="hidden" name="action" value="complete_current_lifter">
                                                     <input type="hidden" name="run_order_id" value="{{ lane_data.current.pk }}">
+                                                    <div class="form-check mt-2">
+  <input class="form-check-input" type="checkbox" name="mark_as_done" id="mark_as_done">
+  <label class="form-check-label" for="mark_as_done">
+    Mark athlete as done (no more attempts)
+  </label>
+</div>
+
                                                     <button type="submit" class="btn btn-success w-100">
                                                         <i class="fas fa-check-circle"></i> Complete Lift & Advance
                                                     </button>
@@ -576,9 +640,18 @@
                                                                             </div>
                                                                             <div class="card-body py-2">
                                                                                 <ul class="list-unstyled mb-0">
-                                                                                    {% for note_type, note_value in event_specific_notes.items %}
-                                                                                        <li><strong>{{ note_type|title }}:</strong> {{ note_value }}</li>
-                                                                                    {% endfor %}
+                                                                                    {% for note in event_specific_notes.opening_weight %}
+    <li><strong>Opening Weight (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+{% endfor %}
+
+{% for note in event_specific_notes.next_attempt %}
+    <li><strong>Next Attempt (Attempt {{ note.attempt }}):</strong> {{ note.value }}</li>
+{% endfor %}
+
+{% for note in event_specific_notes.general %}
+    <li><strong>Note:</strong> {{ note.value }}</li>
+{% endfor %}
+
                                                                                 </ul>
                                                                             </div>
                                                                         </div>
@@ -617,6 +690,7 @@
                                                             <th>Order</th>
                                                             <th>Athlete</th>
                                                             <th>Division</th>
+                                                            <th>Gender</th>
                                                             <th>Weight Class</th>
                                                             <th>Notes</th>
                                                             <th>Actions</th>
@@ -628,6 +702,7 @@
                                                                 <td>{{ pending.order }}</td>
                                                                 <td>{{ pending.athlete_competition.athlete.user.get_full_name }}</td>
                                                                 <td>{{ pending.athlete_competition.division.name|capfirst }}</td>
+                                                                <td>{{ pending.athlete_competition.athlete.gender|capfirst }}</td>
                                                                 <td>{{ pending.athlete_competition.weight_class.weight_d }}{{ pending.athlete_competition.weight_class.name }}</td>
                                                                 <td>
                                                                     <button type="button"
@@ -721,141 +796,13 @@
                         {% endwith %}
                     {% endif %}
 
-                    <!-- Notes Modals (unchanged) -->
+                    <!-- Notes Modals -->
                     {% for run_order in run_orders %}
-                        <div class="modal fade" id="notesModal{{ run_order.athlete_competition.pk }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">
-                                            Event Notes: {{ run_order.athlete_competition.athlete.user.get_full_name }}
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="accordion" id="eventNotesAccordion{{ run_order.athlete_competition.pk }}">
-                                            {% for event in events %}
-                                                <div class="accordion-item">
-                                                    <h2 class="accordion-header" id="event{{ event.pk }}Heading{{ run_order.athlete_competition.pk }}">
-                                                        <button class="accordion-button {% if event != current_event %}collapsed{% endif %}" type="button"
-                                                            data-bs-toggle="collapse"
-                                                            data-bs-target="#event{{ event.pk }}Collapse{{ run_order.athlete_competition.pk }}">
-                                                            {{ event.name }} ({{ event.get_weight_type_display }})
-                                                        </button>
-                                                    </h2>
-                                                    <div id="event{{ event.pk }}Collapse{{ run_order.athlete_competition.pk }}"
-                                                         class="accordion-collapse collapse {% if event == current_event %}show{% endif %}"
-                                                         data-bs-parent="#eventNotesAccordion{{ run_order.athlete_competition.pk }}">
-                                                        <div class="accordion-body">
-                                                            <div class="notes-container" data-athlete="{{ run_order.athlete_competition.pk }}" data-event="{{ event.pk }}">
-                                                                {% with athlete_notes=event_notes|get_item:run_order.athlete_competition.pk %}
-                                                                    {% with event_specific_notes=athlete_notes|get_item:event.pk %}
-                                                                        {% if event_specific_notes %}
-                                                                            {% for note_type, note_value in event_specific_notes.items %}
-                                                                                <div class="note-row mb-2 row">
-                                                                                    <div class="col-md-4">
-                                                                                        <select name="note_type_{{ run_order.athlete_competition.pk }}_{{ event.pk }}" class="form-select note-type-select">
-                                                                                            <option value="">-- Select Type --</option>
-                                                                                            <option value="general" {% if note_type == 'general' %}selected{% endif %}>General Note</option>
-                                                                                            <option value="equipment" {% if note_type == 'equipment' %}selected{% endif %}>Equipment Note</option>
-                                                                                            {% if event.weight_type == 'max' %}
-                                                                                                <option value="opening_weight" {% if note_type == 'opening_weight' %}selected{% endif %}>Opening Weight</option>
-                                                                                                <option value="next_attempt" {% if note_type == 'next_attempt' %}selected{% endif %}>Next Attempt</option>
-                                                                                                <option value="rack_height" {% if note_type == 'rack_height' %}selected{% endif %}>Rack Height</option>
-                                                                                            {% elif event.weight_type == 'time' %}
-                                                                                                <option value="target_time" {% if note_type == 'target_time' %}selected{% endif %}>Target Time</option>
-                                                                                                <option value="strategy" {% if note_type == 'strategy' %}selected{% endif %}>Strategy</option>
-                                                                                            {% elif event.weight_type == 'distance' %}
-                                                                                                <option value="implement_selection" {% if note_type == 'implement_selection' %}selected{% endif %}>Implement Selection</option>
-                                                                                            {% elif event.weight_type == 'reps' %}
-                                                                                                <option value="target_reps" {% if note_type == 'target_reps' %}selected{% endif %}>Target Reps</option>
-                                                                                            {% endif %}
-                                                                                            <option value="custom" {% if note_type == 'custom' %}selected{% endif %}>Custom</option>
-                                                                                        </select>
-                                                                                    </div>
-                                                                                    <div class="col-md-6">
-                                                                                        <input type="text"
-                                                                                               name="note_value_{{ run_order.athlete_competition.pk }}_{{ event.pk }}"
-                                                                                               class="form-control"
-                                                                                               placeholder="Note value"
-                                                                                               value="{{ note_value }}">
-                                                                                    </div>
-                                                                                    <div class="col-md-2">
-                                                                                        <button type="button" class="btn btn-danger btn-sm remove-note">
-                                                                                            <i class="bi bi-trash"></i>
-                                                                                        </button>
-                                                                                    </div>
-                                                                                </div>
-                                                                            {% endfor %}
-                                                                        {% else %}
-                                                                            <div class="note-row mb-2 row">
-                                                                                <div class="col-md-4">
-                                                                                    <select name="note_type_{{ run_order.athlete_competition.pk }}_{{ event.pk }}" class="form-select note-type-select">
-                                                                                        <option value="">-- Select Type --</option>
-                                                                                        <option value="general">General Note</option>
-                                                                                        <option value="equipment">Equipment Note</option>
-                                                                                        {% if event.weight_type == 'max' %}
-                                                                                            <option value="opening_weight">Opening Weight</option>
-                                                                                            <option value="next_attempt">Next Attempt</option>
-                                                                                            <option value="rack_height">Rack Height</option>
-                                                                                        {% elif event.weight_type == 'time' %}
-                                                                                            <option value="target_time">Target Time</option>
-                                                                                            <option value="strategy">Strategy</option>
-                                                                                        {% elif event.weight_type == 'distance' %}
-                                                                                            <option value="implement_selection">Implement Selection</option>
-                                                                                        {% elif event.weight_type == 'reps' %}
-                                                                                            <option value="target_reps">Target Reps</option>
-                                                                                        {% endif %}
-                                                                                        <option value="custom">Custom</option>
-                                                                                    </select>
-                                                                                </div>
-                                                                                <div class="col-md-6">
-                                                                                    <input type="text"
-                                                                                           name="note_value_{{ run_order.athlete_competition.pk }}_{{ event.pk }}"
-                                                                                           class="form-control"
-                                                                                           placeholder="Note value">
-                                                                                </div>
-                                                                                <div class="col-md-2">
-                                                                                    <button type="button" class="btn btn-danger btn-sm remove-note">
-                                                                                        <i class="bi bi-trash"></i>
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
-                                                                        {% endif %}
-                                                                    {% endwith %}
-                                                                {% endwith %}
-                                                                <button type="button" class="btn btn-outline-success btn-sm add-note-btn mt-2"
-                                                                        data-athlete="{{ run_order.athlete_competition.pk }}"
-                                                                        data-event="{{ event.pk }}">
-                                                                    <i class="bi bi-plus-circle"></i> Add Note
-                                                                </button>
-                                                                <div class="mt-3">
-                                                                    <form method="post" class="save-note-form">
-                                                                        {% csrf_token %}
-                                                                        <input type="hidden" name="action" value="save_event_note">
-                                                                        <input type="hidden" name="athlete_competition_id" value="{{ run_order.athlete_competition.pk }}">
-                                                                        <input type="hidden" name="event_pk" value="{{ event.pk }}">
-                                                                        <input type="hidden" name="note_type" class="note-type-hidden">
-                                                                        <input type="hidden" name="note_value" class="note-value-hidden">
-                                                                        <button type="submit" class="btn btn-primary save-notes-btn">
-                                                                            <i class="bi bi-save"></i> Save Notes
-                                                                        </button>
-                                                                    </form>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                      {% for event in events %}
+                        {% include "competitions/partials/notes_modal.html" %}
+                      {% endfor %}
                     {% endfor %}
+
                 {% else %}
                     <div class="alert alert-info">
                         No run order has been generated for this event yet. Click the "Generate Run Order" button to create one.
@@ -936,7 +883,7 @@
 </style>
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Add Note Button Click Handler
@@ -1069,3 +1016,5 @@
     });
 </script>
 {% endblock %}
+
+

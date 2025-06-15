@@ -5,7 +5,7 @@ import os
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
@@ -118,13 +118,30 @@ def onboard_complete(request):
         messages.warning(request, "Your Stripe onboarding is still incomplete.")
     return redirect("competitions:organizer_competitions")
 
+from django.contrib import messages
+from django.http import HttpResponseBadRequest
+from django.shortcuts import redirect
+import stripe
+
 @login_required
 def login_stripe_express(request):
-    # grab the connected‐account ID off your OrganizerProfile
-    acct_id = request.user.organizer_profile.stripe_account_id
+    user = request.user
+    try:
+        organizer = user.organizer_profile
+    except AttributeError:
+        return HttpResponseBadRequest("Organizer profile required.")
 
-    # create a short‐lived login link to Stripe Express
-    link = stripe.Account.create_login_link(acct_id)
+    if not organizer.stripe_account_id:
+        messages.error(request, "You must first connect your Stripe account.")
+        return redirect('update_organizer_profile')  # or wherever your Stripe onboarding starts
 
-    # redirect the user straight into their Express dashboard
-    return redirect(link.url)
+    try:
+        acct_id = str(organizer.stripe_account_id)
+        link = stripe.Account.create_login_link(acct_id)
+        return redirect(link.url)
+    except stripe.error.InvalidRequestError as e:
+        messages.error(request, f"Stripe error: {e.user_message or str(e)}")
+    except Exception as e:
+        messages.error(request, f"Unexpected error: {str(e)}")
+
+    return redirect('dashboard')  # or fallback route
