@@ -304,7 +304,7 @@ class AssignWeightClassesView(View):
         )
 
     def post(self, request, *args, **kwargs):
-        competition = get_object_or_404(Competition, pk=kwargs['competition_id'])
+        competition = get_object_or_404(Competition, pk=kwargs['pk'])
         weight_class_ids = request.POST.getlist('weight_classes')
         division_id = request.POST.get('division')
         division = get_object_or_404(Division, pk=division_id)
