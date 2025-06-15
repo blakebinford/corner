@@ -70,7 +70,7 @@ class Competition(models.Model):
     # Social Media
     facebook_url = models.URLField(blank=True, null=True, help_text="Facebook page URL for the competition")
     instagram_url = models.URLField(blank=True, null=True, help_text="Instagram profile URL for the competition")
-
+    tags = models.ManyToManyField(Tag, blank=True)
     # Registration & Pricing
     registration_deadline = models.DateTimeField()
     signup_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00,
