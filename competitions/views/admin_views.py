@@ -304,21 +304,29 @@ class AssignWeightClassesView(View):
         )
 
     def post(self, request, *args, **kwargs):
-        """
-        Processes the weight class assignment to divisions in the competition.
-        """
-        competition = get_object_or_404(Competition, pk=self.kwargs.get("pk"))
+        competition = get_object_or_404(Competition, pk=kwargs['competition_id'])
+        weight_class_ids = request.POST.getlist('weight_classes')
+        division_id = request.POST.get('division')
+        division = get_object_or_404(Division, pk=division_id)
 
-        for key, weight_class_ids in request.POST.lists():
-            if key.startswith("division_"):
-                division_id = key.replace("division_", "")
-                division = get_object_or_404(Division, pk=division_id)
+        for wc_id in weight_class_ids:
+            wc = get_object_or_404(WeightClass, pk=wc_id)
+            # Prevent uniqueness conflict
+            existing = WeightClass.objects.filter(
+                name=wc.name,
+                gender=wc.gender,
+                division=division
+            ).exclude(pk=wc.pk).first()
 
-                # Assign selected weight classes to the division
-                WeightClass.objects.filter(pk__in=weight_class_ids).update(division=division)
+            if existing:
+                # Optionally log or notify
+                continue  # Skip conflicting update
 
-        messages.success(request, "Weight classes were successfully assigned to divisions!")
-        return redirect("competitions:manage_competition", competition_pk=competition.pk)
+            wc.division = division
+            wc.save()
+
+        messages.success(request, "Weight classes successfully assigned.")
+        return redirect('admin_competition_detail', pk=competition.pk)
 
 class CombineWeightClassesView(LoginRequiredMixin, UserPassesTestMixin, generic.FormView):
     template_name = "competitions/combine_weight_classes.html"
