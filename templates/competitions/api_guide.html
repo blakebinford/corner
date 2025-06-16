@@ -106,6 +106,137 @@
   ]
 }
     </pre>
+<!-- Events -->
+    <hr class="my-5">
+    <h2 class="h4 fw-bold mb-3">List Events for a Competition</h2>
+    <p><strong>Permission:</strong> Token authentication required.</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>GET /api/competitions/events?competitionID=&lt;competitionID&gt;</code>
+    </div>
+    <h5 class="fw-semibold">Required Parameters:</h5>
+    <ul>
+      <li><strong>competitionID</strong> (integer): The ID of the competition.</li>
+    </ul>
+    <h5 class="fw-semibold">Success Response:</h5>
+    <pre class="bg-dark text-white p-3 rounded small">[
+  { "id": 21, "name": "Axle Clean & Press (3-attempt max)" },
+  { "id": 22, "name": "18\" Deadlift (3-attempt max)" },
+  { "id": 23, "name": "Seated Truck Pull" },
+  { "id": 24, "name": "2\" T-Bar Hold for Time" },
+  { "id": 25, "name": "Wheel of Pain (60s max push)" }
+]</pre>
+
+    <!-- Weight Classes -->
+    <hr class="my-5">
+    <h2 class="h4 fw-bold mb-3">List Weight-Classes for a Competition</h2>
+    <p><strong>Permission:</strong> Token authentication required.</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>GET /api/competitions/weight-classes?competitionID=&lt;competitionID&gt;</code>
+    </div>
+    <h5 class="fw-semibold">Required Parameters:</h5>
+    <ul>
+      <li><strong>competitionID</strong> (integer): The ID of the competition.</li>
+    </ul>
+    <h5 class="fw-semibold">Success Response:</h5>
+    <pre class="bg-dark text-white p-3 rounded small">[
+  { "id": 5,  "name": "148 – Lightweight Men" },
+  { "id": 6,  "name": "181 – Middleweight Men" },
+  { "id": 7,  "name": "231.5+ – Open Men" },
+  { "id": 8,  "name": "90 – Masters 40+ Men" }
+]</pre>
+
+    <!-- Leaderboard -->
+    <hr class="my-5">
+    <h2 class="h4 fw-bold mb-3">Leaderboard</h2>
+    <p><strong>Permission:</strong> Token authentication required.</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>GET /api/competition/leaderboard?competitionID=&lt;competitionID&gt;&weightClassID=&lt;weightClassID&gt;&listSize=&lt;n&gt;</code>
+    </div>
+    <h5 class="fw-semibold">Required Parameters:</h5>
+    <ul>
+      <li><strong>competitionID</strong> (integer)</li>
+      <li><strong>weightClassID</strong> (integer)</li>
+      <li><strong>listSize</strong> (integer, optional; default 10)</li>
+    </ul>
+    <h5 class="fw-semibold">Success Response:</h5>
+    <pre class="bg-dark text-white p-3 rounded small">[
+  {
+    "className":  "Open – 231.5 Men",
+    "position":   1,
+    "athleteName":"BILL BRIGGS",
+    "points":     92
+  },
+  {
+    "className":  "Open – 231.5 Men",
+    "position":   2,
+    "athleteName":"HEADLEY JACK",
+    "points":     87
+  },
+  {
+    "className":  "Open – 231.5 Men",
+    "position":   3,
+    "athleteName":"COSMO JOYCE",
+    "points":     85
+  }
+]</pre>
+
+    <!-- Current Competitors -->
+    <hr class="my-5">
+    <h2 class="h4 fw-bold mb-3">Current Competitors</h2>
+    <p><strong>Permission:</strong> Token authentication required.</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>GET /api/competition/current-competitors?competitionID=&lt;competitionID&gt;&eventID=&lt;eventID&gt;</code>
+    </div>
+    <h5 class="fw-semibold">Required Parameters:</h5>
+    <ul>
+      <li><strong>competitionID</strong> (integer)</li>
+      <li><strong>eventID</strong> (integer, optional; defaults to current event)</li>
+    </ul>
+    <h5 class="fw-semibold">Success Response:</h5>
+    <pre class="bg-dark text-white p-3 rounded small">[
+  {
+    "eventID":   22,
+    "eventName": "18\" Deadlift (3-attempt max)",
+    "lane":      2,
+    "name":      "MICHAEL ANDERSON",
+    "instagram": "@MANDERSON0326",
+    "height":    "5FT 10IN",
+    "age":       33,
+    "state":     "TX",
+    "team":      "LIGHTNING FITNESS",
+    "imageUrl":  "https://media.atlascompetition.com/avatars/manderson.png"
+  }
+]</pre>
+
+    <!-- Up-Next Competitors -->
+    <hr class="my-5">
+    <h2 class="h4 fw-bold mb-3">Up-Next Competitors</h2>
+    <p><strong>Permission:</strong> Token authentication required.</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>GET /api/competition/up-next-competitors?competitionID=&lt;competitionID&gt;&eventID=&lt;eventID&gt;</code>
+    </div>
+    <h5 class="fw-semibold">Required Parameters:</h5>
+    <ul>
+      <li><strong>competitionID</strong> (integer)</li>
+      <li><strong>eventID</strong> (integer, optional; defaults to current event)</li>
+    </ul>
+    <h5 class="fw-semibold">Success Response:</h5>
+    <pre class="bg-dark text-white p-3 rounded small">[
+  {
+    "eventID":   22,
+    "eventName": "18\" Deadlift (3-attempt max)",
+    "lane":      1,
+    "name":      "JANE DOE",
+    "instagram": "@JDOE_84",
+    "height":    "5FT 7IN",
+    "age":       29,
+    "state":     "CA",
+    "team":      "WEST COAST STRONG",
+    "imageUrl":  "https://media.atlascompetition.com/avatars/jdoe.png"
+  }
+]</pre>
+
+    <!-- continue with your existing API Docs / Support sections -->
 
     <hr class="my-5">
 
