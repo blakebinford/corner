@@ -10,7 +10,7 @@
 
   <div class="card shadow-lg border-0 p-4">
     <h2 class="h4 fw-bold mb-3">Authentication</h2>
-      <p>After creating an account, Atlas will generate an <a href="https://atlascompetition.com/api/get-token/">API token</a> for you. You can retrieve it at the following link:</p>
+      <p>Most API endpoints require a token. After creating an account, Atlas will generate an <a href="https://atlascompetition.com/api/get-token/">API token</a> for you. You can retrieve it at the following url:</p>
     <div class="bg-light p-3 rounded mb-3"><code>https://atlascompetition.com/api/get-token/</code></div>
     <p>Include this token in the header of all API requests:</p>
     <div class="bg-light p-3 rounded"><code>Authorization: Token &lt;your-api-token&gt;</code></div>
@@ -106,137 +106,119 @@
   ]
 }
     </pre>
-<!-- Events -->
+ <div class="card shadow-lg border-0 p-4">
+
+    <!-- Authentication (for non–vMix endpoints) -->
+    <h2 class="h4 fw-bold mb-3">Authentication</h2>
+    <p>Most API endpoints require a token; get yours at:</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>https://atlascompetition.com/api/get-token/</code>
+    </div>
+    <p>Then send:</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>Authorization: Token &lt;your-api-token&gt;</code>
+    </div>
+
     <hr class="my-5">
+
+    <!-- Events (public) -->
     <h2 class="h4 fw-bold mb-3">List Events for a Competition</h2>
-    <p><strong>Permission:</strong> Token authentication required.</p>
+    <p><strong>Access:</strong> Public (no auth required)</p>
     <div class="bg-light p-3 rounded mb-3">
       <code>GET /api/competitions/events?competitionID=&lt;competitionID&gt;</code>
     </div>
-    <h5 class="fw-semibold">Required Parameters:</h5>
     <ul>
-      <li><strong>competitionID</strong> (integer): The ID of the competition.</li>
+      <li><strong>competitionID</strong> (integer, required)</li>
     </ul>
-    <h5 class="fw-semibold">Success Response:</h5>
     <pre class="bg-dark text-white p-3 rounded small">[
   { "id": 21, "name": "Axle Clean & Press (3-attempt max)" },
   { "id": 22, "name": "18\" Deadlift (3-attempt max)" },
-  { "id": 23, "name": "Seated Truck Pull" },
-  { "id": 24, "name": "2\" T-Bar Hold for Time" },
-  { "id": 25, "name": "Wheel of Pain (60s max push)" }
+  …
 ]</pre>
 
-    <!-- Weight Classes -->
     <hr class="my-5">
+
+    <!-- Weight-classes (public) -->
     <h2 class="h4 fw-bold mb-3">List Weight-Classes for a Competition</h2>
-    <p><strong>Permission:</strong> Token authentication required.</p>
+    <p><strong>Access:</strong> Public (no auth required)</p>
     <div class="bg-light p-3 rounded mb-3">
       <code>GET /api/competitions/weight-classes?competitionID=&lt;competitionID&gt;</code>
     </div>
-    <h5 class="fw-semibold">Required Parameters:</h5>
     <ul>
-      <li><strong>competitionID</strong> (integer): The ID of the competition.</li>
+      <li><strong>competitionID</strong> (integer, required)</li>
     </ul>
-    <h5 class="fw-semibold">Success Response:</h5>
     <pre class="bg-dark text-white p-3 rounded small">[
   { "id": 5,  "name": "148 – Lightweight Men" },
   { "id": 6,  "name": "181 – Middleweight Men" },
-  { "id": 7,  "name": "231.5+ – Open Men" },
-  { "id": 8,  "name": "90 – Masters 40+ Men" }
+  …
 ]</pre>
 
-    <!-- Leaderboard -->
     <hr class="my-5">
+
+    <!-- Leaderboard (public) -->
     <h2 class="h4 fw-bold mb-3">Leaderboard</h2>
-    <p><strong>Permission:</strong> Token authentication required.</p>
+    <p><strong>Access:</strong> Public (no auth required)</p>
     <div class="bg-light p-3 rounded mb-3">
       <code>GET /api/competition/leaderboard?competitionID=&lt;competitionID&gt;&weightClassID=&lt;weightClassID&gt;&listSize=&lt;n&gt;</code>
     </div>
-    <h5 class="fw-semibold">Required Parameters:</h5>
     <ul>
-      <li><strong>competitionID</strong> (integer)</li>
-      <li><strong>weightClassID</strong> (integer)</li>
+      <li><strong>competitionID</strong> (integer, required)</li>
+      <li><strong>weightClassID</strong> (integer, required)</li>
       <li><strong>listSize</strong> (integer, optional; default 10)</li>
     </ul>
-    <h5 class="fw-semibold">Success Response:</h5>
     <pre class="bg-dark text-white p-3 rounded small">[
   {
-    "className":  "Open – 231.5 Men",
-    "position":   1,
+    "className":"Open – 231.5 Men",
+    "position":1,
     "athleteName":"BILL BRIGGS",
-    "points":     92
+    "points":28
   },
-  {
-    "className":  "Open – 231.5 Men",
-    "position":   2,
-    "athleteName":"HEADLEY JACK",
-    "points":     87
-  },
-  {
-    "className":  "Open – 231.5 Men",
-    "position":   3,
-    "athleteName":"COSMO JOYCE",
-    "points":     85
-  }
+  …
 ]</pre>
 
-    <!-- Current Competitors -->
     <hr class="my-5">
+
+    <!-- Current Competitors (public) -->
     <h2 class="h4 fw-bold mb-3">Current Competitors</h2>
-    <p><strong>Permission:</strong> Token authentication required.</p>
+    <p><strong>Access:</strong> Public (no auth required)</p>
     <div class="bg-light p-3 rounded mb-3">
       <code>GET /api/competition/current-competitors?competitionID=&lt;competitionID&gt;&eventID=&lt;eventID&gt;</code>
     </div>
-    <h5 class="fw-semibold">Required Parameters:</h5>
     <ul>
-      <li><strong>competitionID</strong> (integer)</li>
-      <li><strong>eventID</strong> (integer, optional; defaults to current event)</li>
+      <li><strong>competitionID</strong> (integer, required)</li>
+      <li><strong>eventID</strong> (integer, optional; defaults to “current” event)</li>
     </ul>
-    <h5 class="fw-semibold">Success Response:</h5>
     <pre class="bg-dark text-white p-3 rounded small">[
   {
-    "eventID":   22,
-    "eventName": "18\" Deadlift (3-attempt max)",
-    "lane":      2,
-    "name":      "MICHAEL ANDERSON",
-    "instagram": "@MANDERSON0326",
-    "height":    "5FT 10IN",
-    "age":       33,
-    "state":     "TX",
-    "team":      "LIGHTNING FITNESS",
-    "imageUrl":  "https://media.atlascompetition.com/avatars/manderson.png"
+    "eventID":22,
+    "eventName":"18\" Deadlift (3-attempt max)",
+    "lane":2,
+    "name":"MICHAEL ANDERSON",
+    …
   }
 ]</pre>
 
-    <!-- Up-Next Competitors -->
     <hr class="my-5">
+
+    <!-- Up-Next Competitors (public) -->
     <h2 class="h4 fw-bold mb-3">Up-Next Competitors</h2>
-    <p><strong>Permission:</strong> Token authentication required.</p>
+    <p><strong>Access:</strong> Public (no auth required)</p>
     <div class="bg-light p-3 rounded mb-3">
       <code>GET /api/competition/up-next-competitors?competitionID=&lt;competitionID&gt;&eventID=&lt;eventID&gt;</code>
     </div>
-    <h5 class="fw-semibold">Required Parameters:</h5>
     <ul>
-      <li><strong>competitionID</strong> (integer)</li>
-      <li><strong>eventID</strong> (integer, optional; defaults to current event)</li>
+      <li><strong>competitionID</strong> (integer, required)</li>
+      <li><strong>eventID</strong> (integer, optional; defaults to “current” event)</li>
     </ul>
-    <h5 class="fw-semibold">Success Response:</h5>
     <pre class="bg-dark text-white p-3 rounded small">[
   {
-    "eventID":   22,
-    "eventName": "18\" Deadlift (3-attempt max)",
-    "lane":      1,
-    "name":      "JANE DOE",
-    "instagram": "@JDOE_84",
-    "height":    "5FT 7IN",
-    "age":       29,
-    "state":     "CA",
-    "team":      "WEST COAST STRONG",
-    "imageUrl":  "https://media.atlascompetition.com/avatars/jdoe.png"
+    "eventID":22,
+    "eventName":"18\" Deadlift (3-attempt max)",
+    "lane":1,
+    "name":"JANE DOE",
+    …
   }
 ]</pre>
-
-    <!-- continue with your existing API Docs / Support sections -->
 
     <hr class="my-5">
 
@@ -248,7 +230,7 @@
 
     <h2 class="h4 fw-bold mb-3">Support</h2>
     <p>For any questions, integration help, or access issues, please contact:</p>
-    <p><strong>Email:</strong> <a href="mailto:blake@atlascompetition.com">blake@atlascompetition.com</a></p>
+    <p><strong>Email:</strong> <a href="mailto:support@atlascompetition.com">support@atlascompetition.com</a></p>
   </div>
 </div>
 {% endblock %}
