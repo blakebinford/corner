@@ -196,9 +196,17 @@ class WeightClass(models.Model):
         help_text="Division that this weight class belongs to."
     )
     is_custom = models.BooleanField(default=False)
+    competition = models.ForeignKey(
+        'competitions.Competition',
+        on_delete=models.CASCADE,
+        related_name='weight_classes',
+        null=True,  # TEMPORARY
+        blank=True,  # TEMPORARY
+        help_text="Competition this weight class belongs to."
+    )
 
     class Meta:
-        unique_together = ('name', 'gender', 'division')
+        unique_together = ('name', 'gender', 'division', 'competition')
 
     def __str__(self):
         # 1) Custom “single class” (no name at all)

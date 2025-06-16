@@ -306,7 +306,9 @@ class AssignWeightClassesView(View):
     def post(self, request, *args, **kwargs):
         competition = get_object_or_404(Competition, pk=kwargs['pk'])
 
-        # Loop through all posted division_<id> keys
+        # Clear existing weight classes for this competition
+        WeightClass.objects.filter(competition=competition).delete()
+
         for key in request.POST:
             if not key.startswith("division_"):
                 continue
@@ -316,25 +318,34 @@ class AssignWeightClassesView(View):
             except (IndexError, ValueError):
                 continue
 
-            division = Division.objects.filter(pk=division_id).first()
+            division = Division.objects.filter(pk=division_id, competition=competition).first()
             if not division:
                 continue
 
             weight_class_ids = request.POST.getlist(key)
-
             for wc_id in weight_class_ids:
-                wc = get_object_or_404(WeightClass, pk=wc_id)
-                existing = WeightClass.objects.filter(
-                    name=wc.name,
-                    gender=wc.gender,
-                    division=division
-                ).exclude(pk=wc.pk).first()
+                base_wc = get_object_or_404(WeightClass, pk=wc_id)
 
-                if existing:
+                # Check if one already exists with these values to avoid duplicate insert
+                if WeightClass.objects.filter(
+                        name=base_wc.name,
+                        gender=base_wc.gender,
+                        division=division,
+                        competition=competition
+                ).exists():
                     continue
 
-                wc.division = division
-                wc.save()
+                # Clone into this competition
+                WeightClass.objects.create(
+                    name=base_wc.name,
+                    gender=base_wc.gender,
+                    federation=base_wc.federation,
+                    weight_d=base_wc.weight_d,
+                    category=base_wc.category,
+                    division=division,
+                    competition=competition,
+                    is_custom=False
+                )
 
         messages.success(request, "Weight classes successfully assigned.")
         return redirect('competitions:manage_competition', competition_pk=competition.pk)

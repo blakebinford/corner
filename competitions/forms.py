@@ -116,7 +116,7 @@ class CompetitionForm(forms.ModelForm):
             'address', 'city', 'state', 'zip_code', 'federation',
             'signup_price', 'capacity', 'registration_deadline', 'image',
             'description', 'liability_waiver_accepted', 'provides_shirts', 'allowed_tshirt_sizes',
-            'allowed_divisions', 'tags', 'facebook_url', 'instagram_url',
+            'tags', 'facebook_url', 'instagram_url',
         ]
         widgets = {
             'comp_date': forms.DateInput(attrs={'type': 'date'}),

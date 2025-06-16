@@ -121,7 +121,7 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
 
         competition.save()  # Save updated status
 
-        return HttpResponseRedirect(reverse('competitions:assign_weight_classes', kwargs={'pk': competition.pk}))
+        return HttpResponseRedirect(reverse('competitions:manage_competition', kwargs={'competition_pk': competition.pk}))
 
     def form_invalid(self, form):
         """
