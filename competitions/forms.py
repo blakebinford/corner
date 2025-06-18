@@ -96,11 +96,11 @@ class CompetitionForm(forms.ModelForm):
     )
 
     allowed_tshirt_sizes = forms.ModelMultipleChoiceField(
-        queryset=TshirtSize.objects.all(),
+        queryset=TshirtSize.objects.all().order_by('style', 'size'),
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label="Allowed T-shirt Sizes",
-        help_text="Select the sizes athletes can choose from."
+        help_text="Select the shirt styles and sizes athletes can choose from."
     )
 
     description = forms.CharField(

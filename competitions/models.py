@@ -227,6 +227,12 @@ class WeightClass(models.Model):
 
 
 class TshirtSize(models.Model):
+    STYLE_CHOICES = [
+        ('unisex', 'Unisex'),
+        ('mens', "Men's"),
+        ('womens', "Women's"),
+        ('youth', 'Youth'),
+    ]
     SIZE_CHOICES = [
         ('XS', 'Extra Small'),
         ('S', 'Small'),
@@ -236,10 +242,17 @@ class TshirtSize(models.Model):
         ('XXL', '2X Large'),
         ('XXXL', '3X Large'),
     ]
-    size = models.CharField(max_length=5, choices=SIZE_CHOICES, unique=True)
+    style = models.CharField(max_length=10,
+                             choices=STYLE_CHOICES,
+                             default='unisex'
+                             )
+    size = models.CharField(max_length=5, choices=SIZE_CHOICES)
+
+    class Meta:
+        unique_together = ('style', 'size')
 
     def __str__(self):
-        return self.get_size_display()
+        return f"{self.get_style_display()} - {self.get_size_display()}"
 
 class CommentatorNote(models.Model):
     competition = models.ForeignKey(Competition, on_delete=models.CASCADE)
