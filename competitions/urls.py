@@ -5,7 +5,7 @@ from competitions.views import SponsorEditView, OrganizerCompetitionsView, Manag
     CompleteCompetitionView, ArchivedCompetitionListView, EditWeightClassesView, AthleteCheckInView, \
     toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView, AssignWeightClassesView, \
     CustomDivisionCreateView, add_custom_weight_class, OrlandosStrongestSignupView, athlete_views, \
-    ImplementListView, ImplementCreateView, ImplementUpdateView, ImplementDeleteView
+    ImplementListView, ImplementCreateView, ImplementUpdateView, ImplementDeleteView, dismiss_first_time_setup
 
 from competitions.views import stripe_views as sv
 from competitions.views import payments
@@ -133,4 +133,5 @@ urlpatterns = [
     path('organizer/implements/<int:pk>/edit/', ImplementUpdateView.as_view(), name='implement_edit'),
     path('organizer/implements/<int:pk>/delete/', ImplementDeleteView.as_view(), name='implement_delete'),
     path("select2/", include("django_select2.urls")),
+    path('<int:pk>/dismiss-intro/', dismiss_first_time_setup, name='dismiss_first_time_setup'),
 ]

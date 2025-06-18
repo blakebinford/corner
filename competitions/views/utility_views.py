@@ -2,7 +2,8 @@ import math
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
 from competitions.models import Division, WeightClass
 
 def get_division_weight_classes(request, division_id):
@@ -129,3 +130,11 @@ def add_gradient_rectangle(draw, x, y, width, height, start_opacity, end_opacity
         opacity = start_opacity + int((end_opacity - start_opacity) * (i / height))
         fill_color = (*color, opacity)
         draw.line([(x, y + i), (x + width, y + i)], fill=fill_color)
+
+@login_required
+@require_POST
+def dismiss_first_time_setup(request, pk):
+    profile = request.user.organizerprofile
+    profile.first_time_setup = False
+    profile.save()
+    return JsonResponse({'ok': True})

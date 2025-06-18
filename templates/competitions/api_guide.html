@@ -54,7 +54,7 @@
 
     <h2 class="h4 fw-bold mb-3">Get Competition Overview</h2>
     <p>This endpoint returns core competition details, event structure, and the full athlete roster.</p>
-    <div class="bg-light p-3 rounded mb-3"><code>GET /api/competitions/&lt;id&gt;/</code></div>
+    <div class="bg-light p-3 rounded mb-3"><code>GET /api/competition/&lt;id&gt;/</code></div>
 
     <h5 class="fw-semibold">Example Response:</h5>
     <pre class="bg-dark text-white p-3 rounded small" style="white-space: pre-wrap;">
@@ -125,7 +125,7 @@
     <h2 class="h4 fw-bold mb-3">List Events for a Competition</h2>
     <p><strong>Access:</strong> Public (no auth required)</p>
     <div class="bg-light p-3 rounded mb-3">
-      <code>GET /api/competitions/events?competitionID=&lt;competitionID&gt;</code>
+      <code>GET /api/competition/events?competitionID=&lt;competitionID&gt;</code>
     </div>
     <ul>
       <li><strong>competitionID</strong> (integer, required)</li>
@@ -142,7 +142,7 @@
     <h2 class="h4 fw-bold mb-3">List Weight-Classes for a Competition</h2>
     <p><strong>Access:</strong> Public (no auth required)</p>
     <div class="bg-light p-3 rounded mb-3">
-      <code>GET /api/competitions/weight-classes?competitionID=&lt;competitionID&gt;</code>
+      <code>GET /api/competition/weight-classes?competitionID=&lt;competitionID&gt;</code>
     </div>
     <ul>
       <li><strong>competitionID</strong> (integer, required)</li>

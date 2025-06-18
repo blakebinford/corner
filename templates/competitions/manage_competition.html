@@ -1,6 +1,17 @@
 {% extends 'base.html' %}
 {% load subtract_filter %}
 {% load key_filter %}
+{% block extra_head %}
+      <!-- Include jQuery (Required for DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
+
+{% endblock %}
 {% block extra_styles %}
     <style>
         .accordion-button {
@@ -106,32 +117,81 @@
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     gap: 1rem;
 }
+/* put this in your extra_styles block */
+.introjs-overlay {
+  /* sit below the tooltip and helper layers */
+  z-index: 1000 !important;
+  /* let clicks pass through */
+  pointer-events: none !important;
+}
+/* keep tooltip & helper layers clickable */
+.introjs-helperLayer,
+.introjs-tooltipReferenceLayer,
+.introjs-tooltip {
+  z-index: 2000 !important;
+  pointer-events: auto !important;
+}
 
 
     </style>
 {% endblock %}
 {% block content %}
-    <!-- Include jQuery (Required for DataTables) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
-
-    <!-- DataTables JS -->
-    <script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
-
+{% if not onboarding_status.details or not onboarding_status.divisions or not onboarding_status.events or not onboarding_status.publish %}
     <div class="container my-5">
-
-
+<div id="onboarding-checklist" class="card mb-5">
+  <div class="card-header bg-info text-white">
+    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i> Setup Checklist</h5>
+  </div>
+  <div class="card-body p-0">
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        Details
+        {% if onboarding_status.details %}
+          <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+        {% else %}
+          <a href="{% url 'competitions:competition_update' competition.pk %}" class="btn btn-outline-secondary btn-sm">Complete</a>
+        {% endif %}
+      </li>
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        Divisions & Weight Classes
+        {% if onboarding_status.divisions %}
+          <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+        {% else %}
+          <a href="{% url 'competitions:assign_weight_classes' competition.pk %}" class="btn btn-outline-secondary btn-sm">Assign</a>
+        {% endif %}
+      </li>
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        Events
+        {% if onboarding_status.events %}
+          <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+        {% else %}
+          <a id="add-event-btn" href="{% url 'competitions:create_event' competition.pk %}"
+             class="btn btn-outline-secondary btn-sm">Add Event</a>
+        {% endif %}
+      </li>
+      <li class="list-group-item d-flex justify-content-between align-items-center" >
+        Publish
+        {% if onboarding_status.publish %}
+          <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+        {% else %}
+          <a id="publish-btn" href="{% url 'competitions:toggle_publish_status' competition.pk %}"
+             class="btn btn-warning btn-sm">Publish</a>
+        {% endif %}
+      </li>
+    </ul>
+  </div>
+</div>
+    {% endif %}
         <!-- Dashboard Header -->
         <div class="card shadow-lg border-0 mb-4">
             <div class="card-body">
                 <div class="text-center mb-4">
-    <h2 class="text-primary mb-3">
+    <h2 class="text-primary mb-3" id="intro-welcome">
         <i class="bi bi-speedometer2 me-2"></i> Dashboard for {{ competition.name|title }}
     </h2>
 
-    <div class="d-flex justify-content-center gap-3 flex-wrap">
+    <div id="top-controls" class="d-flex justify-content-center gap-3 flex-wrap">
         <a href="{% url 'competitions:checkin_athletes' competition.pk %}" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-check2-square"></i> Check-in Athletes
         </a>
@@ -145,7 +205,7 @@
 </div>
 
                 <hr>
-                <div class="row text-center">
+                <div id="competition-info" class="row text-center">
                     <div class="col-md-3 mb-3">
                         <h5 class="text-muted">Competition Date</h5>
                         <p class="fw-bold">{{ competition.comp_date|date:"F j, Y" }}</p>
@@ -192,7 +252,7 @@
 
             <!-- Athletes Section -->
             <div class="card shadow-lg border-0 mb-5" style="padding-top: 25px;">
-                <div class="card-header bg-primary text-white text-center">
+                <div id="athlete-table-section" class="card-header bg-primary text-white text-center">
                     <div class="d-flex justify-content-between align-items-center">
                         <h4 class="mb-0"><i class="bi bi-people-fill me-2"></i> Athletes</h4>
                         <div class="d-flex gap-2">
@@ -412,10 +472,12 @@
 
 </div>
 
+
+
                     <!-- Events and Sponsors Row -->
                     <div class="row">
                         <!-- Events Section -->
-                        <div class="col-md-6">
+                        <div  id="events-section" class="col-md-6">
                             <div class="card shadow-lg border-0 mb-5">
                                 <div class="card-header bg-primary text-white text-center">
                                     <h4 class="mb-0"><i class="bi bi-calendar-event me-2"></i> Events</h4>
@@ -508,7 +570,7 @@
 
                 </div>
                 <div class="row">
-                    <!-- Events Section -->
+
                     <div class="col-md-6">
                         <!-- Scoring and Results Section -->
                         <div class="card shadow-lg border-0 mb-5">
@@ -532,7 +594,7 @@
                     <!-- weight class info -->
 
                     <div class="col-md-6">
-                        <div class="card shadow-lg border-0 mb-5">
+                        <div id="weightclass-management" class="card shadow-lg border-0 mb-5">
                             <div class="card-header bg-secondary text-white text-center">
                                 <h4 class="mb-0">
                                     <i class="bi bi-barbell me-2"></i> Weight Class Management
@@ -637,7 +699,7 @@
 
                     <!-- Publish/Unpublish Section -->
                     {% if competition.approval_status == 'approved' %}
-                        <div class="card shadow-lg border-0 mb-4">
+                        <div class="card shadow-lg border-0 mb-4" id="publish-section">
                         <div class="card-body text-center">
                         <h3 class="text-primary">
                             <i class="bi bi-broadcast me-2"></i> Publish Your Competition
@@ -653,7 +715,7 @@
                             {% endif %}
                         </a>
                     {% else %}
-                        <p class="text-muted text-center">
+                        <p id="publish-section" class="text-muted text-center">
                             <i class="bi bi-hourglass-split me-2"></i>
                             Your competition is awaiting approval by the website admin.
                         </p>
@@ -663,7 +725,16 @@
                     </div>
                     </div>
 
-                    <!-- Initialize DataTables -->
+
+
+
+{% endblock %}
+
+ {% block extra_scripts %}
+
+
+
+<!-- Initialize DataTables -->
                     <script>
                         $(document).ready(function () {
                             $('#athletesTable').DataTable({
@@ -681,4 +752,6 @@
                             return confirm(`Are you sure you want to ${action} this competition? This action will immediately update its visibility on the platform.`);
                         }
                     </script>
+
+
 {% endblock %}

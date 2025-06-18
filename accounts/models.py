@@ -53,6 +53,11 @@ class OrganizerProfile(models.Model):
         max_length=64, blank=True, null=True,
         help_text="ID of the connected Stripe account"
     )
+    first_time_setup = models.BooleanField(
+        default=True,
+        help_text=
+        "Whether to show the onboarding tour on first visit.",
+    )
 
 class AthleteProfile(models.Model):
     """

@@ -5,6 +5,7 @@ from decimal import Decimal
 
 import stripe
 from django.utils.timezone import now
+from django.core.exceptions import PermissionDenied
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
@@ -15,6 +16,7 @@ from django.views import generic, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import TemplateView
 
+from competitions.utils import get_onboarding_status
 from competitions.views.utility_views import haversine_distance
 from competitions.models import Competition, AthleteCompetition, EventImplement, ZipCode, WeightClass
 from competitions.forms import CompetitionForm, CompetitionFilter
@@ -258,6 +260,15 @@ class ManageCompetitionView(TemplateView):
         competition_pk = self.kwargs['competition_pk']
         competition = get_object_or_404(Competition, pk=competition_pk)
 
+        # only the organizer may view/manage
+        if competition.organizer != self.request.user:
+            raise PermissionDenied("You are not authorized to view this competition.")
+
+        # ——— ONBOARDING CHECKLIST FLAGS ———
+        context['onboarding_status'] = get_onboarding_status(competition)
+        organizer_profile = get_object_or_404(OrganizerProfile, user=self.request.user)
+        context['show_intro'] = organizer_profile.first_time_setup
+
         # Get the organizer's Stripe account ID
         organizer_profile = get_object_or_404(OrganizerProfile, user=competition.organizer)
         stripe_account_id = organizer_profile.stripe_account_id
@@ -335,10 +346,6 @@ class ManageCompetitionView(TemplateView):
                 athlete_summary.setdefault((division.id, wc.id), 0)
 
         context['athlete_summary'] = athlete_summary
-
-        # DEBUG
-        print("Athlete Summary:", dict(athlete_summary))
-        print("Total Stripe Balance:", total_stripe_balance)
 
         return context
 
@@ -489,3 +496,17 @@ class OrlandosStrongestSignupView(FormView):
 
         messages.success(self.request, "Your account has been created and you’re signed up for Orlando’s Strongest!")
         return redirect('competitions:competition_detail', pk=comp.pk)
+
+
+@login_required
+def manage_competition(request, pk):
+    comp = get_object_or_404(Competition, pk=pk, organizer=request.user.organizerprofile)
+    statuses = get_onboarding_status(comp)
+    show_intro = request.user.organizer_profile.first_time_setup
+
+    return render(request, 'competitions/manage_competition.html', {
+        'competition': comp,
+        'onboarding_status': statuses,
+        'show_intro': show_intro,
+        # … your existing context (athletes, events, etc.) …
+    })

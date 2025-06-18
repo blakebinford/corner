@@ -1015,6 +1015,48 @@
         setInterval(refreshRunOrder, 30000);
     });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Capture tab change into sessionStorage
+    document.querySelectorAll('.nav-tabs .nav-link').forEach(function (tabButton) {
+        tabButton.addEventListener('shown.bs.tab', function (event) {
+            const target = event.target.getAttribute('data-bs-target') || event.target.getAttribute('href');
+            if (target) {
+                sessionStorage.setItem('activeRunOrderTab', target);
+            }
+        });
+    });
+
+    // Restore tab from sessionStorage
+    const savedTab = sessionStorage.getItem('activeRunOrderTab') || "{{ active_tab|escapejs }}";
+    if (savedTab) {
+        const tabButton = document.querySelector(`.nav-tabs [data-bs-target="${savedTab}"], .nav-tabs [href="${savedTab}"]`);
+        if (tabButton) {
+            const tab = new bootstrap.Tab(tabButton);
+            tab.show();
+        }
+    }
+
+    // Inject hidden input into all forms with current tab
+    document.querySelectorAll('form').forEach(function (form) {
+        let input = form.querySelector('input[name="active_tab"]');
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'active_tab';
+            form.appendChild(input);
+        }
+
+        form.addEventListener('submit', function () {
+            const activeTab = sessionStorage.getItem('activeRunOrderTab');
+            if (activeTab) {
+                input.value = activeTab;
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %}
 
 
