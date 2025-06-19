@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+    <style>
+        :root {
+            --red: #d90429;
+            --yellow: #ffd400;
+            --green: #38a169;
+            --dark: #0f172a;
+            --light: #f8fafc;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+            font-family: 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .broadcast-header {
+            background: var(--dark);
+            padding: 1rem;
+            border-bottom: 3px solid var(--red);
+            text-align: center;
+        }
+
+        .broadcast-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.25rem;
+            color: var(--light);
+        }
+
+        .broadcast-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0;
+            color: var(--yellow);
+        }
+
+        .event-weight {
+            font-size: 1rem;
+            color: #ccc;
+            margin-top: 0.25rem;
+        }
+
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            background: #1e293b;
+        }
+
+        .tab-nav button {
+            background: transparent;
+            color: var(--light);
+            border: none;
+            font-weight: 600;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .tab-nav button.active,
+        .tab-nav button:hover {
+            background: #334155;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 2rem 1rem;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .lifter-card {
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .now-lifting {
+            background: linear-gradient(to right, var(--red), #ff4e4e);
+            color: white;
+            box-shadow: 0 0 20px var(--red);
+        }
+
+        .on-deck {
+            background: linear-gradient(to right, var(--yellow), #ffdd57);
+            color: black;
+        }
+
+        .lifter-card h3 {
+            font-size: 2rem;
+            margin: 0.5rem 0;
+        }
+
+        .lifter-card .meta {
+            font-size: 1.1rem;
+            opacity: 0.85;
+        }
+
+        .scorecard table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+        }
+
+        .scorecard th, .scorecard td {
+            padding: 0.75rem;
+            text-align: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        .scorecard th {
+            background: #1e293b;
+            color: white;
+        }
+
+        .scorecard tbody tr:hover {
+            background: #2d3748;
+        }
+
+        .refresh-time {
+            font-size: 0.8rem;
+            text-align: center;
+            color: #94a3b8;
+            margin-top: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .broadcast-grid {
+                display: flex;
+                gap: 2rem;
+                justify-content: space-between;
+            }
+
+            .broadcast-grid > div {
+                flex: 1;
+            }
+        }
+    </style>
+
+    <div class="broadcast-header">
+        <h1>{{ competition.name }}</h1>
+        <h2>{{ current_event.name|title }}</h2>
+        {% if event_weight %}
+            <div class="event-weight">Event Weight: <strong>{{ event_weight }} lbs</strong></div>
+        {% endif %}
+    </div>
+
+    <div class="tab-nav">
+        <button class="tab-button active" data-tab="live">🔴 Live</button>
+        <button class="tab-button" data-tab="scorecard">📊 Scorecard</button>
+    </div>
+
+    <!-- 🔴 LIVE TAB -->
+    <div class="tab-content active" id="live">
+        <div class="container">
+            <div class="broadcast-grid">
+                <!-- Now Lifting -->
+                {% if current_lifter %}
+                    <div class="lifter-card now-lifting">
+                        <div style="font-weight: bold; letter-spacing: 2px;">NOW LIFTING</div>
+                        <h3>{{ current_lifter.athlete_competition.athlete.user.get_full_name }}</h3>
+                        <div class="meta">
+                            {{ current_lifter.athlete_competition.division.name }} -
+                            {{ current_lifter.athlete_competition.weight_class.weight_d }}{{ current_lifter.athlete_competition.weight_class.name }}
+                        </div>
+                        {% for result in current_lifter.athlete_competition.results.all %}
+                            {% if result.event == current_event %}
+                                <div style="margin-top: 0.75rem; font-size: 1.1rem;">
+                                    Current Event Points: <strong>{{ result.points_earned }}</strong>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                    </div>
+                {% endif %}
+
+                <!-- On Deck -->
+                {% if on_deck %}
+                    <div class="lifter-card on-deck">
+                        <div style="font-weight: bold; letter-spacing: 2px;">ON DECK</div>
+                        <h3>{{ on_deck.athlete_competition.athlete.user.get_full_name }}</h3>
+                        <div class="meta">
+                            {{ on_deck.athlete_competition.division.name }} -
+                            {{ on_deck.athlete_competition.weight_class.weight_d }}{{ on_deck.athlete_competition.weight_class.name }}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Mini Scorecard -->
+            <div class="scorecard">
+                <h4 style="margin-bottom: 1rem;">Division Scorecard</h4>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Athlete</th>
+                        <th>Rank</th>
+                        <th>Total Points</th>
+                        <th>Result</th>
+                        <th>Event Points</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for ac in mini_scorecard %}
+                        <tr>
+                            <td>{{ ac.athlete.user.get_full_name }}</td>
+                            <td>{{ ac.rank }}</td>
+                            <td>{{ ac.total_points }}</td>
+                            <td>
+                                {% for result in ac.results.all %}
+                                    {% if result.event == current_event %}
+                                        {{ result.value }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% for result in ac.results.all %}
+                                    {% if result.event == current_event %}
+                                        {{ result.points_earned }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📊 FULL SCORECARD TAB (placeholder) -->
+    <div class="tab-content" id="scorecard">
+        <div class="container">
+            <h3>Full Scorecard Coming Soon</h3>
+            <p style="color: #94a3b8;">This tab will include the full athlete table across all divisions and events.</p>
+        </div>
+    </div>
+
+    <div class="refresh-time">
+        Auto-refreshes every 30 seconds. Last updated: <span id="last-updated"></span> local time
+
+    </div>
+
+    <script>
+        // Auto-refresh
+        setTimeout(() => location.reload(), 30000);
+
+        function updateLocalTime() {
+            const now = new Date();
+            const formatted = now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+            document.getElementById('last-updated').textContent = formatted;
+        }
+
+        updateLocalTime();  // Run on page load
+
+        // Tab logic
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.dataset.tab;
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(tab).classList.add('active');
+            });
+        });
+    </script>
+{% endblock %}

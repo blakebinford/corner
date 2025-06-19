@@ -451,65 +451,6 @@ from django.db import transaction
 
 from accounts.models import User, AthleteProfile, OrganizerProfile
 from competitions.models import Competition, AthleteCompetition
-from competitions.forms import OrlandosStrongestSignupForm
-
-class OrlandosStrongestSignupView(FormView):
-    template_name = 'competitions/orlandos_strongest_signup.html'
-    form_class = OrlandosStrongestSignupForm
-
-    def get_competition(self):
-        return get_object_or_404(Competition, name__iexact='ORLANDO\'S STRONGEST (MEN, WOMEN, AND TEENS)')
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['competition'] = self.get_competition()
-        return kwargs
-
-    @transaction.atomic
-    def form_valid(self, form):
-        data = form.cleaned_data
-        comp = self.get_competition()
-
-        # 1) Create User
-        user = User(
-            username=data['email'],  # using email as username
-            email=data['email'],
-            first_name=data['first_name'],
-            last_name=data['last_name'],
-            role='athlete'
-        )
-        user.set_password(data['password1'])
-        user.save()
-
-        # 2) Create AthleteProfile
-        profile = AthleteProfile.objects.create(
-            user=user,
-            gender=data['gender'],
-            date_of_birth=data['date_of_birth'],
-            home_gym=data.get('home_gym'),
-            team_name=data.get('team_name'),
-            coach=data.get('coach'),
-            height=data.get('height'),
-            weight=data.get('weight'),
-            city=data.get('city'),
-            state=data.get('state'),
-        )
-
-        # 3) Sign up for competition
-        AthleteCompetition.objects.create(
-            athlete=profile,
-            competition=comp,
-            division=data['division'],
-            weight_class=data['weight_class'],
-            tshirt_size=data.get('tshirt_size'),
-            signed_up=True,
-            registration_status='complete',
-            payment_status='pending'
-        )
-
-        messages.success(self.request, "Your account has been created and you’re signed up for Orlando’s Strongest!")
-        return redirect('competitions:competition_detail', pk=comp.pk)
-
 
 @login_required
 def manage_competition(request, pk):

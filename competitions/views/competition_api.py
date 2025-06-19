@@ -188,21 +188,28 @@ def current_competitors(request):
     if not event:
         return Response([])
 
-    ros = CompetitionRunOrder.objects.filter(
-        competition=competition,
-        event=event,
-        status="current"
+    ros = (
+        CompetitionRunOrder.objects
+        .filter(competition=competition, event=event, status="current")
+        .order_by("lane_number", "order")
     )
 
-    data = []
+    current_by_lane = {}
     for ro in ros:
+        lane = ro.lane_number or 1
+        if lane not in current_by_lane:
+            current_by_lane[lane] = ro
+
+    data = []
+    for lane, ro in current_by_lane.items():
         ac = ro.athlete_competition
         prof = ac.athlete
         user = prof.user
+
         data.append({
             "eventID": event.pk,
             "eventName": event.name,
-            "lane": ro.lane_number or 1,
+            "lane": lane,
             "name": user.get_full_name().upper(),
             "nickname": prof.nickname,
             "instagram": getattr(user, "instagram_name", ""),

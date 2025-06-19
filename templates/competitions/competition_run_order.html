@@ -108,10 +108,6 @@
 
                     </div>
 
-
-
-
-
                     <!-- Event Controls -->
                     <div class="row mb-3">
                         <div class="col">
@@ -489,25 +485,25 @@
                                                                                                 </div>
                                                                                                 <div class="card-body py-2">
                                                                                                     <ul class="list-unstyled mb-0">
-                                                                                                        {% if event_specific_notes.opening_weight %}
-                                                                                                            <li><strong>Opening
-                                                                                                                Weight:</strong> {{ event_specific_notes.opening_weight.0 }}
-                                                                                                            </li>
-                                                                                                        {% endif %}
-                                                                                                        {% if event_specific_notes.next_attempt %}
-                                                                                                            <li><strong>Next
-                                                                                                                Attempt:</strong> {{ event_specific_notes.next_attempt.0 }}
-                                                                                                            </li>
-                                                                                                        {% endif %}
-                                                                                                        {% if event_specific_notes.general %}
-                                                                                                            {% for note in event_specific_notes.general %}
-                                                                                                                <li>
-                                                                                                                    <strong>Note:</strong> {{ note }}
-                                                                                                                </li>
-                                                                                                            {% endfor %}
-                                                                                                        {% endif %}
+                                                                                        {% for note in event_specific_notes.opening_weight %}
+                                                                                            <li><strong>Opening Weight
+                                                                                                (Attempt {{ note.attempt }}):</strong> {{ note.value }}
+                                                                                            </li>
+                                                                                        {% endfor %}
 
-                                                                                                    </ul>
+                                                                                        {% for note in event_specific_notes.next_attempt %}
+                                                                                            <li><strong>Next Attempt
+                                                                                                (Attempt {{ note.attempt }}):</strong> {{ note.value }}
+                                                                                            </li>
+                                                                                        {% endfor %}
+
+                                                                                        {% for note in event_specific_notes.general %}
+                                                                                            <li>
+                                                                                                <strong>Note:</strong> {{ note.value }}
+                                                                                            </li>
+                                                                                        {% endfor %}
+
+                                                                                    </ul>
                                                                                                 </div>
                                                                                             </div>
                                                                                         {% endif %}

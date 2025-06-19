@@ -9,3 +9,4 @@ from .utility_views import *
 from .overlay_views import *
 from .competition_api import *
 from .stripe_views import *
+from .broadcase_views import *

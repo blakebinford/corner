@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+{% block title %}Live Run Order - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {% with theme=request.GET.theme|default:"dark" %}
+        <style>
+            :root {
+            {% if theme == "dark" %}
+                --bg-color: black;
+                --text-color: white;
+                --card-bg: #111;
+                --border-color: white;
+                --list-bg: white;
+            {% else %}
+                --bg-color: white;
+                --text-color: black;
+                --card-bg: #f8f9fa;
+                --border-color: #333;
+                --list-bg: #f0f0f0;
+            {% endif %}
+            }
+
+            body {
+                background-color: var(--bg-color);
+                color: var(--text-color);
+                font-size: 1.3rem;
+                padding-bottom: 60px;
+            }
+
+            .card {
+                background-color: var(--card-bg);
+                border: 2px solid var(--border-color);
+            }
+
+            .card-header {
+                background-color: var(--card-bg);
+                color: var(--text-color);
+                font-size: 1.6rem;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+
+            .current-lifter {
+                background-color: #e60000;
+                color: white;
+            }
+
+            .on-deck {
+                background-color: #ffcc00;
+                color: black;
+            }
+
+            .upcoming-list .list-group-item {
+                background-color: var(--list-bg);
+                color: black;
+                font-size: 1.1rem;
+                font-weight: 600;
+            }
+
+            .upcoming-list h5 {
+                color: var(--text-color);
+            }
+
+            h1, h2 {
+                font-weight: 800;
+                text-align: center;
+            {% if theme == "dark" %} text-shadow: 2px 2px #000; {% endif %}
+            }
+
+            .theme-toggle {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                z-index: 9999;
+            }
+
+            .display-footer {
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+                background-color: var(--card-bg);
+                color: var(--text-color);
+                font-size: 1rem;
+                font-weight: 600;
+                border-top: 2px solid var(--border-color);
+                text-align: center;
+                padding: 8px 0;
+                z-index: 9999;
+            }
+
+            .now-lifting-card {
+                background: linear-gradient(135deg, #e60000, #a80000);
+                color: white;
+                padding: 2rem;
+                border-radius: 1rem;
+                box-shadow: 0 0 30px rgba(230, 0, 0, 0.5);
+                border: 3px solid white;
+                text-align: center;
+            }
+
+            .on-deck-card {
+                background: linear-gradient(135deg, #ffd700, #ffae00);
+                color: black;
+                padding: 2rem;
+                border-radius: 1rem;
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+                border: 3px solid black;
+                text-align: center;
+            }
+
+            .lifter-label {
+                text-transform: uppercase;
+                letter-spacing: 3px;
+                font-size: 1.25rem;
+                font-weight: 700;
+                opacity: 0.9;
+                margin-bottom: 0.5rem;
+            }
+
+            .lifter-name {
+                font-size: 3rem;
+                font-weight: 900;
+                line-height: 1.2;
+                margin-bottom: 0.75rem;
+                color: #ffffff;
+            }
+
+            .on-deck-card .lifter-name {
+                color: #000000;
+            }
+
+            .lifter-meta {
+                font-size: 1.2rem;
+                font-weight: 500;
+                opacity: 0.85;
+            }
+
+            .multi-lane .card-body {
+                padding: 1rem;
+            }
+
+            .multi-lane .now-lifting-card,
+            .multi-lane .on-deck-card {
+                padding: 1.25rem;
+                border-radius: 0.75rem;
+            }
+
+            .multi-lane .lifter-label {
+                font-size: 1rem;
+                letter-spacing: 2px;
+                margin-bottom: 0.25rem;
+            }
+
+            .multi-lane .lifter-name {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .multi-lane .lifter-meta {
+                font-size: 1rem;
+            }
+
+            .multi-lane .upcoming-list .list-group-item {
+                font-size: 0.95rem;
+                padding: 0.4rem 0.75rem;
+            }
+
+
+        </style>
+
+        <div class="theme-toggle">
+            {% if theme == "dark" %}
+                <a href="?theme=light" class="btn btn-light btn-sm">Switch to Light Mode</a>
+            {% else %}
+                <a href="?theme=dark" class="btn btn-dark btn-sm">Switch to Dark Mode</a>
+            {% endif %}
+        </div>
+
+        <div class="container-fluid py-4">
+            <h1 class="display-5 fw-bold">{{ competition.name|title }}</h1>
+            {% if current_event %}
+                <h2 class="mb-4" style="color: var(--text-color);">{{ current_event.name|title }}</h2>
+
+                {% if lanes_data|length == 1 %}
+                    {% for lane_number, lane_data in lanes_data.items %}
+                        <div class="row">
+                            <!-- Left: Now + On Deck -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-lg h-100">
+                                    <div class="card-header">Lane {{ lane_number }}</div>
+                                    <div class="card-body">
+                                        {% if lane_data.current %}
+                                            <div class="now-lifting-card mb-4">
+                                                <div class="lifter-label">Now Lifting</div>
+                                                <div class="lifter-name">{{ lane_data.current.athlete_competition.athlete.user.get_full_name }}</div>
+                                                <div class="lifter-meta">
+                                                    Div: {{ lane_data.current.athlete_competition.division.name|title }}
+                                                    |
+                                                    Class:
+                                                    {{ lane_data.current.athlete_competition.weight_class.weight_d }}{{ lane_data.current.athlete_competition.weight_class.name }}
+                                                </div>
+                                            </div>
+
+                                        {% endif %}
+
+                                        {% if lane_data.on_deck %}
+                                            <div class="on-deck-card mb-4">
+                                                <div class="lifter-label">On Deck</div>
+                                                <div class="lifter-name">{{ lane_data.on_deck.athlete_competition.athlete.user.get_full_name }}</div>
+                                                <div class="lifter-meta">
+                                                    Div: {{ lane_data.on_deck.athlete_competition.division.name|title }}
+                                                    |
+                                                    Class:
+                                                    {{ lane_data.on_deck.athlete_competition.weight_class.weight_d }}{{ lane_data.on_deck.athlete_competition.weight_class.name }}
+                                                </div>
+                                            </div>
+
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Upcoming -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-lg h-100">
+                                    <div class="card-header">Next Up</div>
+                                    <div class="card-body">
+                                        {% if lane_data.pending %}
+                                            <div class="upcoming-list">
+                                                <h5 class="fw-bold mb-2">Upcoming Lifters</h5>
+                                                <ul class="list-group">
+                                                    {% for pending in lane_data.pending|slice:":5" %}
+                                                        <li class="list-group-item">
+                                                            {{ pending.athlete_competition.athlete.user.get_full_name|title }}
+                                                            <small class="d-block text-muted">
+                                                                Div: {{ pending.athlete_competition.division.name|title }},
+                                                                Class:
+                                                                {{ pending.athlete_competition.weight_class.weight_d }}{{ pending.athlete_competition.weight_class.name }}
+                                                            </small>
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        {% else %}
+                                            <p>No athletes remaining in queue.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Multiple lanes -->
+                    <div class="multi-lane row">
+                        {% for lane_number, lane_data in lanes_data.items %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card shadow-lg h-100">
+                                    <div class="card-header">Lane {{ lane_number }}</div>
+                                    <div class="card-body">
+                                        {% if lane_data.current %}
+                                            <div class="now-lifting-card mb-4">
+                                                <div class="lifter-label">Now Lifting</div>
+                                                <div class="lifter-name">{{ lane_data.current.athlete_competition.athlete.user.get_full_name }}</div>
+                                                <div class="lifter-meta">
+                                                    Div: {{ lane_data.current.athlete_competition.division.name|title }} |
+                                                    {% with wc=pending.athlete_competition.weight_class %}
+                                                        {% if wc %}
+                                                            Class: {{ wc.weight_d }}{{ wc.name }}
+                                                        {% else %}
+                                                            Class: Single
+                                                        {% endif %}
+                                                    {% endwith %}
+
+
+                                                </div>
+                                            </div>
+                                        {% endif %}
+
+                                        {% if lane_data.on_deck %}
+                                            <div class="on-deck-card mb-4">
+                                                <div class="lifter-label">On Deck</div>
+                                                <div class="lifter-name">{{ lane_data.on_deck.athlete_competition.athlete.user.get_full_name }}</div>
+                                                <div class="lifter-meta">
+                                                    Div: {{ lane_data.on_deck.athlete_competition.division.name|title }} |
+                                                    {% with wc=pending.athlete_competition.weight_class %}
+                                                        {% if wc %}
+                                                            Class: {{ wc.weight_d }}{{ wc.name }}
+                                                        {% else %}
+                                                            Class: Single
+                                                        {% endif %}
+                                                    {% endwith %}
+
+                                                </div>
+                                            </div>
+                                        {% endif %}
+
+                                        {% if lane_data.pending %}
+                                            <div class="upcoming-list">
+                                                <h5 class="fw-bold mb-2">Upcoming Lifters</h5>
+                                                <ul class="list-group">
+                                                    {% for pending in lane_data.pending|slice:":5" %}
+                                                        <li class="list-group-item">
+                                                            {{ pending.athlete_competition.athlete.user.get_full_name }}
+                                                            <small class="d-block text-muted">
+                                                                Div: {{ pending.athlete_competition.division.name|title }},
+                                                                {% with wc=pending.athlete_competition.weight_class %}
+                                                                    {% if wc %}
+                                                                        Class: {{ wc.weight_d }}{{ wc.name }}
+                                                                    {% else %}
+                                                                        Class: Single
+                                                                    {% endif %}
+                                                                {% endwith %}
+
+                                                            </small>
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="alert alert-info text-center">
+                    No event selected or currently live.
+                </div>
+            {% endif %}
+        </div>
+
+        <footer class="display-footer">
+            Powered by <strong>Atlas Competition</strong>
+        </footer>
+
+        <script>
+            // Auto-refresh every 30 seconds
+            setTimeout(() => location.reload(), 30000);
+        </script>
+    {% endwith %}
+{% endblock %}

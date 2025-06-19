@@ -198,6 +198,7 @@ footer {
           </div>
         {% endfor %}
       {% endif %}
+{% if not hide_navbar %}
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
@@ -251,21 +252,21 @@ footer {
       </div>
     </div>
   </nav>
-
+{% endif %}
   <!-- Main Content -->
   <main class="flex-grow-1">
   
     {% block content %}
     {% endblock %}
   </main>
-
+{% if not hide_navbar %}
   <!-- Footer -->
   <footer class="bg-dark text-light">
     <div class="container text-center py-3">
       <p>&copy; {{ year|default:"2025" }} Atlas Competition</p>
     </div>
   </footer>
-
+{%  endif %}
   <!-- Customizable Scripts -->
   {% block extra_scripts %}
   {% endblock %}
