@@ -115,6 +115,7 @@ INSTALLED_APPS = [
     'django_extensions',
 
     'axes',
+    'corsheaders',
     'django_cotton',
     'django_bootstrap5',
     'competitions',
@@ -136,6 +137,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -148,6 +150,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'ComPodium.urls'
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 TEMPLATES = [
     {

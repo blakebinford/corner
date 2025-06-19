@@ -167,20 +167,15 @@ def leaderboard(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def current_competitors(request):
-    comp_id  = request.GET.get("competitionID")
+    comp_id = request.GET.get("competitionID")
     event_id = request.GET.get("eventID")
 
     competition = get_object_or_404(Competition, pk=comp_id)
+
     if event_id:
         event = get_object_or_404(Event, pk=event_id, competition=competition)
     else:
-        ro_current = (
-            CompetitionRunOrder.objects
-            .filter(competition=competition, status="current")
-            .order_by("event_id")
-            .first()
-        )
-        event = ro_current.event if ro_current else None
+        event = competition.current_event
 
     if not event:
         return Response([])
@@ -196,37 +191,43 @@ def current_competitors(request):
         prof = ro.athlete_competition.athlete
         user = prof.user
         data.append({
-            "eventID":    event.pk,
-            "eventName":  event.name,
-            "lane":       ro.lane_number or 1,
-            "name":       user.get_full_name().upper(),
-            "instagram":  getattr(user, "instagram_name", ""),
-            "height":     _format_height_inches(prof.height),
-            "age":        _calculate_age(prof.date_of_birth),
-            "state":      prof.state,
-            "team":       prof.team_name or prof.home_gym,
-            "imageUrl":   request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else "",
+            "eventID": event.pk,
+            "eventName": event.name,
+            "lane": ro.lane_number or 1,
+            "name": user.get_full_name().upper(),
+            "nickname": prof.nickname,
+            "instagram": getattr(user, "instagram_name", ""),
+            "gender": prof.gender,
+            "height": _format_height_inches(prof.height),
+            "weight": str(prof.weight) if prof.weight else "",
+            "age": _calculate_age(prof.date_of_birth),
+            "street": prof.street_number,
+            "city": prof.city,
+            "state": prof.state,
+            "zip_code": prof.zip_code,
+            "home_gym": prof.home_gym,
+            "team": prof.team_name,
+            "coach": prof.coach,
+            "bio": prof.bio,
+            "imageUrl": request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else "",
         })
+
     return Response(data)
+
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def up_next_competitors(request):
-    comp_id  = request.GET.get("competitionID")
+    comp_id = request.GET.get("competitionID")
     event_id = request.GET.get("eventID")
 
     competition = get_object_or_404(Competition, pk=comp_id)
+
     if event_id:
         event = get_object_or_404(Event, pk=event_id, competition=competition)
     else:
-        ro_current = (
-            CompetitionRunOrder.objects
-            .filter(competition=competition, status="current")
-            .order_by("event_id")
-            .first()
-        )
-        event = ro_current.event if ro_current else None
+        event = competition.current_event
 
     if not event:
         return Response([])
@@ -248,64 +249,66 @@ def up_next_competitors(request):
         prof = ro.athlete_competition.athlete
         user = prof.user
         data.append({
-            "eventID":    event.pk,
-            "eventName":  event.name,
-            "lane":       lane,
-            "name":       user.get_full_name().upper(),
-            "instagram":  getattr(user, "instagram_name", ""),
-            "height":     _format_height_inches(prof.height),
-            "age":        _calculate_age(prof.date_of_birth),
-            "state":      prof.state,
-            "team":       prof.team_name or prof.home_gym,
-            "imageUrl":   request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else "",
+            "eventID": event.pk,
+            "eventName": event.name,
+            "lane": ro.lane_number or 1,
+            "name": user.get_full_name().upper(),
+            "nickname": prof.nickname,
+            "instagram": getattr(user, "instagram_name", ""),
+            "gender": prof.gender,
+            "height": _format_height_inches(prof.height),
+            "weight": str(prof.weight) if prof.weight else "",
+            "age": _calculate_age(prof.date_of_birth),
+            "street": prof.street_number,
+            "city": prof.city,
+            "state": prof.state,
+            "zip_code": prof.zip_code,
+            "home_gym": prof.home_gym,
+            "team": prof.team_name,
+            "coach": prof.coach,
+            "bio": prof.bio,
+            "imageUrl": request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else "",
         })
 
     return Response(data)
 
 
 
-@extend_schema(summary="vMix: Current Event Details", tags=["vMix"])
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def current_event(request):
-    comp_id  = request.GET.get("competitionID")
-    event_id = request.GET.get("eventID")
-
-    # Resolve the event
-    if event_id:
-        event = get_object_or_404(Event, pk=event_id, competition_id=comp_id)
-    else:
-        ro = (
-            CompetitionRunOrder.objects
-            .filter(competition_id=comp_id, status="current")
-            .order_by("event_id")
-            .first()
-        )
-        event = ro.event if ro else None
+    comp_id = request.GET.get("competitionID")
+    competition = get_object_or_404(Competition, pk=comp_id)
+    event = competition.current_event
 
     if not event:
         return Response([])
 
-    # Derive the on-stage group’s class (division + weight)
-    ros = CompetitionRunOrder.objects.filter(
-        competition_id=comp_id,
-        event=event,
-        status="current"
+    # Get first current lifter in the run order
+    current_ro = (
+        CompetitionRunOrder.objects
+        .filter(competition=competition, event=event, status="current")
+        .order_by("lane_number", "order")
+        .first()
     )
-    if ros.exists():
-        first_ro = ros.first()
-        div = first_ro.athlete_competition.division
-        wc  = first_ro.athlete_competition.weight_class
-        weight_label = f"{wc.name}{wc.weight_d}"
-        event_class  = f"{div.name} – {weight_label}"
+
+    if current_ro:
+        ac = current_ro.athlete_competition
+        division_name = ac.division.name if ac.division else ""
+        weight_class_name = ac.weight_class.name if ac.weight_class else ""
+        gender = ac.athlete.gender if ac.athlete and ac.athlete.gender else ""
+        event_class = f"{division_name} - {weight_class_name}".strip(" -")
     else:
         event_class = ""
+        gender = ""
 
-    payload = {
-        "event_name":  event.name,
+    return Response([{
+        "event_name": event.name,
         "event_class": event_class,
-    }
-    return Response([payload])
+        "gender": gender
+    }])
+
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])

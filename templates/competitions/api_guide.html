@@ -4,33 +4,34 @@
 {% block content %}
 <div class="container py-5">
   <div class="text-center mb-5">
-    <img src="/static/images/logoapi.jpeg" alt="Atlas Competition Logo" style="width: 50%;">
-    <p class="lead text-muted">A quick reference for pulling athlete and competition data via the Atlas API</p>
+    <img src="/static/images/logoapi.jpeg" alt="Atlas Competition Logo" class="img-fluid mb-3" style="max-width: 300px;">
+    <h1 class="display-6 fw-bold">Atlas Competition API</h1>
+    <p class="lead text-muted">Developer guide for accessing athlete and competition data</p>
   </div>
 
-  <div class="card shadow-lg border-0 p-4">
-    <h2 class="h4 fw-bold mb-3">Authentication</h2>
-      <p>Most API endpoints require a token. After creating an account, Atlas will generate an <a href="https://atlascompetition.com/api/get-token/">API token</a> for you. You can retrieve it at the following url:</p>
-    <div class="bg-light p-3 rounded mb-3"><code>https://atlascompetition.com/api/get-token/</code></div>
-    <p>Include this token in the header of all API requests:</p>
-    <div class="bg-light p-3 rounded"><code>Authorization: Token &lt;your-api-token&gt;</code></div>
+  <div class="card shadow border-0 p-4 mb-5">
+    <h2 class="h4 fw-bold mb-3 border-bottom pb-2">Authentication</h2>
+    <p>To use protected endpoints, include your API token in the request header. Get your token from:</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>https://atlascompetition.com/api/get-token/</code>
+    </div>
+    <p>Include the token in requests as:</p>
+    <div class="bg-light p-3 rounded">
+      <code>Authorization: Token &lt;your-api-token&gt;</code>
+    </div>
+  </div>
 
-    <hr class="my-5">
-
-    <h2 class="h4 fw-bold mb-3">Retrieve Athlete Profile by Name</h2>
-    <p>This endpoint returns a full athlete competition profile based on name and competition ID.</p>
-    <div class="bg-light p-3 rounded mb-3"><code>GET /api/competition/&lt;comp_id&gt;/athlete-by-name/?name=First-Last</code></div>
-
-    <h5 class="fw-semibold">Required Parameters:</h5>
+  <div class="card shadow border-0 p-4 mb-5">
+    <h2 class="h4 fw-bold mb-3 border-bottom pb-2">Retrieve Athlete Profile by Name</h2>
+    <p>Returns a full athlete profile for a given competition ID and name.</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>GET /api/competition/&lt;comp_id&gt;/athlete-by-name/?name=First-Last</code>
+    </div>
     <ul>
-      <li><strong>comp_id</strong>: Numeric ID of the competition</li>
-      <li><strong>name</strong>: Full name with hyphen (e.g., <code>John-Doe</code>)</li>
+      <li><strong>comp_id</strong>: Competition ID</li>
+      <li><strong>name</strong>: Full name using hyphen (e.g., <code>Jane-Doe</code>)</li>
     </ul>
-
-    <h5 class="fw-semibold">Example Request:</h5>
-    <div class="bg-light p-3 rounded mb-3"><code>GET /api/competition/42/athlete-by-name/?name=Matthew-Johnson</code></div>
-
-    <h5 class="fw-semibold">Example Response:</h5>
+    <h6 class="fw-semibold">Example Response:</h6>
     <pre class="bg-dark text-white p-3 rounded small">
 {
   "id": 111,
@@ -38,198 +39,118 @@
     "id": 88,
     "user": { "first_name": "Matthew", "last_name": "Johnson" },
     "nickname": "The Rhino",
-    "bio": "National podium finisher. Training out of Iron Temple.",
-    "gender": "male",
-    "height": 72,
-    "weight": 295,
-    "instagram_name": "@therhino_strong"
+    "bio": "National podium finisher...",
+    ...
   },
   "division": "Open Heavyweight",
   "weight_class": "308+",
   "tshirt_size": "XL"
 }
     </pre>
+  </div>
 
-    <hr class="my-5">
-
-    <h2 class="h4 fw-bold mb-3">Get Competition Overview</h2>
-    <p>This endpoint returns core competition details, event structure, and the full athlete roster.</p>
-    <div class="bg-light p-3 rounded mb-3"><code>GET /api/competition/&lt;id&gt;/</code></div>
-
-    <h5 class="fw-semibold">Example Response:</h5>
+  <div class="card shadow border-0 p-4 mb-5">
+    <h2 class="h4 fw-bold mb-3 border-bottom pb-2">Competition Overview</h2>
+    <p>Returns competition metadata, event structure, and full athlete roster.</p>
+    <div class="bg-light p-3 rounded mb-3">
+      <code>GET /api/competition/&lt;id&gt;/</code>
+    </div>
+    <h6 class="fw-semibold">Example Response:</h6>
     <pre class="bg-dark text-white p-3 rounded small" style="white-space: pre-wrap;">
 {
   "name": "Houston's Strongest 2025",
   "comp_date": "2025-06-08",
-  "comp_end_date": "2025-06-08",
   "location": "Houston, TX",
-  "status": "upcoming",
-  "events": [
-    {
-      "name": "Log Press",
-      "order": 1,
-      "weight_type": "max",
-      "number_of_lanes": 1
-    }
-  ],
-  "athletes": [
-    {
-      "athlete": {
-        "first_name": "John",
-        "last_name": "Doe",
-        "full_name": "John Doe",
-        "instagram_name": "@johndoe_strong",
-        "gender": "male",
-        "nickname": "The Bull",
-        "city": "Austin",
-        "state": "TX",
-        "home_gym": "Iron Den",
-        "team_name": "Power Crew",
-        "coach": "Coach K",
-        "height": 74,
-        "weight": 305,
-        "bio": "Returning champ"
-      },
-      "division": { "name": "Open", "predefined_name": "open" },
-      "weight_class": { "name": "308+", "gender": "Male" },
-      "total_points": 20,
-      "rank": 1,
-      "results": [
-        {
-          "event": { "name": "Log Press" },
-          "points_earned": "5",
-          "event_rank": 1,
-          "value": "300 lbs"
-        }
-      ]
-    }
-  ]
+  ...
 }
     </pre>
- <div class="card shadow-lg border-0 p-4">
+  </div>
 
-    <!-- Authentication (for non–vMix endpoints) -->
-    <h2 class="h4 fw-bold mb-3">Authentication</h2>
-    <p>Most API endpoints require a token; get yours at:</p>
-    <div class="bg-light p-3 rounded mb-3">
-      <code>https://atlascompetition.com/api/get-token/</code>
-    </div>
-    <p>Then send:</p>
-    <div class="bg-light p-3 rounded mb-3">
-      <code>Authorization: Token &lt;your-api-token&gt;</code>
-    </div>
+  <div class="card shadow border-0 p-4 mb-5">
+    <h2 class="h4 fw-bold mb-3 border-bottom pb-2">Public Endpoints</h2>
 
-    <hr class="my-5">
-
-    <!-- Events (public) -->
-    <h2 class="h4 fw-bold mb-3">List Events for a Competition</h2>
-    <p><strong>Access:</strong> Public (no auth required)</p>
-    <div class="bg-light p-3 rounded mb-3">
-      <code>GET /api/competition/events?competitionID=&lt;competitionID&gt;</code>
-    </div>
-    <ul>
-      <li><strong>competitionID</strong> (integer, required)</li>
-    </ul>
+    <h5 class="fw-semibold mt-4">Events</h5>
+    <code class="d-block bg-light p-2 rounded mb-2">GET /api/competition/events?competitionID=&lt;id&gt;</code>
     <pre class="bg-dark text-white p-3 rounded small">[
-  { "id": 21, "name": "Axle Clean & Press (3-attempt max)" },
-  { "id": 22, "name": "18\" Deadlift (3-attempt max)" },
-  …
+  { "id": 21, "name": "Axle Clean & Press" },
+  ...
 ]</pre>
 
-    <hr class="my-5">
-
-    <!-- Weight-classes (public) -->
-    <h2 class="h4 fw-bold mb-3">List Weight-Classes for a Competition</h2>
-    <p><strong>Access:</strong> Public (no auth required)</p>
-    <div class="bg-light p-3 rounded mb-3">
-      <code>GET /api/competition/weight-classes?competitionID=&lt;competitionID&gt;</code>
-    </div>
-    <ul>
-      <li><strong>competitionID</strong> (integer, required)</li>
-    </ul>
+    <h5 class="fw-semibold mt-4">Weight Classes</h5>
+    <code class="d-block bg-light p-2 rounded mb-2">GET /api/competition/weight-classes?competitionID=&lt;id&gt;</code>
     <pre class="bg-dark text-white p-3 rounded small">[
-  { "id": 5,  "name": "148 – Lightweight Men" },
-  { "id": 6,  "name": "181 – Middleweight Men" },
-  …
+  { "id": 5, "name": "148 – Lightweight Men" },
+  ...
 ]</pre>
 
-    <hr class="my-5">
-
-    <!-- Leaderboard (public) -->
-    <h2 class="h4 fw-bold mb-3">Leaderboard</h2>
-    <p><strong>Access:</strong> Public (no auth required)</p>
-    <div class="bg-light p-3 rounded mb-3">
-      <code>GET /api/competition/leaderboard?competitionID=&lt;competitionID&gt;&weightClassID=&lt;weightClassID&gt;&listSize=&lt;n&gt;</code>
-    </div>
-    <ul>
-      <li><strong>competitionID</strong> (integer, required)</li>
-      <li><strong>weightClassID</strong> (integer, required)</li>
-      <li><strong>listSize</strong> (integer, optional; default 10)</li>
-    </ul>
+    <h5 class="fw-semibold mt-4">Leaderboard</h5>
+    <code class="d-block bg-light p-2 rounded mb-2">GET /api/competition/leaderboard?competitionID=&lt;id&gt;&weightClassID=&lt;id&gt;</code>
     <pre class="bg-dark text-white p-3 rounded small">[
   {
-    "className":"Open – 231.5 Men",
-    "position":1,
-    "athleteName":"BILL BRIGGS",
-    "points":28
+    "className": "Open – 231.5 Men",
+    "position": 1,
+    "athleteName": "BILL BRIGGS",
+    "points": 28
   },
-  …
+  ...
 ]</pre>
 
-    <hr class="my-5">
-
-    <!-- Current Competitors (public) -->
-    <h2 class="h4 fw-bold mb-3">Current Competitors</h2>
-    <p><strong>Access:</strong> Public (no auth required)</p>
-    <div class="bg-light p-3 rounded mb-3">
-      <code>GET /api/competition/current-competitors?competitionID=&lt;competitionID&gt;&eventID=&lt;eventID&gt;</code>
-    </div>
-    <ul>
-      <li><strong>competitionID</strong> (integer, required)</li>
-      <li><strong>eventID</strong> (integer, optional; defaults to “current” event)</li>
-    </ul>
+    <h5 class="fw-semibold mt-4">Current Competitors</h5>
+    <code class="d-block bg-light p-2 rounded mb-2">GET /api/competition/current-competitors?competitionID=&lt;id&gt;</code>
     <pre class="bg-dark text-white p-3 rounded small">[
   {
-    "eventID":22,
-    "eventName":"18\" Deadlift (3-attempt max)",
-    "lane":2,
-    "name":"MICHAEL ANDERSON",
-    …
+    "eventID": 22,
+    "eventName": "Axle Clean & Press",
+    "lane": 2,
+    "name": "MICHAEL ANDERSON",
+    "instagram": "@manderson0326",
+    "height": "5FT 10IN",
+    "age": 33,
+    "state": "TX",
+    "team": "LIGHTNING FITNESS",
+    "imageUrl": "https://atlascompetition.com/media/profile_pics/michael.jpg"
   }
 ]</pre>
 
-    <hr class="my-5">
-
-    <!-- Up-Next Competitors (public) -->
-    <h2 class="h4 fw-bold mb-3">Up-Next Competitors</h2>
-    <p><strong>Access:</strong> Public (no auth required)</p>
-    <div class="bg-light p-3 rounded mb-3">
-      <code>GET /api/competition/up-next-competitors?competitionID=&lt;competitionID&gt;&eventID=&lt;eventID&gt;</code>
-    </div>
-    <ul>
-      <li><strong>competitionID</strong> (integer, required)</li>
-      <li><strong>eventID</strong> (integer, optional; defaults to “current” event)</li>
-    </ul>
+    <h5 class="fw-semibold mt-4">Up-Next Competitors</h5>
+    <code class="d-block bg-light p-2 rounded mb-2">GET /api/competition/up-next-competitors?competitionID=&lt;id&gt;</code>
     <pre class="bg-dark text-white p-3 rounded small">[
   {
-    "eventID":22,
-    "eventName":"18\" Deadlift (3-attempt max)",
-    "lane":1,
-    "name":"JANE DOE",
-    …
+    "eventID": 22,
+    "eventName": "Axle Clean & Press",
+    "lane": 1,
+    "name": "JANE DOE",
+    "instagram": "@janedoe",
+    "height": "5FT 7IN",
+    "age": 29,
+    "state": "NY",
+    "team": "IRON ELITE",
+    "imageUrl": "https://atlascompetition.com/media/profile_pics/jane.jpg"
   }
 ]</pre>
 
-    <hr class="my-5">
+    <h5 class="fw-semibold mt-4">Current Event</h5>
+    <code class="d-block bg-light p-2 rounded mb-2">GET /api/competition/current-event?competitionID=&lt;id&gt;</code>
+    <pre class="bg-dark text-white p-3 rounded small">[
+  {
+    "event_name": "Axle Clean & Press",
+    "event_class": "Open - 231.4",
+    "gender": "Male"
+  }
+]</pre>
+  </div>
 
-    <h2 class="h4 fw-bold mb-3">API Documentation</h2>
-      <p>You can explore and test all available <a href="https://atlascompetition.com/api/docs/">API endpoints</a> using the Swagger interface:</p>
-    <div class="bg-light p-3 rounded"><code>https://atlascompetition.com/api/docs/</code></div>
+  <div class="card shadow border-0 p-4 mb-5">
+    <h2 class="h4 fw-bold mb-3 border-bottom pb-2">Interactive API Docs</h2>
+    <p>Explore the full Swagger UI here:</p>
+    <div class="bg-light p-3 rounded">
+      <code>https://atlascompetition.com/api/docs/</code>
+    </div>
+  </div>
 
-    <hr class="my-5">
-
-    <h2 class="h4 fw-bold mb-3">Support</h2>
-    <p>For any questions, integration help, or access issues, please contact:</p>
+  <div class="card shadow border-0 p-4">
+    <h2 class="h4 fw-bold mb-3 border-bottom pb-2">Support</h2>
+    <p>Need help? Reach out:</p>
     <p><strong>Email:</strong> <a href="mailto:support@atlascompetition.com">support@atlascompetition.com</a></p>
   </div>
 </div>

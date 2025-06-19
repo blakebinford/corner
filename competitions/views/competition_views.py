@@ -18,7 +18,7 @@ from django.views.generic import TemplateView
 
 from competitions.utils import get_onboarding_status
 from competitions.views.utility_views import haversine_distance
-from competitions.models import Competition, AthleteCompetition, EventImplement, ZipCode, WeightClass
+from competitions.models import Competition, AthleteCompetition, EventImplement, ZipCode, WeightClass, Event
 from competitions.forms import CompetitionForm, CompetitionFilter
 
 def home(request):
@@ -348,6 +348,19 @@ class ManageCompetitionView(TemplateView):
         context['athlete_summary'] = athlete_summary
 
         return context
+
+@login_required
+def set_current_event(request, competition_pk, event_pk):
+    competition = get_object_or_404(Competition, pk=competition_pk)
+    event = get_object_or_404(Event, pk=event_pk, competition=competition)
+
+    if request.user != competition.organizer:
+        messages.error(request, "You are not authorized to change the current event.")
+        return redirect('competitions:competition_run_order', competition_pk=competition.pk, event_pk=event.pk)
+
+    competition.set_current_event(event)
+
+    return redirect('competitions:competition_run_order', competition_pk=competition.pk, event_pk=event.pk)
 
 class CompleteCompetitionView(LoginRequiredMixin, View):
     def post(self, request, competition_pk):

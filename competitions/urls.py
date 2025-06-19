@@ -134,4 +134,5 @@ urlpatterns = [
     path('organizer/implements/<int:pk>/delete/', ImplementDeleteView.as_view(), name='implement_delete'),
     path("select2/", include("django_select2.urls")),
     path('<int:pk>/dismiss-intro/', dismiss_first_time_setup, name='dismiss_first_time_setup'),
+    path('<int:competition_pk>/set-current-event/<int:event_pk>/', views.set_current_event, name='set_current_event'),
 ]

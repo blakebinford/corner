@@ -109,6 +109,17 @@ class Competition(models.Model):
 
     provides_shirts = models.BooleanField(default=False, help_text="Check if T-shirts are provided")
     allowed_tshirt_sizes = models.ManyToManyField('TshirtSize', blank=True)
+    current_event = models.ForeignKey(
+        'Event',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='current_for_competitions'
+    )
+
+    def set_current_event(self, event):
+        self.current_event = event
+        self.save(update_fields=['current_event'])
 
     def get_ordered_events(self):
         return self.events.order_by('order')
