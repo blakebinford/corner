@@ -11,13 +11,16 @@ from competitions.serializers import CompetitionSerializer, AthleteCompetitionSe
 from rest_framework.permissions import IsAuthenticated, BasePermission, AllowAny
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
+
 class APICompetitionListView(generics.ListAPIView):
     queryset = Competition.objects.all()
     serializer_class = CompetitionSerializer
 
+
 class IsReadOnlyUser(BasePermission):
     def has_permission(self, request, view):
         return request.user.username == 'vmix_user' or 'blake' and request.method in ['GET', 'HEAD', 'OPTIONS']
+
 
 def _format_height_inches(h):
     """
@@ -56,6 +59,7 @@ class APICompetitionDetailView(generics.RetrieveAPIView):
     lookup_field = 'id'
     permission_classes = [IsAuthenticated, IsReadOnlyUser]
 
+
 class APIAthleteCompetitionDetailView(generics.RetrieveAPIView):
     queryset = AthleteCompetition.objects.all()
     serializer_class = AthleteCompetitionSerializer
@@ -64,6 +68,7 @@ class APIAthleteCompetitionDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         status = self.kwargs['status']
         return Competition.objects.filter(status=status)
+
 
 @extend_schema(
     summary="List athletes in a competition",
@@ -85,7 +90,8 @@ class CompetitionAthletesAPI(APIView):
 
 @extend_schema(
     parameters=[
-        OpenApiParameter(name='name', description='Full name of the athlete (e.g. John Smith)', required=True, type=str),
+        OpenApiParameter(name='name', description='Full name of the athlete (e.g. John Smith)', required=True,
+                         type=str),
     ],
     responses={200: AthleteCompetitionSerializer},
     methods=["GET"],
@@ -121,8 +127,10 @@ def athlete_by_name(request, comp_id):
     serializer = AthleteCompetitionSerializer(matching)
     return Response(serializer.data)
 
+
 def api_guide(request):
     return render(request, 'competitions/api_guide.html')
+
 
 @extend_schema(
     summary="vMix: Top-N Leaderboard",
@@ -136,7 +144,7 @@ def api_guide(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def leaderboard(request):
-    comp_id   = request.GET.get("competitionID")
+    comp_id = request.GET.get("competitionID")
     weight_id = request.GET.get("weightClassID")
     try:
         list_size = int(request.GET.get("listSize", 10))
@@ -153,12 +161,12 @@ def leaderboard(request):
     data = []
     for idx, ac in enumerate(regs, start=1):
         div = ac.division  # Division instance
-        wc  = ac.weight_class
+        wc = ac.weight_class
         data.append({
             "className": f"{div.name} – {wc.name}{wc.weight_d}",
-            "position":  idx,
+            "position": idx,
             "athleteName": ac.athlete.user.get_full_name().upper(),
-            "points":      ac.total_points,
+            "points": ac.total_points,
         })
 
     return Response(data)
@@ -188,7 +196,8 @@ def current_competitors(request):
 
     data = []
     for ro in ros:
-        prof = ro.athlete_competition.athlete
+        ac = ro.athlete_competition
+        prof = ac.athlete
         user = prof.user
         data.append({
             "eventID": event.pk,
@@ -201,6 +210,12 @@ def current_competitors(request):
             "height": _format_height_inches(prof.height),
             "weight": str(prof.weight) if prof.weight else "",
             "age": _calculate_age(prof.date_of_birth),
+            "division": ac.division.name if ac.division else "",
+            "weight_class": (
+                f"u{ac.weight_class.name}" if ac.weight_class.weight_d == "u"
+                else f"{ac.weight_class.name}+" if ac.weight_class.weight_d == "+"
+                else ac.weight_class.name
+            ) if ac.weight_class else "",
             "street": prof.street_number,
             "city": prof.city,
             "state": prof.state,
@@ -213,7 +228,6 @@ def current_competitors(request):
         })
 
     return Response(data)
-
 
 
 @api_view(["GET"])
@@ -246,7 +260,8 @@ def up_next_competitors(request):
 
     data = []
     for lane, ro in next_by_lane.items():
-        prof = ro.athlete_competition.athlete
+        ac = ro.athlete_competition
+        prof = ac.athlete
         user = prof.user
         data.append({
             "eventID": event.pk,
@@ -259,6 +274,8 @@ def up_next_competitors(request):
             "height": _format_height_inches(prof.height),
             "weight": str(prof.weight) if prof.weight else "",
             "age": _calculate_age(prof.date_of_birth),
+            "division": ac.division.name if ac.division else "",
+            "weight_class": ac.weight_class.name if ac.weight_class else "",
             "street": prof.street_number,
             "city": prof.city,
             "state": prof.state,
@@ -271,7 +288,6 @@ def up_next_competitors(request):
         })
 
     return Response(data)
-
 
 
 @api_view(["GET"])
@@ -307,7 +323,6 @@ def current_event(request):
         "event_class": event_class,
         "gender": gender
     }])
-
 
 
 @api_view(["GET"])
