@@ -25,9 +25,6 @@ def athlete_profile(request, athlete_id):
     # Get competition history for this athlete profile
     competition_history = AthleteCompetition.objects.filter(athlete=athlete)
 
-    # DEBUG: print who we got
-    print(f"AthleteProfile for {athlete.user.username}: {athlete}")
-
     context = {
         'athlete': athlete,
         'competition_history': competition_history

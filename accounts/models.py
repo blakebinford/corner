@@ -12,7 +12,7 @@ class User(AbstractUser):
     """
     date_of_birth = models.DateField(null=True, blank=True)
     email_verified = models.BooleanField(default=False)
-    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True, default='static/images/athlete_default.png')
     instagram_name = models.CharField(max_length=35, blank=True)
     x_name = models.CharField(max_length=35, blank=True)
     facebook_name = models.CharField(max_length=35, blank=True)
