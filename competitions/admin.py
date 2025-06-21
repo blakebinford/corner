@@ -86,6 +86,47 @@ class EventAdmin(admin.ModelAdmin):
     ordering = ('order',)
     inlines = [EventImplementInline, CompetitionRunOrderInline]
 
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+
+        # Collect all existing CompetitionRunOrders for the event
+        event_instance = form.instance
+        comp = event_instance.competition
+        event = event_instance
+
+        # Build a map to detect conflicts
+        existing_orders = {
+            (ro.order): ro
+            for ro in CompetitionRunOrder.objects.filter(
+                competition=comp,
+                event=event
+            )
+        }
+
+        # Track updated orders to avoid double use
+        used_orders = {}
+
+        for instance in instances:
+            key = instance.order
+
+            if instance.pk:  # Update
+                used_orders[key] = instance.pk
+                instance.save()
+
+            else:  # New entry
+                # If an order already exists and it's a different row, override it
+                conflicting = existing_orders.get(key)
+                if conflicting and conflicting.pk != instance.pk:
+                    conflicting.delete()
+
+                instance.competition = comp
+                instance.event = event
+                instance.save()
+                used_orders[key] = instance.pk
+
+        # Save any many-to-many fields
+        formset.save_m2m()
+
 
 @admin.register(AthleteCompetition)
 class AthleteCompetitionAdmin(admin.ModelAdmin):

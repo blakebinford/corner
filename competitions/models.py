@@ -551,10 +551,7 @@ class CompetitionRunOrder(models.Model):
 
     class Meta:
         ordering = ['event', 'order']
-        unique_together = [
-            ['competition', 'event', 'order'],
-            ['competition', 'event', 'athlete_competition']
-        ]
+
 
     def __str__(self):
         return (f"{self.athlete_competition.athlete.user.get_full_name()} - "
