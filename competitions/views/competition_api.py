@@ -11,6 +11,8 @@ from competitions.serializers import CompetitionSerializer, AthleteCompetitionSe
 from rest_framework.permissions import IsAuthenticated, BasePermission, AllowAny
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
+from competitions.utils import generate_presigned_url
+
 
 class APICompetitionListView(generics.ListAPIView):
     queryset = Competition.objects.all()
@@ -231,7 +233,7 @@ def current_competitors(request):
             "team": prof.team_name,
             "coach": prof.coach,
             "bio": prof.bio,
-            "imageUrl": request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else "",
+            "imageUrl": generate_presigned_url(user.profile_picture.name) if user.profile_picture else "",
         })
 
     return Response(data)
@@ -291,7 +293,7 @@ def up_next_competitors(request):
             "team": prof.team_name,
             "coach": prof.coach,
             "bio": prof.bio,
-            "imageUrl": request.build_absolute_uri(user.profile_picture.url) if user.profile_picture else "",
+            "imageUrl": generate_presigned_url(user.profile_picture.name) if user.profile_picture else "",
         })
 
     return Response(data)
