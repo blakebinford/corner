@@ -8,7 +8,7 @@ from competitions.views.competition_api import (
     up_next_competitors,
     current_event,
     competition_events,
-    competition_weight_classes,
+    competition_weight_classes, serve_profile_picture,
 )
 
 urlpatterns = [
@@ -23,4 +23,5 @@ urlpatterns = [
     path('competition/current-competitors',   current_competitors,    name='api_current_competitors'),
     path('competition/up-next-competitors',   up_next_competitors,    name='api_up_next_competitors'),
     path('competition/current-event',         current_event,          name='api_current_event'),
+    path('api/profile-pic/<int:user_id>/', serve_profile_picture, name='serve_profile_picture'),
 ]

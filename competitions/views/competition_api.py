@@ -1,17 +1,31 @@
 from datetime import date
-from django.shortcuts import get_object_or_404, render
+
+from django.http import HttpResponseNotFound
+from django.shortcuts import get_object_or_404, render, redirect, reverse
 from rest_framework import generics, status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from competitions.models import Competition, AthleteCompetition, CompetitionRunOrder, Event
-from accounts.models import AthleteProfile
+from accounts.models import AthleteProfile, User
 from competitions.serializers import CompetitionSerializer, AthleteCompetitionSerializer
 from rest_framework.permissions import IsAuthenticated, BasePermission, AllowAny
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from competitions.utils import generate_presigned_url
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def serve_profile_picture(request, user_id):
+    user = get_object_or_404(User, pk=user_id)
+
+    if user.profile_picture:
+        url = generate_presigned_url(user.profile_picture.name)
+        return redirect(url)
+
+    return HttpResponseNotFound("No profile picture found.")
 
 
 class APICompetitionListView(generics.ListAPIView):
@@ -233,7 +247,10 @@ def current_competitors(request):
             "team": prof.team_name,
             "coach": prof.coach,
             "bio": prof.bio,
-            "imageUrl": generate_presigned_url(user.profile_picture.name) if user.profile_picture else "",
+            "imageUrl": request.build_absolute_uri(
+                reverse("serve_profile_picture", args=[user.id])
+            ) if user.profile_picture else "",
+
         })
 
     return Response(data)
@@ -293,7 +310,10 @@ def up_next_competitors(request):
             "team": prof.team_name,
             "coach": prof.coach,
             "bio": prof.bio,
-            "imageUrl": generate_presigned_url(user.profile_picture.name) if user.profile_picture else "",
+            "imageUrl": request.build_absolute_uri(
+                reverse("serve_profile_picture", args=[user.id])
+            ) if user.profile_picture else "",
+
         })
 
     return Response(data)
