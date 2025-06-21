@@ -6,7 +6,7 @@ from competitions.views import SponsorEditView, OrganizerCompetitionsView, Manag
     toggle_publish_status, AddAthleteManuallyView, CreateAthleteProfileView, AssignWeightClassesView, \
     CustomDivisionCreateView, add_custom_weight_class, athlete_views, \
     ImplementListView, ImplementCreateView, ImplementUpdateView, ImplementDeleteView, dismiss_first_time_setup, \
-    CompetitionDisplayView, CompetitionBroadcastView
+    CompetitionDisplayView, CompetitionBroadcastView, manual_run_order_edit
 
 from competitions.views import stripe_views as sv
 from competitions.views import payments
@@ -151,5 +151,7 @@ urlpatterns = [
     ),
     path('competition/<int:competition_pk>/broadcast/', CompetitionBroadcastView.as_view(),
          name='competition_broadcast'),
+    path('competition/<int:competition_pk>/event/<int:event_pk>/manual-order/', manual_run_order_edit, name='manual_run_order_edit'),
+
 
 ]

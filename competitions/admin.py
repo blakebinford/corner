@@ -7,6 +7,32 @@ from .models import (
     LaneAssignment, CompetitionRunOrder
 )
 
+class CompetitionRunOrderInline(admin.TabularInline):
+    model = CompetitionRunOrder
+    extra = 0
+    fields = (
+        'athlete_competition',
+        'get_division',
+        'lane_number',
+        'order',
+    )
+    readonly_fields = ('get_division',)
+    ordering = ('lane_number', 'order')
+    show_change_link = True
+
+
+    def get_division(self, obj):
+        return obj.athlete_competition.division
+    get_division.short_description = 'Division'
+
+    def has_add_permission(self, request, obj=None):
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        return True
 
 class AthleteCompetitionInline(admin.TabularInline):
     model = AthleteCompetition
@@ -58,7 +84,7 @@ class EventAdmin(admin.ModelAdmin):
     list_display = ('name', 'weight_type', 'order')
     search_fields = ('name',)
     ordering = ('order',)
-    inlines = [EventImplementInline]
+    inlines = [EventImplementInline, CompetitionRunOrderInline]
 
 
 @admin.register(AthleteCompetition)
@@ -125,6 +151,7 @@ class CompetitionRunOrderAdmin(admin.ModelAdmin):
     list_display = ('competition', 'event', 'athlete_competition', 'order', 'status')
     list_filter = ('competition', 'event', 'status')
     search_fields = ('athlete_competition__athlete__user__username', 'athlete_competition__athlete__user__first_name', 'athlete_competition__athlete__user__last_name')
+
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):

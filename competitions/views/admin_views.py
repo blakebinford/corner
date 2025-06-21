@@ -1082,3 +1082,55 @@ class CompetitionDisplayView(LoginRequiredMixin, View):
             'hide_navbar': True,
         }
         return render(request, self.template_name, context)
+
+def manual_run_order_edit(request, competition_pk, event_pk):
+    competition = get_object_or_404(Competition, pk=competition_pk)
+    event = get_object_or_404(Event, pk=event_pk, competition=competition)
+
+    if request.method == "POST":
+        # Save lane assignment per division
+        for key, value in request.POST.items():
+            if key.startswith("lane_division_"):
+                division_id = key.split("_")[-1]
+                try:
+                    division_id = int(division_id)
+                    lane_number = int(value)
+                    CompetitionRunOrder.objects.filter(
+                        event=event,
+                        athlete_competition__division_id=division_id
+                    ).update(lane_number=lane_number)
+                except ValueError:
+                    continue
+
+        # Save individual order
+        for key, value in request.POST.items():
+            if key.startswith("order_ro_"):
+                ro_id = key.split("_")[-1]
+                try:
+                    ro = CompetitionRunOrder.objects.get(id=ro_id, event=event)
+                    ro.order = int(value)
+                    ro.save()
+                except (CompetitionRunOrder.DoesNotExist, ValueError):
+                    continue
+
+        messages.success(request, "Run order and lanes updated.")
+        return redirect("competitions:manual_run_order_edit", competition_pk=competition.pk, event_pk=event.pk)
+
+    run_orders = (
+        CompetitionRunOrder.objects
+        .filter(event=event)
+        .select_related('athlete_competition__athlete', 'athlete_competition__division')
+        .order_by('athlete_competition__division__predefined_name', 'order')
+    )
+
+    # Group run orders by division
+    from collections import defaultdict
+    division_map = defaultdict(list)
+    for ro in run_orders:
+        division_map[ro.athlete_competition.division].append(ro)
+
+    return render(request, "competitions/manual_run_order_edit.html", {
+        "competition": competition,
+        "event": event,
+        "division_map": division_map,
+    })
