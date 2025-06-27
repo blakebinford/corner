@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
+#!/usr/bin/env python
+"""Django's command-line utility for administrative tasks."""
 import os
 import sys
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ComPodium.settings.local')
+os.environ.setdefault(
+    'DJANGO_SETTINGS_MODULE',
+    os.getenv('DJANGO_SETTINGS_MODULE', 'ComPodium.settings.production')
+)
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ComPodium.settings')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -18,11 +22,5 @@ def main():
         ) from exc
     execute_from_command_line(sys.argv)
 
-
 if __name__ == '__main__':
-    os.environ.setdefault(
-        'DJANGO_SETTINGS_MODULE',
-        'ComPodium.settings.local' if 'runserver' in sys.argv else 'ComPodium.settings.production'
-    )
-    from django.core.management import execute_from_command_line
-    execute_from_command_line(sys.argv)
+    main()

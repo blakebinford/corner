@@ -43,3 +43,10 @@ MEDIA_URL = f"{AWS_S3_CUSTOM_DOMAIN}/"
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.sendgrid.net'
+EMAIL_PORT = config('SENDGRID_SMTP_PORT')
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'apikey' # This is always "apikey" for SendGrid
+EMAIL_HOST_PASSWORD = config('SENDGRID_API_KEY')  # Your actual API key
+DEFAULT_FROM_EMAIL = 'noreply@atlascompetition.com'  # Use your domain

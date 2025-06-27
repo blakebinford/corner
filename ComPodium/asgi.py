@@ -10,7 +10,8 @@ https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 import os
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ComPodium.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', os.getenv('DJANGO_SETTINGS_MODULE', 'ComPodium.settings.production'))
+
 django.setup()
 
 from channels.auth import AuthMiddlewareStack
