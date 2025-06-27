@@ -452,6 +452,7 @@ from django.db import transaction
 from accounts.models import User, AthleteProfile, OrganizerProfile
 from competitions.models import Competition, AthleteCompetition
 
+
 @login_required
 def manage_competition(request, pk):
     comp = get_object_or_404(Competition, pk=pk, organizer=request.user.organizerprofile)

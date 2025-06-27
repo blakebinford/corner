@@ -1,19 +1,113 @@
 {% extends "base.html" %}
+{% load static %}
+{% block extra_styles %}
+    <style>
+        .form-check input[type="checkbox"] {
+            transform: scale(1.25);
+            margin-top: 0.25rem;
+        }
+    </style>
+
+{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <h2>Create Custom Division</h2>
-    <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label for="id_custom_name" class="form-label">Division Name</label>
-            {{ form.custom_name }}
+    <div class="container mt-4">
+        <h3>Add Division Names</h3>
+        <div class="alert alert-info">
+            <p class="mb-1"><strong>How to use this form:</strong></p>
+            <ul class="mb-0">
+                <li>Start typing in a division name — common choices like <em>Novice</em>, <em>Teen</em>, <em>Open</em>,
+                    and <em>Masters</em> will appear in the dropdown.
+                </li>
+                <li>If your division doesn’t match one of the suggestions, just type a custom name.</li>
+                <li>You can add as many divisions as you need using the <strong>+ Add Another</strong> button.</li>
+                <li>Click <strong>Remove</strong> to delete a division row before saving.</li>
+            </ul>
         </div>
-        {% if form.errors %}
-            <div class="alert alert-danger">
-                {{ form.errors }}
+
+        <form method="post">
+            {% csrf_token %}
+            {{ formset.management_form }}
+            <div id="empty-form-template" class="d-none">
+                <div class="form-row mb-3 d-flex align-items-center gap-3 division-form-row">
+                    <div class="flex-grow-1">
+                        {{ formset.empty_form.custom_name }}
+                    </div>
+                    <button type="button" class="btn btn-danger remove-row-btn">Remove</button>
+                </div>
             </div>
-        {% endif %}
-        <button type="submit" class="btn btn-primary">Save</button>
-    </form>
-</div>
+            {% if formset.non_form_errors %}
+                <div class="alert alert-danger">
+                    {{ formset.non_form_errors }}
+                </div>
+            {% endif %}
+
+            <div id="formset-container">
+                {% for form in formset %}
+                    <div class="form-row mb-3 d-flex align-items-center gap-3 division-form-row">
+                        <div class="flex-grow-1">
+                            {{ form.custom_name.errors }}
+                            {{ form.custom_name }}
+                        </div>
+                        <button type="button" class="btn btn-danger remove-row-btn">Remove</button>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+            <button type="button" class="btn btn-secondary" id="add-division">+ Add Another</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+        <datalist id="division-options">
+            <option value="Novice">
+            <option value="Teen">
+            <option value="Open">
+            <option value="Master">
+            <option value="Adaptive">
+            <option value="Pro">
+        </datalist>
+
+
+    </div>
+
+{% endblock %}
+{% block extra_scripts %}
+    <script>
+        document.getElementById("add-division").addEventListener("click", function () {
+            const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+            const formIdx = parseInt(totalForms.value);
+            const formContainer = document.getElementById("formset-container");
+
+            // Use the hidden empty template
+            const templateHTML = document.getElementById("empty-form-template").innerHTML;
+            const newForm = document.createElement("div");
+            newForm.innerHTML = templateHTML.replace(/__prefix__/g, formIdx);
+
+            formContainer.appendChild(newForm.firstElementChild);
+            totalForms.value = formIdx + 1;
+        });
+    </script>
+
+    <script>
+        document.addEventListener("click", function (event) {
+            if (event.target.classList.contains("remove-row-btn")) {
+                const row = event.target.closest(".division-form-row");
+                row.remove();
+
+                // Reindex remaining forms
+                const forms = document.querySelectorAll(".division-form-row");
+                const totalFormsInput = document.getElementById("id_form-TOTAL_FORMS");
+
+                forms.forEach((formEl, i) => {
+                    formEl.querySelectorAll("input").forEach(input => {
+                        input.name = input.name.replace(/form-\d+-/, `form-${i}-`);
+                        input.id = input.id.replace(/form-\d+-/, `form-${i}-`);
+                    });
+                });
+
+                totalFormsInput.value = forms.length;
+            }
+        });
+    </script>
+
 {% endblock %}

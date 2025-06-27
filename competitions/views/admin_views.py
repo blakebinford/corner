@@ -3,7 +3,9 @@ import json
 from collections import defaultdict
 from itertools import groupby
 from decimal import Decimal
-from django.db import transaction
+
+from django import forms
+from django.db import transaction, IntegrityError
 from django.db.models import Max
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
@@ -16,11 +18,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views import View, generic
 from django.views.generic import TemplateView, CreateView
+from django.views.generic.edit import FormView
+from django.forms import modelformset_factory
 
 from competitions.models import Competition, AthleteCompetition, Division, WeightClass, AthleteEventNote, \
     LaneAssignment, CompetitionRunOrder, Event, Result, EventImplement
 from competitions.forms import EditWeightClassesForm, CustomWeightClassForm, CustomDivisionForm, \
-    CombineWeightClassesForm
+    CombineWeightClassesForm, CustomDivisionFormSet, CustomWeightClassFormSetFactory
 from competitions.utils import get_onboarding_status
 from competitions.views import calculate_points_and_rankings
 
@@ -432,74 +436,161 @@ class CombineWeightClassesView(LoginRequiredMixin, UserPassesTestMixin, generic.
         return self.request.user == competition.organizer
 
 
-class CustomDivisionCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
-    model = Division
-    form_class = CustomDivisionForm
+class CustomDivisionCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
     template_name = "competitions/custom_division_form.html"
+    formset_class = modelformset_factory(
+        Division,
+        form=CustomDivisionForm,
+        extra=1,
+        can_delete=True
+    )
 
-    def form_valid(self, form):
-        # Get the competition instance
-        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+    def get(self, request, competition_pk):
+        formset = self.formset_class(queryset=Division.objects.none())
+        return render(request, self.template_name, {
+            "formset": formset,
+            "competition_pk": competition_pk
+        })
 
-        # Assign the competition to the division being created
-        form.instance.competition = competition
+    def post(self, request, competition_pk):
+        formset = self.formset_class(request.POST)
+        competition = get_object_or_404(Competition, pk=competition_pk)
 
-        # Save the form (create the division)
-        response = super().form_valid(form)
-
-        # Add the newly created division to the competition's allowed divisions
-        competition.allowed_divisions.add(form.instance)
-
-        return response
-
-    def get_success_url(self):
-        return reverse('competitions:manage_competition', kwargs={'competition_pk': self.kwargs['competition_pk']})
+        if formset.is_valid():
+            for form in formset:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                    division = form.save(commit=False)
+                    division.competition = competition
+                    division.is_custom = True
+                    division.save()
+                    competition.allowed_divisions.add(division)
+            messages.success(request, "Custom divisions saved successfully.")
+            return redirect('competitions:manage_competition', competition_pk=competition_pk)
+        else:
+            for idx, form in enumerate(formset):
+                print(f"Form {idx} errors: {form.errors}")
+            print("Non-form errors:", formset.non_form_errors())
+            return render(request, self.template_name, {
+                "formset": formset,
+                "competition_pk": competition_pk
+            })
 
     def test_func(self):
-        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
-        return self.request.user == competition.organizer
+        comp = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
+        return self.request.user == comp.organizer
 
+CustomWeightClassFormSet = modelformset_factory(
+    WeightClass,
+    form=CustomWeightClassForm,
+    extra=1,
+    can_delete=True
+)
 
 def add_custom_weight_class(request, competition_pk):
-    """
-    View to add a custom weight class to a competition.
-    """
-    print("➡️ Entered add_custom_weight_class")
-    print("   HTTP method:", request.method)
-    print("   competition_pk:", competition_pk)
-
     competition = get_object_or_404(Competition, pk=competition_pk)
-    print("   Loaded Competition:", competition)
 
     if request.method == "POST":
-        print("✉️  POST data:", dict(request.POST))
+        print("🟡 POST received")
+        print("Request POST data:", request.POST)
 
-        form = CustomWeightClassForm(request.POST, competition=competition)
-        print("   Form bound?", form.is_bound)
+        selected_division_id = request.POST.get("shared_division")
+        use_single_class_mode = request.POST.get("global_single_class") == "on" if request.method == "POST" else False
 
-        is_valid = form.is_valid()
-        print("   form.is_valid() =>", is_valid)
-        if not is_valid:
-            print("   form.errors:", form.errors)
 
-        if is_valid:
-            wc = form.save(commit=False)
-            print("   Form.save(commit=False) =>", wc)
-            wc.competition = competition
-            wc.is_custom = True
-            wc.federation = competition.federation
-            wc.save()
-            print("✅ WeightClass saved, now redirecting")
+        if not selected_division_id:
+            print("❌ No shared division selected")
+            messages.error(request, "Please select a division before saving.")
+            formset = CustomWeightClassFormSetFactory(
+                request.POST,
+                queryset=WeightClass.objects.none(),
+                use_single_class_mode=use_single_class_mode,
+                competition=competition
+            )
+            return render(request, "competitions/custom_weight_class_form.html", {
+                "formset": formset,
+                "competition": competition,
+            })
+
+        try:
+            selected_division = competition.allowed_divisions.get(id=selected_division_id)
+            print(f"✅ Found division: {selected_division}")
+        except Division.DoesNotExist:
+            print("❌ Invalid division selected")
+            messages.error(request, "Invalid division selected.")
+            formset = CustomWeightClassFormSetFatory(
+                request.POST,
+                queryset=WeightClass.objects.none(),
+                use_single_class_mode=use_single_class_mode,
+                competition=competition
+            )
+            return render(request, "competitions/custom_weight_class_form.html", {
+                "formset": formset,
+                "competition": competition,
+            })
+
+        # Use the formset factory with the correct form_kwargs
+        formset = CustomWeightClassFormSetFactory(
+            request.POST,
+            queryset=WeightClass.objects.none(),
+            use_single_class_mode=use_single_class_mode,
+            competition=competition
+        )
+
+        # Set division field metadata
+        for i, form in enumerate(formset.forms):
+            form.fields["division"].widget = forms.HiddenInput()
+            form.fields["division"].initial = selected_division.id
+            form.fields["division"].queryset = competition.allowed_divisions.all()
+            print(f"  ➕ Form {i} division field set to {selected_division.id}")
+
+        if formset.is_valid():
+            for form in formset:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE', False):
+                    wc = form.save(commit=False)
+                    wc.competition = competition
+                    wc.federation = competition.federation
+                    wc.division = selected_division
+                    wc.is_custom = True
+                    if use_single_class_mode:
+                        wc.single_class = True
+                    try:
+                        wc.save()
+                    except IntegrityError:
+                        messages.error(request, f"A duplicate weight class already exists: {wc}")
+                        return render(request, "competitions/custom_weight_class_form.html", {
+                            "formset": formset,
+                            "competition": competition,
+                        })
+
+                    print(f"✔️ Saved weight class: {wc}")
+
+            messages.success(request, "Weight classes added successfully.")
             return redirect("competitions:manage_competition", competition_pk=competition_pk)
+        else:
+            print("❌ Formset is invalid")
+            for i, form in enumerate(formset):
+                print(f"Form {i} errors: {form.errors}")
+            print("Non-form errors:", formset.non_form_errors())
+
+        # Handle GET request
     else:
-        print("🔍 GET request, instantiating empty form")
-        form = CustomWeightClassForm(competition=competition)
+        print("📥 GET request")
+        formset = CustomWeightClassFormSetFactory(
+            queryset=WeightClass.objects.none(),
+            use_single_class_mode=False,  # default for GET
+            competition=competition
+        )
 
-    print("🖼️ Rendering template, form.errors:", form.errors)
-    return render(request,
-                  "competitions/custom_weight_class_form.html",
-                  {"form": form, "competition": competition})
+        for i, form in enumerate(formset.forms):
+            form.fields["division"].widget = forms.HiddenInput()
+            form.fields["division"].initial = competition.allowed_divisions.first().id
+            form.fields["division"].queryset = competition.allowed_divisions.all()
+            print(f"  ➕ (GET) Form {i} division field set to {form.fields['division'].initial}")
 
+    return render(request, "competitions/custom_weight_class_form.html", {
+        "formset": formset,
+        "competition": competition
+    })
 
 @method_decorator(login_required, name="dispatch")
 class CompetitionRunOrderView(LoginRequiredMixin, View):

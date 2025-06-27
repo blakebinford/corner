@@ -1,29 +1,600 @@
-{# competitions/templates/competitions/custom_weight_class_form.html #}
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load widget_tweaks %}
+
+{% block extra_styles %}
+    <style>
+        .weight-form-row {
+            border-left: 4px solid #0d6efd;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .weight-form-row:hover {
+            background-color: #f8f9fa;
+        }
+
+        .form-check.form-switch {
+            display: flex;
+            align-items: center;
+        }
+
+        .form-check.form-switch input {
+            margin-left: 0.5rem;
+            margin-right: 0.25rem;
+        }
+
+        select.form-select, input.form-control {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        label.form-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .preview-label {
+            font-style: italic;
+            font-size: 0.75rem;
+        }
+
+        .weight-form-row {
+            border-left: 4px solid #0d6efd;
+        }
+
+        label.form-label {
+            font-weight: 600;
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .preview-label {
+            font-style: italic;
+            font-size: 0.75rem;
+        }
+
+        input.form-control,
+        select.form-select {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .form-check.form-switch {
+            margin-bottom: 0.25rem;
+        }
+
+        .conditional-fields {
+            transition: max-height 0.2s ease, opacity 0.2s ease;
+            overflow: hidden;
+        }
+
+        #weight-summary-table th {
+            font-size: 0.75rem;
+            letter-spacing: 0.04em;
+            color: #495057;
+        }
+
+        #weight-summary-table td {
+            font-size: 0.875rem;
+            vertical-align: middle;
+        }
+
+        #weight-summary-table tr td:first-child {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+
+        #weight-summary-table td:last-child {
+            font-family: monospace;
+            white-space: normal;
+        }
+
+        /* Just update this section */
+        .conditional-fields select[name$="weight_d"] {
+            width: 60px; /* or 100px if you want more padding */
+        }
+
+        select.form-select {
+            min-width: 80px;
+            padding-right: 1.5rem; /* prevent overlap with arrow */
+        }
+
+        .opacity-50 {
+            opacity: 0.5;
+            transition: opacity 0.2s ease;
+        }
+
+
+    </style>
+
+
+{% endblock %}
 {% block content %}
-  <div class="container py-4">
-    <h2>Add Custom Weight Class for {{ competition.name }}</h2>
-    <form
-      method="post"
-      action="{% url 'competitions:add_custom_weight_class' competition.pk %}"
-      novalidate
-      onsubmit="console.log('CustomWeightClass form submitting');"
-    >
-      {% csrf_token %}
+    <div class="container py-4">
+        <h2>Add Custom Weight Classes for {{ competition.name }} </h2>
 
-      {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-          {{ form.non_field_errors }}
+        <div class="accordion mb-4" id="instructionsAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingInstructions">
+                    <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#collapseInstructions" aria-expanded="false"
+                            aria-controls="collapseInstructions">
+                        ℹ️ How to Use This Form
+                    </button>
+                </h2>
+                <div id="collapseInstructions" class="accordion-collapse collapse show"
+                     aria-labelledby="headingInstructions"
+                     data-bs-parent="#instructionsAccordion">
+                    <div class="accordion-body">
+                        <ul class="mb-0 ps-3">
+                            <li><strong>Select a division</strong> — all classes created will belong to this division.
+                            </li>
+                            <li>
+                                <strong>Toggle “Single Class Mode”</strong> if your division doesn’t use weight cutoffs.<br>
+                                <span class="text-muted small">In Single Class Mode, just select gender for each entry.</span>
+                            </li>
+                            <li>
+                                <strong>Otherwise, enter weight and designation</strong> — use “u” for under and “+” for
+                                heavyweight.
+                            </li>
+                            <li><strong>Click + Add Another</strong> to add more weight classes.</li>
+                            <li><strong>Review the live summary below</strong> to confirm your setup before saving.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-      {% endif %}
 
-      {# Renders all your fields via crispy #}
-      {% crispy form %}
 
-      <button type="submit" class="btn btn-primary mt-3">
-        Save
-      </button>
-    </form>
-  </div>
+        <form method="post" onsubmit="syncAllDivisionInputs()">
+
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="shared-division" class="form-label"><strong>Division (applies to all weight
+                    classes)</strong></label>
+
+                <div class="mb-4">
+                    <h5 class="fw-bold mb-3 border-bottom pb-1">Current Weight Class Summary</h5>
+
+                    <div class="card shadow-sm border-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0" id="weight-summary-table">
+                                <thead class="table-light border-bottom">
+                                <tr>
+                                    <th class="text-uppercase text-secondary small fw-bold ps-3" style="width: 120px;">
+                                        Gender
+                                    </th>
+                                    <th class="text-uppercase text-secondary small fw-bold">Weight Classes</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td colspan="2" class="text-muted text-center py-3">No classes added yet</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
+                <select id="shared-division" name="shared_division" class="form-select" required>
+                    <option value="">— Select Division —</option>
+                    {% for division in competition.allowed_divisions.all %}
+                        <option value="{{ division.id }}">{{ division.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="row align-items-center mb-3">
+                <div class="col-auto">
+                    <button type="button" class="btn btn-outline-info" onclick="loadFederationWeightClasses()">
+                        📦 Load Standard Federation Classes
+                    </button>
+                </div>
+                <div class="col d-flex justify-content-end">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="global-single-class-toggle"
+                               name="global_single_class">
+                        <label class="form-check-label ms-2" for="global-single-class-toggle">
+                            Enable Single Class Mode
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+
+            {{ formset.management_form }}
+
+            <div id="formset-container">
+                {% for form in formset %}
+                    <div class="weight-form-row border rounded px-3 py-2 mb-3 shadow-sm bg-white">
+                        {{ form.division.as_hidden }}
+                        {{ form.DELETE }} {# This is required for Django formset deletion logic #}
+
+                        <div class="d-flex flex-wrap align-items-end justify-content-start gap-3">
+                            <div style="min-width: 140px;">
+                                <label class="form-label mb-1">Gender</label>
+                                {{ form.gender }}
+                            </div>
+
+                            <div class="d-flex gap-2 conditional-fields align-items-end">
+                                <div style="min-width: 80px;">
+                                    <label class="form-label mb-1">+ / u</label>
+                                    {{ form.weight_d|add_class:"form-select" }}
+                                </div>
+                                <div style="min-width: 100px;">
+                                    <label class="form-label mb-1">Weight</label>
+                                    {{ form.name|add_class:"form-control" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <small class="form-text text-muted preview-label">Label: <span
+                                    class="label-preview">–</span></small>
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn">Remove</button>
+                        </div>
+                    </div>
+                {% endfor %}
+
+            </div>
+
+            <div id="empty-form-template" class="d-none">
+                <div class="weight-form-row border rounded px-3 py-2 mb-3 shadow-sm bg-white">
+                    <input type="hidden" name="form-__prefix__-division" id="id_form-__prefix__-division" value="">
+
+                    <div class="d-flex flex-wrap align-items-end justify-content-start gap-3">
+                        <div style="min-width: 140px;">
+                            <label class="form-label mb-1" for="id_form-__prefix__-gender">Gender</label>
+                            <select name="form-__prefix__-gender" id="id_form-__prefix__-gender" class="form-select">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <input type="checkbox" name="form-__prefix__-DELETE" id="id_form-__prefix__-DELETE"
+                               class="d-none delete-marker">
+
+                        <div class="conditional-fields d-flex gap-2 align-items-end mt-2">
+                            <div style="width: 80px;">
+                                <label class="form-label mb-1" for="id_form-__prefix__-weight_d">+ / u</label>
+                                <select name="form-__prefix__-weight_d" id="id_form-__prefix__-weight_d"
+                                        class="form-select">
+                                    <option value="">---</option>
+                                    <option value="u">Under</option>
+                                    <option value="+">Over</option>
+                                </select>
+                            </div>
+                            <div style="min-width: 100px;">
+                                <label class="form-label mb-1" for="id_form-__prefix__-name">Weight</label>
+                                <input type="number" step="0.1" name="form-__prefix__-name" id="id_form-__prefix__-name"
+                                       class="form-control">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+
+                        <small class="form-text text-muted preview-label">Label: <span
+                                class="label-preview">–</span></small>
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn">Remove</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end mt-4">
+                <button type="button" class="btn btn-outline-secondary" id="add-weight-class">+ Add Another</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+
+        </form>
+    </div>
+{% endblock %}
+{% block extra_scripts %}
+    <script>
+        function updateLabelPreview(row) {
+            const name = row.querySelector('input[name$="name"]');
+            const weightD = row.querySelector('select[name$="weight_d"]');
+            const preview = row.querySelector('.label-preview');
+
+            const divisionSelect = document.getElementById("shared-division");
+            const divisionName = divisionSelect.options[divisionSelect.selectedIndex]?.text || '';
+
+            const isSingleMode = document.getElementById("global-single-class-toggle").checked;
+            let label = isSingleMode ? 'Single Class' : ((weightD.value === 'u' ? 'u' : '') + (name.value || '') + (weightD.value === '+' ? '+' : ''));
+
+            if (divisionName) {
+                label += ` – ${divisionName}`;
+            }
+
+            preview.textContent = label;
+        }
+
+        function toggleGlobalSingleClassMode(isOn) {
+            document.querySelectorAll('.weight-form-row .conditional-fields').forEach(container => {
+                container.classList.toggle("d-none", isOn);
+                container.classList.toggle("d-flex", !isOn);
+            });
+
+            document.querySelectorAll('.weight-form-row').forEach(updateLabelPreview);
+        }
+
+        function syncAllDivisionInputs() {
+            const selectedDivision = document.getElementById("shared-division").value;
+            document.querySelectorAll('.weight-form-row input[name$="division"]').forEach(input => {
+                input.value = selectedDivision;
+            });
+        }
+
+        function updateWeightClassSummary() {
+            const rows = document.querySelectorAll(".weight-form-row");
+            const summary = {Male: [], Female: []};
+            const isSingle = document.getElementById("global-single-class-toggle").checked;
+
+            const divisionSelect = document.getElementById("shared-division");
+            const divisionName = divisionSelect.options[divisionSelect.selectedIndex]?.text;
+            if (!divisionName) return;
+
+            rows.forEach(row => {
+                const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+                if (deleteCheckbox && deleteCheckbox.checked) return;  // skip deleted rows
+                const gender = row.querySelector('select[name$="gender"]')?.value;
+                const name = row.querySelector('input[name$="name"]')?.value;
+                const weightD = row.querySelector('select[name$="weight_d"]')?.value;
+
+                if (!gender) return;
+
+                const label = isSingle
+                    ? 'Single Class'
+                    : (weightD === 'u' ? 'u' : '') + (name || '') + (weightD === '+' ? '+' : '');
+
+                if (!summary[gender].includes(label)) {
+                    summary[gender].push(label);
+                }
+            });
+
+            const tbody = document.querySelector("#weight-summary-table tbody");
+            tbody.innerHTML = '';
+
+            let rowsAdded = 0;
+            Object.entries(summary).forEach(([gender, labels]) => {
+                if (labels.length > 0) {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `<td><strong>${gender}</strong></td><td>${labels.join(', ')}</td>`;
+                    tbody.appendChild(tr);
+                    rowsAdded++;
+                }
+            });
+
+            if (rowsAdded === 0) {
+                tbody.innerHTML = `<tr><td colspan="2" class="text-muted text-center">No classes added yet</td></tr>`;
+            }
+        }
+
+        function initRowListeners(row) {
+            row.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('change', () => {
+                    updateLabelPreview(row);
+                    updateWeightClassSummary();
+                });
+            });
+
+            updateLabelPreview(row);
+        }
+
+        // Handle initial rows
+        document.querySelectorAll('.weight-form-row').forEach(initRowListeners);
+
+        // Toggle handler
+        document.getElementById("global-single-class-toggle").addEventListener("change", function () {
+            toggleGlobalSingleClassMode(this.checked);
+            updateWeightClassSummary();
+        });
+
+        // Shared division change
+        document.getElementById("shared-division").addEventListener("change", () => {
+            document.querySelectorAll(".weight-form-row").forEach(updateLabelPreview);
+            updateWeightClassSummary();
+        });
+
+        // Add row
+        document.getElementById("add-weight-class").addEventListener("click", function () {
+            const isSingle = document.getElementById("global-single-class-toggle").checked;
+
+            if (isSingle) {
+                const genders = Array.from(document.querySelectorAll('.weight-form-row select[name$="gender"]'))
+                    .filter(el => !el.closest('.weight-form-row').querySelector('input[name$="-DELETE"]')?.checked)
+                    .map(el => el.value);
+
+                const uniqueGenders = new Set(genders);
+
+                if (uniqueGenders.has("Male") && uniqueGenders.has("Female")) {
+                    alert("In Single Class Mode, only one male and one female class are allowed.");
+                    return;
+                }
+            }
+
+            const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+            const formIdx = parseInt(totalForms.value);
+            const container = document.getElementById("formset-container");
+            const templateHTML = document.getElementById("empty-form-template").innerHTML.replace(/__prefix__/g, formIdx);
+            const newEl = document.createElement("div");
+            newEl.innerHTML = templateHTML;
+            const newRow = newEl.firstElementChild;
+            container.appendChild(newRow);
+            newRow.classList.add("border", "border-success", "shadow-sm");
+
+            const selectedDivision = document.getElementById("shared-division").value;
+            const divisionInput = newRow.querySelector('input[name$="division"]');
+            if (divisionInput) {
+                divisionInput.value = selectedDivision;
+            }
+
+            totalForms.value = formIdx + 1;
+
+            initRowListeners(newRow);
+            toggleGlobalSingleClassMode(document.getElementById("global-single-class-toggle").checked);
+        });
+
+        // Remove row handler
+        document.addEventListener('click', function (e) {
+            if (e.target && e.target.classList.contains('remove-row-btn')) {
+                const row = e.target.closest('.weight-form-row');
+                if (!row) return;
+
+                // Mark form for deletion
+                const deleteInput = row.querySelector('input[name$="-DELETE"]');
+                if (deleteInput) {
+                    deleteInput.checked = true;
+                }
+
+                // Animate and hide
+                row.classList.add('opacity-50');
+                setTimeout(() => {
+                    row.style.display = "none";
+                    updateWeightClassSummary();
+                }, 150);
+            }
+        });
+
+        function toggleAddButton() {
+            const isSingle = document.getElementById("global-single-class-toggle").checked;
+            const addBtn = document.getElementById("add-weight-class");
+
+            if (!isSingle) {
+                addBtn.disabled = false;
+                return;
+            }
+
+            const genders = Array.from(document.querySelectorAll('.weight-form-row select[name$="gender"]'))
+                .filter(el => !el.closest('.weight-form-row').querySelector('input[name$="-DELETE"]')?.checked)
+                .map(el => el.value);
+
+            const uniqueGenders = new Set(genders);
+            addBtn.disabled = uniqueGenders.has("Male") && uniqueGenders.has("Female");
+        }
+
+
+        // Sync hidden division on submit
+       document.querySelector("form").addEventListener("submit", function (e) {
+    const isSingle = document.getElementById("global-single-class-toggle").checked;
+
+    if (isSingle) {
+        const genderCounts = {};
+
+        document.querySelectorAll('.weight-form-row').forEach(row => {
+            const isDeleted = row.querySelector('input[name$="-DELETE"]')?.checked;
+            if (isDeleted) return;
+
+            const gender = row.querySelector('select[name$="gender"]')?.value;
+            if (gender) {
+                genderCounts[gender] = (genderCounts[gender] || 0) + 1;
+            }
+        });
+
+        const duplicates = Object.entries(genderCounts).filter(([_, count]) => count > 1);
+        const totalGenders = Object.keys(genderCounts).length;
+
+        if (duplicates.length > 0) {
+            e.preventDefault();
+            alert("In Single Class Mode, you can only have one class per gender. Please remove duplicates.");
+            return false;
+        }
+
+        if (totalGenders > 2) {
+            e.preventDefault();
+            alert("In Single Class Mode, you can only create one male and one female class.");
+            return false;
+        }
+    }
+
+    syncAllDivisionInputs();
+});
+
+
+
+        // Init toggle state
+        toggleGlobalSingleClassMode(document.getElementById("global-single-class-toggle").checked);
+    </script>
+    <script>
+        const COMPETITION_FEDERATION_ID = {{ competition.federation.id }};
+
+        const FEDERATION_WEIGHT_CLASSES = {
+            1: {  // USS
+                male: [
+                    {weight_d: 'u', name: '181'},
+                    {weight_d: 'u', name: '198'},
+                    {weight_d: 'u', name: '220'},
+                    {weight_d: 'u', name: '242'},
+                    {weight_d: 'u', name: '275'},
+                    {weight_d: 'u', name: '308'},
+                    {weight_d: '+', name: '308'},
+                ],
+                female: [
+                    {weight_d: 'u', name: '123'},
+                    {weight_d: 'u', name: '132'},
+                    {weight_d: 'u', name: '148'},
+                    {weight_d: 'u', name: '165'},
+                    {weight_d: 'u', name: '181'},
+                    {weight_d: 'u', name: '198'},
+                    {weight_d: '+', name: '198'},
+                ],
+            },
+            2: {  // Strongman Corporation
+                male: [
+                    {weight_d: 'u', name: '175'},
+                    {weight_d: 'u', name: '200'},
+                    {weight_d: 'u', name: '231'},
+                    {weight_d: '+', name: '231'},
+                ],
+                female: [
+                    {weight_d: 'u', name: '125'},
+                    {weight_d: 'u', name: '140'},
+                    {weight_d: 'u', name: '160'},
+                    {weight_d: '+', name: '160'},
+                ],
+            },
+            3: null,  // default fallback to USS
+        };
+
+        function getFederationPreset() {
+            return FEDERATION_WEIGHT_CLASSES[COMPETITION_FEDERATION_ID] || FEDERATION_WEIGHT_CLASSES[1];
+        }
+
+        function loadFederationWeightClasses() {
+            const preset = getFederationPreset();
+            if (!preset) return;
+
+            const container = document.getElementById("formset-container");
+            container.innerHTML = '';
+            const totalFormsInput = document.getElementById('id_form-TOTAL_FORMS');
+            let idx = 0;
+
+            ['male', 'female'].forEach(gender => {
+                preset[gender].forEach(entry => {
+                    const html = document.getElementById("empty-form-template").innerHTML.replace(/__prefix__/g, idx);
+                    const div = document.createElement("div");
+                    div.innerHTML = html;
+                    const row = div.firstElementChild;
+
+                    row.querySelector('select[name$="gender"]').value = gender.charAt(0).toUpperCase() + gender.slice(1);
+                    row.querySelector('select[name$="weight_d"]').value = entry.weight_d;
+                    row.querySelector('input[name$="name"]').value = entry.name;
+
+                    const divisionVal = document.getElementById("shared-division").value;
+                    row.querySelector('input[name$="division"]').value = divisionVal;
+
+                    document.getElementById("formset-container").appendChild(row);
+                    initRowListeners(row);
+                    idx++;
+                });
+            });
+
+            totalFormsInput.value = idx;
+            toggleGlobalSingleClassMode(document.getElementById("global-single-class-toggle").checked);
+            updateWeightClassSummary();
+        }
+
+    </script>
 {% endblock %}

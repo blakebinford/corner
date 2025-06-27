@@ -5,10 +5,14 @@ import bleach
 
 import django_filters
 from django import forms
+from django.forms import modelformset_factory, BaseModelFormSet
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.forms import TypedChoiceField
 from django_select2.forms import Select2MultipleWidget
+
+from crispy_forms.helper import FormHelper
+
 
 from .models import Competition, AthleteCompetition, Event, EventImplement, Result, Tag, \
     EventBase, ZipCode, Federation, Sponsor, TshirtSize, Division, WeightClass, AthleteEventNote, \
@@ -202,25 +206,35 @@ class CompetitionForm(forms.ModelForm):
 
 
 class CustomDivisionForm(forms.ModelForm):
-    """Form for creating a custom division within a competition."""
-
     class Meta:
         model = Division
         fields = ['custom_name']
         labels = {'custom_name': 'Division Name'}
         widgets = {
-            'custom_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter a custom name'}),
+            'custom_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter or select a division',
+                'list': 'division-options'
+            }),
         }
 
     def clean_custom_name(self):
-        custom_name = self.cleaned_data.get('custom_name')
-        if not custom_name:
+        name = self.cleaned_data.get('custom_name')
+        if not name:
             raise forms.ValidationError("Division name is required.")
-        return custom_name
+        return name
 
+
+CustomDivisionFormSet = modelformset_factory(
+    Division,
+    form=CustomDivisionForm,
+    extra=1,
+    can_delete=True
+)
 
 class CustomWeightClassForm(forms.ModelForm):
     """Form for creating a custom weight class within a competition."""
+
     single_class = forms.BooleanField(
         required=False,
         label="Single Class",
@@ -233,16 +247,22 @@ class CustomWeightClassForm(forms.ModelForm):
         required=True,
         help_text="Select the division this weight class belongs to."
     )
+
     name = forms.DecimalField(
         max_digits=4,
         decimal_places=1,
+        required=False,
         widget=forms.NumberInput(attrs={'step': '0.1'}),
         help_text="(e.g., 140.0)."
+    )
+    weight_d = forms.ChoiceField(
+        choices=[('u', 'Under'), ('+', 'Plus')],
+        required=False,
+        widget=forms.Select()
     )
 
     class Meta:
         model = WeightClass
-        # Note: include single_class before name/weight_d
         fields = ['division', 'gender', 'single_class', 'name', 'weight_d']
         labels = {
             'name': 'Weight (e.g. 140.0)',
@@ -252,38 +272,53 @@ class CustomWeightClassForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.use_single_class_mode = kwargs.pop('use_single_class_mode', False)
         competition = kwargs.pop('competition', None)
         super().__init__(*args, **kwargs)
 
-        # only allow divisions in this competition :contentReference[oaicite:0]{index=0}
         if competition:
             self.fields['division'].queryset = competition.allowed_divisions.all()
-        self.helper = FormHelper()
-        # ← disable crispy’s own <form> tag
-        self.helper.form_tag = False
-        # Make numeric fields optional (we’ll enforce when single_class is False)
-        self.fields['name'].required = False
-        self.fields['weight_d'].required = False
 
-        # If the form was POSTed with single_class checked, hide the numeric inputs
-        if self.data.get('single_class'):
-            self.fields['name'].widget = forms.HiddenInput()
-            self.fields['weight_d'].widget = forms.HiddenInput()
+        # Apply consistent Bootstrap styles
+        self.fields['gender'].widget.attrs.update({'class': 'form-select'})
+        self.fields['name'].widget.attrs.update({'class': 'form-control', 'placeholder': 'e.g. 231.5'})
+        self.fields['weight_d'].widget.attrs.update({'class': 'form-select'})
+        self.fields['division'].widget = forms.HiddenInput()
 
     def clean(self):
         cleaned = super().clean()
-        single = cleaned.get('single_class')
+        name = cleaned.get("name")
+        gender = cleaned.get("gender")
+        division = cleaned.get("division")
+        competition = getattr(self, 'competition', None)
+        is_single_mode = getattr(self, 'use_single_class_mode', False)
 
-        if single:
-            # Force any numeric values to None/blank
-            cleaned['name'] = None
-            cleaned['weight_d'] = ''
+        if is_single_mode:
+            cleaned["name"] = None
+            cleaned["weight_d"] = ""
         else:
-            # enforce numeric weight + designation when not single_class
-            if cleaned.get('name') is None:
-                self.add_error('name', "Enter a weight or check Single Class.")
-            if not cleaned.get('weight_d'):
-                self.add_error('weight_d', "Choose a designation (u or +).")
+            if not name:
+                self.add_error("name", "Enter a weight or check Single Class.")
+            if not cleaned.get("weight_d"):
+                self.add_error("weight_d", "Choose a designation (u or +).")
+
+        # Skip uniqueness check if prior validation already failed
+        if self.errors:
+            return cleaned
+
+        # Prevent duplicate weight class entries
+        if competition and division:
+            existing = WeightClass.objects.filter(
+                competition=competition,
+                division=division,
+                gender=gender,
+                name=name,
+                weight_d=cleaned.get("weight_d"),
+            )
+            if existing.exists():
+                raise forms.ValidationError(
+                    f"A weight class for {gender} {name}{cleaned.get('weight_d')} already exists in this division."
+                )
 
         return cleaned
 
@@ -294,8 +329,40 @@ class CustomWeightClassForm(forms.ModelForm):
             wc.name     = None
             wc.weight_d = ''  # blank designation
         if commit:
-            wc.save()
+            try:
+                wc.save()
+            except IntegrityError:
+                messages.error(request, f"A duplicate weight class already exists: {wc}")
+                return render(request, "competitions/custom_weight_class_form.html", {
+                    "formset": formset,
+                    "competition": competition,
+                })
+
         return wc
+
+class CustomWeightClassFormSet(BaseModelFormSet):
+    def __init__(self, *args, use_single_class_mode=False, competition=None, **kwargs):
+        self.use_single_class_mode = use_single_class_mode
+        self.competition = competition
+        super().__init__(*args, **kwargs)
+
+    def get_form_kwargs(self, index):
+        kwargs = super().get_form_kwargs(index)
+        kwargs.update({
+            'use_single_class_mode': self.use_single_class_mode,
+            'competition': self.competition,
+        })
+        print(f"📤 Passing kwargs to form {index}:", kwargs)
+        return kwargs
+
+
+CustomWeightClassFormSetFactory = modelformset_factory(
+    model=WeightClass,
+    form=CustomWeightClassForm,
+    formset=CustomWeightClassFormSet,
+    extra=1,
+    can_delete=True
+)
 
 class AssignWeightClassesForm(forms.Form):
     """
