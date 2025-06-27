@@ -2,7 +2,7 @@
 {% load subtract_filter %}
 {% load key_filter %}
 {% block extra_head %}
-      <!-- Include jQuery (Required for DataTables) -->
+    <!-- Include jQuery (Required for DataTables) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css">
@@ -112,646 +112,668 @@
         .table-responsive {
             overflow-x: auto; /* Ensure table scrolls horizontally if needed */
         }
+
         .grid-template {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 1rem;
-}
-/* put this in your extra_styles block */
-.introjs-overlay {
-  /* sit below the tooltip and helper layers */
-  z-index: 1000 !important;
-  /* let clicks pass through */
-  pointer-events: none !important;
-}
-/* keep tooltip & helper layers clickable */
-.introjs-helperLayer,
-.introjs-tooltipReferenceLayer,
-.introjs-tooltip {
-  z-index: 2000 !important;
-  pointer-events: auto !important;
-}
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 1rem;
+        }
+
+        /* put this in your extra_styles block */
+        .introjs-overlay {
+            /* sit below the tooltip and helper layers */
+            z-index: 1000 !important;
+            /* let clicks pass through */
+            pointer-events: none !important;
+        }
+
+        /* keep tooltip & helper layers clickable */
+        .introjs-helperLayer,
+        .introjs-tooltipReferenceLayer,
+        .introjs-tooltip {
+            z-index: 2000 !important;
+            pointer-events: auto !important;
+        }
 
 
     </style>
 {% endblock %}
 {% block content %}
 
-{% if not onboarding_status.details or not onboarding_status.divisions or not onboarding_status.events or not onboarding_status.publish %}
-    <div class="container my-5">
-<div id="onboarding-checklist" class="card mb-5">
-  <div class="card-header bg-info text-white">
-    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i> Setup Checklist</h5>
-  </div>
-  <div class="card-body p-0">
-    <ul class="list-group list-group-flush">
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        Details
-        {% if onboarding_status.details %}
-          <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
-        {% else %}
-          <a href="{% url 'competitions:competition_update' competition.pk %}" class="btn btn-outline-secondary btn-sm">Complete</a>
-        {% endif %}
-      </li>
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        Divisions & Weight Classes
-        {% if onboarding_status.divisions %}
-          <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
-        {% else %}
-          <a href="{% url 'competitions:assign_weight_classes' competition.pk %}" class="btn btn-outline-secondary btn-sm">Assign</a>
-        {% endif %}
-      </li>
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        Events
-        {% if onboarding_status.events %}
-          <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
-        {% else %}
-          <a id="add-event-btn" href="{% url 'competitions:create_event' competition.pk %}"
-             class="btn btn-outline-secondary btn-sm">Add Event</a>
-        {% endif %}
-      </li>
-      <li class="list-group-item d-flex justify-content-between align-items-center" >
-        Publish
-        {% if onboarding_status.publish %}
-          <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
-        {% else %}
-          <a id="publish-btn" href="{% url 'competitions:toggle_publish_status' competition.pk %}"
-             class="btn btn-warning btn-sm">Publish</a>
-        {% endif %}
-      </li>
-    </ul>
-  </div>
-</div>
+    {% if not onboarding_status.details or not onboarding_status.divisions or not onboarding_status.events or not onboarding_status.publish %}
+        <div class="container my-5">
+        <div id="onboarding-checklist" class="card mb-5">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-list-check me-2"></i> Setup Checklist</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Details
+                        {% if onboarding_status.details %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+                        {% else %}
+                            <a href="{% url 'competitions:competition_update' competition.pk %}"
+                               class="btn btn-outline-secondary btn-sm">Complete</a>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Divisions & Weight Classes
+                        {% if onboarding_status.divisions %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+                        {% else %}
+                            <a href="{% url 'competitions:assign_weight_classes' competition.pk %}"
+                               class="btn btn-outline-secondary btn-sm">Assign</a>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Events
+                        {% if onboarding_status.events %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+                        {% else %}
+                            <a id="add-event-btn" href="{% url 'competitions:create_event' competition.pk %}"
+                               class="btn btn-outline-secondary btn-sm">Add Event</a>
+                        {% endif %}
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Publish
+                        {% if onboarding_status.publish %}
+                            <span class="badge bg-success"><i class="bi bi-check-lg"></i> Done</span>
+                        {% else %}
+                            <a id="publish-btn" href="{% url 'competitions:toggle_publish_status' competition.pk %}"
+                               class="btn btn-warning btn-sm">Publish</a>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
     {% endif %}
-        <!-- Dashboard Header -->
-        <div class="card shadow-lg border-0 mb-4">
-            <div class="card-body">
-                <div class="text-center mb-4">
-    <h2 class="text-primary mb-3" id="intro-welcome">
-        <i class="bi bi-speedometer2 me-2"></i> Dashboard for {{ competition.name|title }}
-    </h2>
+    <!-- Dashboard Header -->
+    <div class="card shadow-lg border-0 mb-4">
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <h2 class="text-primary mb-3" id="intro-welcome">
+                <i class="bi bi-speedometer2 me-2"></i> Dashboard for {{ competition.name|title }}
+            </h2>
 
-    <div id="top-controls" class="d-flex justify-content-center gap-3 flex-wrap">
-        <a href="{% url 'competitions:checkin_athletes' competition.pk %}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-check2-square"></i> Check-in Athletes
-        </a>
-        <a href="{% url 'competitions:competition_detail' competition.pk %}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-eye-fill"></i> View Details
-        </a>
-        <a href="{% url 'competitions:competition_update' competition.pk %}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-pencil-fill me-2"></i> Edit Competition
-        </a>
+            <div id="top-controls" class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="{% url 'competitions:checkin_athletes' competition.pk %}"
+                   class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-check2-square"></i> Check-in Athletes
+                </a>
+                <a href="{% url 'competitions:competition_detail' competition.pk %}"
+                   class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-eye-fill"></i> View Details
+                </a>
+                <a href="{% url 'competitions:competition_update' competition.pk %}"
+                   class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil-fill me-2"></i> Edit Competition
+                </a>
+                {% if request.user == competition.organizer %}
+                    <a href="{% url 'competitions:manage_staff' competition.pk %}"
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-people-fill"></i> Manage Staff
+                    </a>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <hr>
+        <div id="competition-info" class="row text-center">
+            <div class="col-md-3 mb-3">
+                <h5 class="text-muted">Competition Date</h5>
+                <p class="fw-bold">{{ competition.comp_date|date:"F j, Y" }}</p>
+            </div>
+            <div class="col-md-3 mb-3">
+                <h5 class="text-muted">Registration Deadline</h5>
+                <p class="fw-bold">{{ competition.registration_deadline|date:"F j, Y, g:i A" }}</p>
+            </div>
+            <div class="col-md-3 mb-3">
+                <h5 class="text-muted">Location</h5>
+                <p class="fw-bold">{{ competition.city|capfirst }}, {{ competition.state|default:"TBD" }}</p>
+            </div>
+            <div class="col-md-3 mb-3">
+                <h5 class="text-muted">Admin Status</h5>
+                <p class="fw-bold">{{ competition.approval_status|capfirst }}</p>
+            </div>
+            <hr>
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <h5>Registered Athletes</h5>
+                    <p class="fw-bold">{{ athletes.count }}</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Available Slots</h5>
+                    <p class="fw-bold">
+                        {% if competition.capacity %}
+                            {{ competition.capacity|subtract:athletes.count }}
+                        {% else %}
+                            Unlimited
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Number of Events</h5>
+                    <p class="fw-bold">{{ events.count }}</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Registration Status</h5>
+                    <p class="fw-bold">{{ competition.status|capfirst }}</p>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
-                <hr>
-                <div id="competition-info" class="row text-center">
-                    <div class="col-md-3 mb-3">
-                        <h5 class="text-muted">Competition Date</h5>
-                        <p class="fw-bold">{{ competition.comp_date|date:"F j, Y" }}</p>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <h5 class="text-muted">Registration Deadline</h5>
-                        <p class="fw-bold">{{ competition.registration_deadline|date:"F j, Y, g:i A" }}</p>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <h5 class="text-muted">Location</h5>
-                        <p class="fw-bold">{{ competition.city|capfirst }}, {{ competition.state|default:"TBD" }}</p>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <h5 class="text-muted">Admin Status</h5>
-                        <p class="fw-bold">{{ competition.approval_status|capfirst }}</p>
-                    </div>
-                    <hr>
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <h5>Registered Athletes</h5>
-                            <p class="fw-bold">{{ athletes.count }}</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h5>Available Slots</h5>
-                            <p class="fw-bold">
-                                {% if competition.capacity %}
-                                    {{ competition.capacity|subtract:athletes.count }}
+    <!-- Athletes Section -->
+    <div class="card shadow-lg border-0 mb-5" style="padding-top: 25px;">
+        <div id="athlete-table-section" class="card-header bg-primary text-white text-center">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="bi bi-people-fill me-2"></i> Athletes</h4>
+                <div class="d-flex gap-2">
+                    <!-- Add Athlete Button -->
+                    <a href="{% url 'competitions:add_athlete' competition.pk %}"
+                       class="btn btn-success btn-sm">
+                        <i class="bi bi-person-plus"></i> Add Athlete
+                    </a>
+                    <!-- Combine Weight Classes Button -->
+                    <a href="{% url 'competitions:combine_weight_classes' competition.pk %}"
+                       class="btn btn-primary btn-sm">
+                        <i class="bi bi-arrows-move"></i> Combine Weight Classes
+                    </a>
+                </div>
+
+            </div>
+        </div>
+        <div class="card-body">
+            {% if athletes %}
+                <table id="athletesTable" class="table table-striped table-hover">
+                    <thead class="table-dark">
+                    <tr>
+                        <th>Name</th>
+                        <th>Gender</th>
+                        <th>Division</th>
+                        <th>Weight Class</th>
+                        <th>Shirt Size</th>
+                        <th>Registration Date</th>
+                        <th>Paid?</th>
+                        {# NEW COL #}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for athlete in athletes %}
+                        <tr>
+                            <td><a href="{% url 'competitions:athletecompetition_update' athlete.pk %}">
+                                {{ athlete.athlete.user.get_full_name|title }}
+                            </a>
+                            </td>
+                            <td>{{ athlete.athlete.gender|capfirst }}</td>
+                            <td>{{ athlete.division.name|title }}</td>
+                            <td>
+                                {% if athlete.weight_class.weight_d == "u" %}
+                                    {{ athlete.weight_class.weight_d }}{{ athlete.weight_class.name|floatformat:"-1" }}
                                 {% else %}
-                                    Unlimited
+                                    {{ athlete.weight_class.name|floatformat:"-1" }}{{ athlete.weight_class.weight_d }}
                                 {% endif %}
-                            </p>
-                        </div>
-                        <div class="col-md-3">
-                            <h5>Number of Events</h5>
-                            <p class="fw-bold">{{ events.count }}</p>
-                        </div>
-                        <div class="col-md-3">
-                            <h5>Registration Status</h5>
-                            <p class="fw-bold">{{ competition.status|capfirst }}</p>
+                            </td>
+                            <td>
+                                {% if athlete.tshirt_size %}
+                                    {{ athlete.tshirt_size.size }}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td> <!-- Display Shirt Size -->
+                            <td>{{ athlete.registration_date|date:"F j, Y" }}</td>
+                            <td>
+                                {% if athlete.payment_status == "paid" %}
+                                    <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="text-muted">No athletes registered for this competition.</p>
+            {% endif %}
+
+            <!-- Email Organizer Button -->
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <!-- Download Athlete Table Button -->
+                <a href="{% url 'competitions:download_athlete_table' competition.pk %}"
+                   class="btn btn-outline-success">
+                    <i class="bi bi-download"></i> Download Athlete Table
+                </a>
+
+                <!-- Email Notifications Toggle Button -->
+                <form method="post" action="{% url 'competitions:toggle_email_notifications' competition.pk %}">
+                    {% csrf_token %}
+                    {% if competition.email_notifications %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-bell-slash"></i> Disable Email Notifications
+                        </button>
+                    {% else %}
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-bell"></i> Enable Email Notifications
+                        </button>
+                    {% endif %}
+                </form>
+            </div>
+            <div class="accordion" id="athleteSummaryAccordion" style="margin-top: -1px;">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingAthleteSummary">
+                        <button class="accordion-button collapsed bg-primary text-white text-center py-2"
+                                type="button"
+                                data-bs-toggle="collapse" data-bs-target="#collapseAthleteSummary"
+                                aria-expanded="false" aria-controls="collapseAthleteSummary"
+                                style="font-size: 1.25rem; font-weight: bold; border-radius: 0; border-top: 1px solid #ffffff;">
+                            Athlete Registration Summary by Weight Class
+                        </button>
+                    </h2>
+                    <div id="collapseAthleteSummary" class="accordion-collapse collapse"
+                         aria-labelledby="headingAthleteSummary"
+                         data-bs-parent="#athleteSummaryAccordion">
+                        <div class="accordion-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered text-center align-middle"
+                                       style="font-size: 0.9rem;">
+                                    <thead class="table-dark">
+                                    <tr>
+                                        <th>Weight Class</th>
+                                        {% for division in competition.allowed_divisions.all %}
+                                            <th colspan="{{ division.weight_classes.count }}">{{ division.name|capfirst }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for division in competition.allowed_divisions.all %}
+                                        {% for weight_class in division.weight_classes.all %}
+                                            <tr>
+                                                <td>
+                                                    {% if weight_class.weight_d == "u" %}
+                                                        {{ weight_class.weight_d }}{{ weight_class.name|floatformat:"-1" }}
+                                                    {% else %}
+                                                        {{ weight_class.name|floatformat:"-1" }}{{ weight_class.weight_d }}
+                                                    {% endif %}
+                                                    - {{ weight_class.gender }}
+                                                </td>
+                                                {% for div in competition.allowed_divisions.all %}
+                                                    {% for wc in div.weight_classes.all %}
+                                                        <td>
+                                                            {% with div.id|stringformat:"s" as division_id %}
+                                                                {% with wc.id|stringformat:"s" as weight_class_id %}
+                                                                    {% with division_id|add:","|add:weight_class_id as key %}
+                                                                        {% if athlete_summary|get_key_two:key == 0 %}
+                                                                            <span class="badge bg-light text-muted">0</span>
+                                                                        {% else %}
+                                                                            <span class="badge bg-primary text-white">
+                                                                        {{ athlete_summary|get_key_two:key }}
+                                                                    </span>
+                                                                        {% endif %}
+                                                                    {% endwith %}
+                                                                {% endwith %}
+                                                            {% endwith %}
+                                                        </td>
+                                                    {% endfor %}
+                                                {% endfor %}
+                                            </tr>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Athletes Section -->
-            <div class="card shadow-lg border-0 mb-5" style="padding-top: 25px;">
-                <div id="athlete-table-section" class="card-header bg-primary text-white text-center">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0"><i class="bi bi-people-fill me-2"></i> Athletes</h4>
-                        <div class="d-flex gap-2">
-                            <!-- Add Athlete Button -->
-                            <a href="{% url 'competitions:add_athlete' competition.pk %}"
-                               class="btn btn-success btn-sm">
-                                <i class="bi bi-person-plus"></i> Add Athlete
-                            </a>
-                            <!-- Combine Weight Classes Button -->
-                            <a href="{% url 'competitions:combine_weight_classes' competition.pk %}"
-                               class="btn btn-primary btn-sm">
-                                <i class="bi bi-arrows-move"></i> Combine Weight Classes
-                            </a>
-                        </div>
 
+            <!-- T-shirt Summary Section -->
+            <div class="card-body">
+                {% if competition.provides_shirts %}
+                    <div class="d-grid gap-3 grid-template text-center"
+                         style="grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));">
+                        {% for size, count in tshirt_summary.items %}
+                            <div class="border rounded py-2 bg-light">
+                                <div class="fw-bold fs-5">{{ size }}</div>
+                                <div class="text-muted">{{ count }}</div>
+                            </div>
+                        {% endfor %}
                     </div>
-                </div>
-                <div class="card-body">
-                    {% if athletes %}
-                        <table id="athletesTable" class="table table-striped table-hover">
-                            <thead class="table-dark">
-      <tr>
-        <th>Name</th>
-        <th>Gender</th>
-        <th>Division</th>
-        <th>Weight Class</th>
-        <th>Shirt Size</th>
-        <th>Registration Date</th>
-        <th>Paid?</th>      {# NEW COL #}
-      </tr>
-    </thead>
-                            <tbody>
-                            {% for athlete in athletes %}
-                                <tr>
-                                    <td><a href="{% url 'competitions:athletecompetition_update' athlete.pk %}"                                         >
-                                           {{ athlete.athlete.user.get_full_name|title }}
-                                        </a>
-                                    </td>
-                                    <td>{{ athlete.athlete.gender|capfirst }}</td>
-                                    <td>{{ athlete.division.name|title }}</td>
-                                    <td>
-                                        {% if athlete.weight_class.weight_d == "u" %}
-                                            {{ athlete.weight_class.weight_d }}{{ athlete.weight_class.name|floatformat:"-1" }}
-                                        {% else %}
-                                            {{ athlete.weight_class.name|floatformat:"-1" }}{{ athlete.weight_class.weight_d }}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if athlete.tshirt_size %}
-                                            {{ athlete.tshirt_size.size }}
-                                        {% else %}
-                                            <span class="text-muted">N/A</span>
-                                        {% endif %}
-                                    </td> <!-- Display Shirt Size -->
-                                    <td>{{ athlete.registration_date|date:"F j, Y" }}</td>
-                                <td>
-                                  {% if athlete.payment_status == "paid" %}
-                                    <span class="badge bg-success">Yes</span>
-                                  {% else %}
-                                    <span class="badge bg-secondary">No</span>
-                                  {% endif %}
-                                </td>
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <p class="text-muted">No athletes registered for this competition.</p>
-                    {% endif %}
+                {% else %}
+                    <p class="text-muted text-center">This competition does not provide T-shirts.</p>
+                {% endif %}
+            </div>
 
-                    <!-- Email Organizer Button -->
-                    <div class="card-footer d-flex justify-content-between align-items-center">
-                        <!-- Download Athlete Table Button -->
-                        <a href="{% url 'competitions:download_athlete_table' competition.pk %}"
-                           class="btn btn-outline-success">
-                            <i class="bi bi-download"></i> Download Athlete Table
-                        </a>
-
-                        <!-- Email Notifications Toggle Button -->
-                        <form method="post" action="{% url 'competitions:toggle_email_notifications' competition.pk %}">
-                            {% csrf_token %}
-                            {% if competition.email_notifications %}
-                                <button type="submit" class="btn btn-danger">
-                                    <i class="bi bi-bell-slash"></i> Disable Email Notifications
-                                </button>
-                            {% else %}
-                                <button type="submit" class="btn btn-success">
-                                    <i class="bi bi-bell"></i> Enable Email Notifications
-                                </button>
-                            {% endif %}
-                        </form>
+            {% if request.user == competition.organizer %}
+                <div class="card shadow-lg border-0 mb-5">
+                    <div class="card-header bg-dark text-white text-center">
+                        <h4 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Payout Summary</h4>
                     </div>
-                    <div class="accordion" id="athleteSummaryAccordion" style="margin-top: -1px;">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="headingAthleteSummary">
-                                <button class="accordion-button collapsed bg-primary text-white text-center py-2"
-                                        type="button"
-                                        data-bs-toggle="collapse" data-bs-target="#collapseAthleteSummary"
-                                        aria-expanded="false" aria-controls="collapseAthleteSummary"
-                                        style="font-size: 1.25rem; font-weight: bold; border-radius: 0; border-top: 1px solid #ffffff;">
-                                    Athlete Registration Summary by Weight Class
-                                </button>
-                            </h2>
-                            <div id="collapseAthleteSummary" class="accordion-collapse collapse"
-                                 aria-labelledby="headingAthleteSummary"
-                                 data-bs-parent="#athleteSummaryAccordion">
-                                <div class="accordion-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-bordered text-center align-middle"
-                                               style="font-size: 0.9rem;">
-                                            <thead class="table-dark">
-                                            <tr>
-                                                <th>Weight Class</th>
-                                                {% for division in competition.allowed_divisions.all %}
-                                                    <th colspan="{{ division.weight_classes.count }}">{{ division.name|capfirst }}</th>
-                                                {% endfor %}
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            {% for division in competition.allowed_divisions.all %}
-                                                {% for weight_class in division.weight_classes.all %}
-                                                    <tr>
-                                                        <td>
-                                                            {% if weight_class.weight_d == "u" %}
-                                                                {{ weight_class.weight_d }}{{ weight_class.name|floatformat:"-1" }}
-                                                            {% else %}
-                                                                {{ weight_class.name|floatformat:"-1" }}{{ weight_class.weight_d }}
-                                                            {% endif %}
-                                                            - {{ weight_class.gender }}
-                                                        </td>
-                                                        {% for div in competition.allowed_divisions.all %}
-                                                            {% for wc in div.weight_classes.all %}
-                                                                <td>
-                                                                    {% with div.id|stringformat:"s" as division_id %}
-                                                                        {% with wc.id|stringformat:"s" as weight_class_id %}
-                                                                            {% with division_id|add:","|add:weight_class_id as key %}
-                                                                                {% if athlete_summary|get_key_two:key == 0 %}
-                                                                                    <span class="badge bg-light text-muted">0</span>
-                                                                                {% else %}
-                                                                                    <span class="badge bg-primary text-white">
-                                                                        {{ athlete_summary|get_key_two:key }}
-                                                                    </span>
-                                                                                {% endif %}
-                                                                            {% endwith %}
-                                                                        {% endwith %}
-                                                                    {% endwith %}
-                                                                </td>
-                                                            {% endfor %}
-                                                        {% endfor %}
-                                                    </tr>
-                                                {% endfor %}
-                                            {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                    <div class="card-body">
+                        <div class="row text-center g-4">
+                            <div class="col-md-4">
+                                <div class="border rounded py-3 px-2 bg-light">
+                                    <h6 class="text-muted mb-1">Gross Income</h6>
+                                    <h4 class="text-success fw-bold">${{ organizer_income }}</h4>
+                                    <small class="text-muted">Total earned from athlete registrations</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded py-3 px-2 bg-light">
+                                    <h6 class="text-muted mb-1">Stripe Balance</h6>
+                                    <h4 class="text-primary fw-bold">${{ total_stripe_balance }}</h4>
+                                    <small class="text-muted">Available in Stripe for payout</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="border rounded py-3 px-2 bg-light">
+                                    <h6 class="text-muted mb-1">Next Payout</h6>
+                                    {% if next_payout %}
+                                        <h4 class="text-info fw-bold">${{ next_payout.amount }}</h4>
+                                        <small class="text-muted">On {{ next_payout.date|date:"F j, Y" }}</small>
+                                    {% else %}
+                                        <h4 class="text-warning fw-bold">N/A</h4>
+                                        <small class="text-muted">No scheduled payout</small>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
-
-
-                    <!-- T-shirt Summary Section -->
-               <div class="card-body">
-    {% if competition.provides_shirts %}
-        <div class="d-grid gap-3 grid-template text-center" style="grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));">
-            {% for size, count in tshirt_summary.items %}
-                <div class="border rounded py-2 bg-light">
-                    <div class="fw-bold fs-5">{{ size }}</div>
-                    <div class="text-muted">{{ count }}</div>
                 </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p class="text-muted text-center">This competition does not provide T-shirts.</p>
-    {% endif %}
-</div>
 
-
-
-
-
-<div class="card shadow-lg border-0 mb-5">
-    <div class="card-header bg-dark text-white text-center">
-        <h4 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Payout Summary</h4>
-    </div>
-    <div class="card-body">
-        <div class="row text-center g-4">
-            <div class="col-md-4">
-                <div class="border rounded py-3 px-2 bg-light">
-                    <h6 class="text-muted mb-1">Gross Income</h6>
-                    <h4 class="text-success fw-bold">${{ organizer_income }}</h4>
-                    <small class="text-muted">Total earned from athlete registrations</small>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="border rounded py-3 px-2 bg-light">
-                    <h6 class="text-muted mb-1">Stripe Balance</h6>
-                    <h4 class="text-primary fw-bold">${{ total_stripe_balance }}</h4>
-                    <small class="text-muted">Available in Stripe for payout</small>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="border rounded py-3 px-2 bg-light">
-                    <h6 class="text-muted mb-1">Next Payout</h6>
-                    {% if next_payout %}
-                        <h4 class="text-info fw-bold">${{ next_payout.amount }}</h4>
-                        <small class="text-muted">On {{ next_payout.date|date:"F j, Y" }}</small>
-                    {% else %}
-                        <h4 class="text-warning fw-bold">N/A</h4>
-                        <small class="text-muted">No scheduled payout</small>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+            {% endif %}
 
-</div>
-
-
-
-                    <!-- Events and Sponsors Row -->
-                    <div class="row">
-                        <!-- Events Section -->
-                        <div  id="events-section" class="col-md-6">
-                            <div class="card shadow-lg border-0 mb-5">
-                                <div class="card-header bg-primary text-white text-center">
-                                    <h4 class="mb-0"><i class="bi bi-calendar-event me-2"></i> Events</h4>
-                                </div>
-                                <div class="card-body">
-                                    <a href="{% url 'competitions:create_event' competition.pk %}"
-                                       class="btn btn-success mb-3">
-                                        <i class="bi bi-plus-circle"></i> Add Event
-                                    </a>
-                                    {% if events %}
-                                        <ul class="list-group">
-                                            {% for event in events %}
-                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+        <!-- Events and Sponsors Row -->
+        <div class="row">
+            <!-- Events Section -->
+            <div id="events-section" class="col-md-6">
+                <div class="card shadow-lg border-0 mb-5">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4 class="mb-0"><i class="bi bi-calendar-event me-2"></i> Events</h4>
+                    </div>
+                    <div class="card-body">
+                        <a href="{% url 'competitions:create_event' competition.pk %}"
+                           class="btn btn-success mb-3">
+                            <i class="bi bi-plus-circle"></i> Add Event
+                        </a>
+                        {% if events %}
+                            <ul class="list-group">
+                                {% for event in events %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>
                                     <strong>{{ event.name|title }}</strong> <br>
 
                                 </span>
-                                                   <div class="btn-group">
-    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="bi bi-gear-fill"></i> Actions
-    </button>
-    <ul class="dropdown-menu dropdown-menu-end">
-        <li>
-            <a class="dropdown-item" href="{% url 'competitions:update_event' event.pk %}">
-                <i class="bi bi-pencil-square me-2"></i> Edit Event
-            </a>
-        </li>
-        <li>
-            <a class="dropdown-item" href="{% url 'competitions:competition_run_order' competition.pk event.pk %}">
-                <i class="bi bi-list-ol me-2"></i> Run Order
-            </a>
-        </li>
-        <li>
-            <a href="{% url 'competitions:edit_event_order' competition.pk %}" class="dropdown-item">
-                     <i class="bi bi-arrow-down-up"></i> Reorder Events
-            </a>
-        </li>
-        <li><hr class="dropdown-divider"></li>
-        <li>
-            <form method="post" action="{% url 'competitions:delete_event' event.pk %}" onsubmit="return confirm('Are you sure you want to delete this event?');">
-                {% csrf_token %}
-                <button type="submit" class="dropdown-item text-danger">
-                    <i class="bi bi-trash3 me-2"></i> Delete Event
-                </button>
-            </form>
-        </li>
-    </ul>
-</div>
-
-
+                                        <div class="btn-group">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="bi bi-gear-fill"></i> Actions
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="{% url 'competitions:update_event' event.pk %}">
+                                                        <i class="bi bi-pencil-square me-2"></i> Edit Event
+                                                    </a>
                                                 </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% else %}
-                                        <p class="text-muted">No events scheduled for this competition.</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Sponsor Logos Section -->
-                        <div class="col-md-6">
-                            <div class="card shadow-lg border-0 mb-5">
-                                <div class="card-header bg-secondary text-white text-center">
-                                    <h4 class="mb-0"><i class="bi bi-person-video3 me-2"></i> Sponsors</h4>
-                                </div>
-                                <div class="card-body">
-                                    <a href="{% url 'competitions:edit_sponsor_logos' competition.pk %}"
-                                       class="btn btn-outline-primary mb-3">
-                                        <i class="bi bi-pencil-square"></i> Manage Sponsors
-                                    </a>
-                                    {% if competition.sponsor_logos.all %}
-                                        <ul class="list-group">
-                                            {% for sponsor in competition.sponsor_logos.all %}
-                                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                    <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name|title }}"
-                                                         style="max-height: 40px;" class="me-2">
-                                                    <span>{{ sponsor.name|title }}</span>
+                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="{% url 'competitions:competition_run_order' competition.pk event.pk %}">
+                                                        <i class="bi bi-list-ol me-2"></i> Run Order
+                                                    </a>
                                                 </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% else %}
-                                        <p class="text-muted">No sponsors added for this competition.</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
+                                                <li>
+                                                    <a href="{% url 'competitions:edit_event_order' competition.pk %}"
+                                                       class="dropdown-item">
+                                                        <i class="bi bi-arrow-down-up"></i> Reorder Events
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li>
+                                                    <form method="post"
+                                                          action="{% url 'competitions:delete_event' event.pk %}"
+                                                          onsubmit="return confirm('Are you sure you want to delete this event?');">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="dropdown-item text-danger">
+                                                            <i class="bi bi-trash3 me-2"></i> Delete Event
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No events scheduled for this competition.</p>
+                        {% endif %}
                     </div>
-
-
                 </div>
-                <div class="row">
+            </div>
 
-                    <div class="col-md-6">
-                        <!-- Scoring and Results Section -->
-                        <div class="card shadow-lg border-0 mb-5">
-                            <div class="card-header bg-primary text-white text-center">
-                                <h4 class="mb-0"><i class="bi bi-clipboard-data me-2"></i> Scoring and Results</h4>
-                            </div>
-                            <div class="card-body text-center">
-                                <a href="{% url 'competitions:event_list' competition.pk %}"
-                                   class="btn btn-primary me-2" style="margin-top: 15px;">
-                                    <i class="bi bi-clipboard-check"></i> Manage Scores
-                                </a>
-
-                                <a href="{% url 'competitions:competition_scorecard' competition.pk %}"
-                                   class="btn btn-secondary" style="margin-top: 15px;">
-                                    <i class="bi bi-bar-chart"></i> View Results
-                                </a>
-                            </div>
-                        </div>
+            <!-- Sponsor Logos Section -->
+            <div class="col-md-6">
+                <div class="card shadow-lg border-0 mb-5">
+                    <div class="card-header bg-secondary text-white text-center">
+                        <h4 class="mb-0"><i class="bi bi-person-video3 me-2"></i> Sponsors</h4>
                     </div>
-
-                    <!-- weight class info -->
-
-                    <div class="col-md-6">
-                        <div id="weightclass-management" class="card shadow-lg border-0 mb-5">
-                            <div class="card-header bg-secondary text-white text-center">
-                                <h4 class="mb-0">
-                                    <i class="bi bi-barbell me-2"></i> Weight Class Management
-                                </h4>
-                            </div>
-                            <div class="card-body">
-
-                                <!-- Button Group -->
-                                <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-                                    <!-- Assign Weight Classes Button -->
-                                    <a href="{% url 'competitions:assign_weight_classes' competition.pk %}"
-                                       class="btn btn-secondary btn-sm">
-                                        <i class="bi bi-pencil-square"></i> Assign
-                                    </a>
-                                    <!-- Combine Weight Classes Button -->
-                                    <a href="{% url 'competitions:combine_weight_classes' competition.pk %}"
-                                       class="btn btn-primary btn-sm">
-                                        <i class="bi bi-arrows-move"></i> Combine
-                                    </a>
-                                    <!-- Add Custom Division Button -->
-                                    <a href="{% url 'competitions:add_custom_division' competition.pk %}"
-                                       class="btn btn-success btn-sm">
-                                        <i class="bi bi-plus-circle"></i> Add Division
-                                    </a>
-                                    <!-- Add Custom Weight Class Button -->
-                                    <a href="{% url 'competitions:add_custom_weight_class' competition.pk %}"
-                                       class="btn btn-success btn-sm">
-                                        <i class="bi bi-plus-circle"></i> Add Weight Class
-                                    </a>
-                                </div>
+                    <div class="card-body">
+                        <a href="{% url 'competitions:edit_sponsor_logos' competition.pk %}"
+                           class="btn btn-outline-primary mb-3">
+                            <i class="bi bi-pencil-square"></i> Manage Sponsors
+                        </a>
+                        {% if competition.sponsor_logos.all %}
+                            <ul class="list-group">
+                                {% for sponsor in competition.sponsor_logos.all %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name|title }}"
+                                             style="max-height: 40px;" class="me-2">
+                                        <span>{{ sponsor.name|title }}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted">No sponsors added for this competition.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
 
 
+    </div>
+    <div class="row">
 
-                                {% if competition.allowed_divisions.all %}
-                                    <div class="accordion" id="weightClassesAccordion">
-                                        {% for division in competition.allowed_divisions.all %}
-                                            <div class="accordion-item">
-                                                <h2 class="accordion-header" id="heading-{{ division.id }}">
-                                                    <button class="accordion-button collapsed" type="button"
-                                                            data-bs-toggle="collapse"
-                                                            data-bs-target="#collapse-{{ division.id }}"
-                                                            aria-expanded="false"
-                                                            aria-controls="collapse-{{ division.id }}">
-                                                        {{ division.name|capfirst }}
-                                                    </button>
-                                                </h2>
-                                                <div id="collapse-{{ division.id }}" class="accordion-collapse collapse"
-                                                     aria-labelledby="heading-{{ division.id }}"
-                                                     data-bs-parent="#weightClassesAccordion">
-                                                    <div class="accordion-body">
-                                                        {% for weight_class in division.weight_classes.all %}
-                                                            <span class="badge bg-primary me-1 mb-2">
+    <div class="col-md-6">
+        <!-- Scoring and Results Section -->
+        <div class="card shadow-lg border-0 mb-5">
+            <div class="card-header bg-primary text-white text-center">
+                <h4 class="mb-0"><i class="bi bi-clipboard-data me-2"></i> Scoring and Results</h4>
+            </div>
+            <div class="card-body text-center">
+                <a href="{% url 'competitions:event_list' competition.pk %}"
+                   class="btn btn-primary me-2" style="margin-top: 15px;">
+                    <i class="bi bi-clipboard-check"></i> Manage Scores
+                </a>
+
+                <a href="{% url 'competitions:competition_scorecard' competition.pk %}"
+                   class="btn btn-secondary" style="margin-top: 15px;">
+                    <i class="bi bi-bar-chart"></i> View Results
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- weight class info -->
+
+    <div class="col-md-6">
+        <div id="weightclass-management" class="card shadow-lg border-0 mb-5">
+            <div class="card-header bg-secondary text-white text-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-barbell me-2"></i> Weight Class Management
+                </h4>
+            </div>
+            <div class="card-body">
+
+                <!-- Button Group -->
+                <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+                    <!-- Assign Weight Classes Button -->
+                    <a href="{% url 'competitions:assign_weight_classes' competition.pk %}"
+                       class="btn btn-secondary btn-sm">
+                        <i class="bi bi-pencil-square"></i> Assign
+                    </a>
+                    <!-- Combine Weight Classes Button -->
+                    <a href="{% url 'competitions:combine_weight_classes' competition.pk %}"
+                       class="btn btn-primary btn-sm">
+                        <i class="bi bi-arrows-move"></i> Combine
+                    </a>
+                    <!-- Add Custom Division Button -->
+                    <a href="{% url 'competitions:add_custom_division' competition.pk %}"
+                       class="btn btn-success btn-sm">
+                        <i class="bi bi-plus-circle"></i> Add Division
+                    </a>
+                    <!-- Add Custom Weight Class Button -->
+                    <a href="{% url 'competitions:add_custom_weight_class' competition.pk %}"
+                       class="btn btn-success btn-sm">
+                        <i class="bi bi-plus-circle"></i> Add Weight Class
+                    </a>
+                </div>
+
+
+
+                {% if competition.allowed_divisions.all %}
+                    <div class="accordion" id="weightClassesAccordion">
+                        {% for division in competition.allowed_divisions.all %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading-{{ division.id }}">
+                                    <button class="accordion-button collapsed" type="button"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#collapse-{{ division.id }}"
+                                            aria-expanded="false"
+                                            aria-controls="collapse-{{ division.id }}">
+                                        {{ division.name|capfirst }}
+                                    </button>
+                                </h2>
+                                <div id="collapse-{{ division.id }}" class="accordion-collapse collapse"
+                                     aria-labelledby="heading-{{ division.id }}"
+                                     data-bs-parent="#weightClassesAccordion">
+                                    <div class="accordion-body">
+                                        {% for weight_class in division.weight_classes.all %}
+                                            <span class="badge bg-primary me-1 mb-2">
                                             {% if weight_class.weight_d == "u" %}
                                                 {{ weight_class.weight_d }}{{ weight_class.name|floatformat:"-1" }}
                                             {% else %}
                                                 {{ weight_class.name|floatformat:"-1" }}{{ weight_class.weight_d }}
                                             {% endif %}
-                                                                - {{ weight_class.gender }}
+                                                - {{ weight_class.gender }}
                                         </span>
-                                                        {% endfor %}
-                                                    </div>
-                                                </div>
-                                            </div>
                                         {% endfor %}
                                     </div>
-                                {% else %}
-                                    <p class="text-muted">No allowed weight classes or divisions specified for this
-                                        competition.</p>
-                                {% endif %}
+                                </div>
                             </div>
-                        </div>
+                        {% endfor %}
                     </div>
+                {% else %}
+                    <p class="text-muted">No allowed weight classes or divisions specified for this
+                        competition.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
 
-                    <!-- Communications Sections -->
-                    <div class="card shadow-lg border-0 mb-5">
-                        <div class="card-header bg-primary text-white text-center">
-                            <h4 class="mb-0"><i class="bi bi-envelope-fill me-2"></i> Communications</h4>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-center"><b>Email all registered athletes for {{ competition.name|title }}</b></p>
-                            <form method="post" action="{% url 'competitions:send_email' competition.pk %}">
-                                {% csrf_token %}
-                                <div class="mb-3">
-                                    <label for="emailSubject" class="form-label">Subject</label>
-                                    <input type="text" id="emailSubject" name="subject" class="form-control"
-                                           placeholder="Email Subject" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="emailMessage" class="form-label">Message</label>
-                                    <textarea id="emailMessage" name="message" class="form-control" rows="6"
-                                              placeholder="Write your message here..." required></textarea>
-                                </div>
-                                <div class="text-center">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="bi bi-send"></i> Send Email
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+    <!-- Communications Sections -->
+    <div class="card shadow-lg border-0 mb-5">
+        <div class="card-header bg-primary text-white text-center">
+            <h4 class="mb-0"><i class="bi bi-envelope-fill me-2"></i> Communications</h4>
+        </div>
+        <div class="card-body">
+            <p class="text-center"><b>Email all registered athletes for {{ competition.name|title }}</b></p>
+            <form method="post" action="{% url 'competitions:send_email' competition.pk %}">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="emailSubject" class="form-label">Subject</label>
+                    <input type="text" id="emailSubject" name="subject" class="form-control"
+                           placeholder="Email Subject" required>
+                </div>
+                <div class="mb-3">
+                    <label for="emailMessage" class="form-label">Message</label>
+                    <textarea id="emailMessage" name="message" class="form-control" rows="6"
+                              placeholder="Write your message here..." required></textarea>
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Send Email
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-                    <!-- Publish/Unpublish Section -->
-                    {% if competition.approval_status == 'approved' %}
-                        <div class="card shadow-lg border-0 mb-4" id="publish-section">
-                        <div class="card-body text-center">
-                        <h3 class="text-primary">
-                            <i class="bi bi-broadcast me-2"></i> Publish Your Competition
-                        </h3>
-                        <p class="text-muted">Make your competition visible to the world or unpublish it as needed.</p>
-                        <a href="{% url 'competitions:toggle_publish_status' competition.pk %}"
-                           class="btn btn-lg {% if competition.publication_status == 'published' %}btn-success{% else %}btn-warning{% endif %} px-5 py-3 shadow"
-                           onclick="return confirmPublishAction('{% if competition.publication_status == 'published' %}Unpublish{% else %}Publish{% endif %}');">
-                            {% if competition.publication_status == 'published' %}
-                                <i class="bi bi-check-circle-fill me-2"></i> Competition is Published
-                            {% else %}
-                                <i class="bi bi-eye-slash me-2"></i> Competition is Unpublished
-                            {% endif %}
-                        </a>
-                    {% else %}
-                        <p id="publish-section" class="text-muted text-center">
-                            <i class="bi bi-hourglass-split me-2"></i>
-                            Your competition is awaiting approval by the website admin.
-                        </p>
-                        <p class="text-muted fst-italic text-center">Once approved, you’ll be able to publish it
-                            here.</p>
-                    {% endif %}
-                    </div>
-                    </div>
+    <!-- Publish/Unpublish Section -->
+    {% if competition.approval_status == 'approved' %}
+        <div class="card shadow-lg border-0 mb-4" id="publish-section">
+        <div class="card-body text-center">
+        <h3 class="text-primary">
+            <i class="bi bi-broadcast me-2"></i> Publish Your Competition
+        </h3>
+        <p class="text-muted">Make your competition visible to the world or unpublish it as needed.</p>
+        <a href="{% url 'competitions:toggle_publish_status' competition.pk %}"
+           class="btn btn-lg {% if competition.publication_status == 'published' %}btn-success{% else %}btn-warning{% endif %} px-5 py-3 shadow"
+           onclick="return confirmPublishAction('{% if competition.publication_status == 'published' %}Unpublish{% else %}Publish{% endif %}');">
+            {% if competition.publication_status == 'published' %}
+                <i class="bi bi-check-circle-fill me-2"></i> Competition is Published
+            {% else %}
+                <i class="bi bi-eye-slash me-2"></i> Competition is Unpublished
+            {% endif %}
+        </a>
+    {% else %}
+        <p id="publish-section" class="text-muted text-center">
+            <i class="bi bi-hourglass-split me-2"></i>
+            Your competition is awaiting approval by the website admin.
+        </p>
+        <p class="text-muted fst-italic text-center">Once approved, you’ll be able to publish it
+            here.</p>
+    {% endif %}
+</div>
+</div>
 
 
 
 
 {% endblock %}
 
- {% block extra_scripts %}
+{% block extra_scripts %}
 
 
 
-<!-- Initialize DataTables -->
-                    <script>
-                        $(document).ready(function () {
-                            $('#athletesTable').DataTable({
-                                paging: true,
-                                searching: true,
-                                ordering: true,
-                                info: true,
-                                language: {
-                                    search: "Filter athletes:"
-                                }
-                            });
-                        });
+    <!-- Initialize DataTables -->
+    <script>
+        $(document).ready(function () {
+            $('#athletesTable').DataTable({
+                paging: true,
+                searching: true,
+                ordering: true,
+                info: true,
+                language: {
+                    search: "Filter athletes:"
+                }
+            });
+        });
 
-                        function confirmPublishAction(action) {
-                            return confirm(`Are you sure you want to ${action} this competition? This action will immediately update its visibility on the platform.`);
-                        }
-                    </script>
+        function confirmPublishAction(action) {
+            return confirm(`Are you sure you want to ${action} this competition? This action will immediately update its visibility on the platform.`);
+        }
+    </script>
 
 
 {% endblock %}

@@ -16,6 +16,8 @@ from django.views import generic, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import TemplateView
 
+from accounts.models import OrganizerProfile
+from competitions.mixins import CompetitionAccessMixin, competition_permission_required
 from competitions.utils import get_onboarding_status
 from competitions.views.utility_views import haversine_distance
 from competitions.models import Competition, AthleteCompetition, EventImplement, ZipCode, WeightClass, Event
@@ -133,14 +135,14 @@ class CompetitionCreateView(LoginRequiredMixin, generic.CreateView):
         print(form.errors)  # Print form errors for debugging
         return super().form_invalid(form)
 
-class CompetitionUpdateView(LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
+class CompetitionUpdateView(CompetitionAccessMixin, LoginRequiredMixin, UserPassesTestMixin, generic.UpdateView):
     model = Competition
     form_class = CompetitionForm
     template_name = 'competitions/competition_form.html'
+    access_level = 'full'
 
     def test_func(self):
-        competition = self.get_object()
-        return self.request.user == competition.organizer
+        return self.competition.has_full_access(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -249,25 +251,27 @@ class CompetitionDetailView(generic.DetailView):
 
         return context
 
-class ManageCompetitionView(TemplateView):
+
+class ManageCompetitionView(LoginRequiredMixin, CompetitionAccessMixin, TemplateView):
     """
     View for managing a competition, including athlete lists, events, and statistics.
     """
     template_name = 'competitions/manage_competition.html'
+    access_level = 'full'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         competition_pk = self.kwargs['competition_pk']
         competition = get_object_or_404(Competition, pk=competition_pk)
 
-        # only the organizer may view/manage
-        if competition.organizer != self.request.user:
-            raise PermissionDenied("You are not authorized to view this competition.")
-
         # ——— ONBOARDING CHECKLIST FLAGS ———
         context['onboarding_status'] = get_onboarding_status(competition)
-        organizer_profile = get_object_or_404(OrganizerProfile, user=self.request.user)
-        context['show_intro'] = organizer_profile.first_time_setup
+        organizer_profile = get_object_or_404(OrganizerProfile, user=competition.organizer)
+        if competition.organizer == self.request.user:
+            organizer_profile = get_object_or_404(OrganizerProfile, user=self.request.user)
+            context['show_intro'] = organizer_profile.first_time_setup
+        else:
+            context['show_intro'] = False
 
         # Get the organizer's Stripe account ID
         organizer_profile = get_object_or_404(OrganizerProfile, user=competition.organizer)
@@ -381,8 +385,9 @@ class CompleteCompetitionView(LoginRequiredMixin, View):
         return redirect('competitions:manage_competition', competition_pk=competition.pk)
 
 @login_required
+@competition_permission_required('full')
 def toggle_publish_status(request, pk):
-    competition = get_object_or_404(Competition, pk=pk, organizer=request.user)
+    competition = get_object_or_404(Competition, pk=pk)
 
     if competition.approval_status != 'approved':
         messages.error(request, "This competition has not been approved yet.")
@@ -442,26 +447,3 @@ class ArchivedCompetitionListView(generic.ListView):
         context['filterset'] = self.filterset
 
         return context
-
-
-from django.views.generic import FormView
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-from django.db import transaction
-
-from accounts.models import User, AthleteProfile, OrganizerProfile
-from competitions.models import Competition, AthleteCompetition
-
-
-@login_required
-def manage_competition(request, pk):
-    comp = get_object_or_404(Competition, pk=pk, organizer=request.user.organizerprofile)
-    statuses = get_onboarding_status(comp)
-    show_intro = request.user.organizer_profile.first_time_setup
-
-    return render(request, 'competitions/manage_competition.html', {
-        'competition': comp,
-        'onboarding_status': statuses,
-        'show_intro': show_intro,
-        # … your existing context (athletes, events, etc.) …
-    })

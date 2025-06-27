@@ -1,8 +1,5 @@
 import csv
-import json
 from collections import defaultdict
-from itertools import groupby
-from decimal import Decimal
 
 from django import forms
 from django.db import transaction, IntegrityError
@@ -22,28 +19,37 @@ from django.views.generic.edit import FormView
 from django.forms import modelformset_factory
 
 from competitions.models import Competition, AthleteCompetition, Division, WeightClass, AthleteEventNote, \
-    LaneAssignment, CompetitionRunOrder, Event, Result, EventImplement
+    LaneAssignment, CompetitionRunOrder, Event, Result, EventImplement, CompetitionStaff
 from competitions.forms import EditWeightClassesForm, CustomWeightClassForm, CustomDivisionForm, \
-    CombineWeightClassesForm, CustomDivisionFormSet, CustomWeightClassFormSetFactory
+    CombineWeightClassesForm, CustomDivisionFormSet, CustomWeightClassFormSetFactory, AddCompetitionStaffForm
 from competitions.utils import get_onboarding_status
 from competitions.views import calculate_points_and_rankings
+from competitions.mixins import competition_permission_required, CompetitionAccessMixin
 
+
+from django.db.models import Q
 
 class OrganizerCompetitionsView(TemplateView):
     template_name = "competitions/organizer_competitions.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        organizer = self.request.user
+        user = self.request.user
 
-        # Get competitions organized by the user
-        all_competitions = Competition.objects.filter(organizer=organizer)
-        upcoming_competitions = all_competitions.filter(comp_date__gte=timezone.now(),
-                                                        status__in=['upcoming', 'limited', 'full']).order_by(
-            'comp_date')
-        completed_competitions = all_competitions.filter(status='completed').order_by('-comp_date')
+        # Include competitions where the user is organizer or staff
+        all_competitions = Competition.objects.filter(
+            Q(organizer=user) | Q(staff__user=user)
+        ).distinct()
 
-        # Prepare sections
+        upcoming_competitions = all_competitions.filter(
+            comp_date__gte=timezone.now(),
+            status__in=['upcoming', 'limited', 'full']
+        ).order_by('comp_date')
+
+        completed_competitions = all_competitions.filter(
+            status='completed'
+        ).order_by('-comp_date')
+
         sections = [
             {"title": "Upcoming Competitions", "competitions": upcoming_competitions, "badge_class": "bg-success"},
             {"title": "Completed Competitions", "competitions": completed_competitions, "badge_class": "bg-secondary"},
@@ -54,6 +60,7 @@ class OrganizerCompetitionsView(TemplateView):
             "sections": sections,
         })
         return context
+
 
 
 def toggle_email_notifications(request, competition_pk):
@@ -108,6 +115,7 @@ def download_athlete_table(request, competition_pk):
     return response
 
 
+@competition_permission_required('full')
 def send_email_to_athletes(request, competition_pk):
     competition = get_object_or_404(Competition, pk=competition_pk)
 
@@ -139,13 +147,16 @@ def send_email_to_athletes(request, competition_pk):
     return HttpResponseRedirect(reverse('competitions:manage_competition', kwargs={'competition_pk': competition_pk}))
 
 
-class EditWeightClassesView(View):
+class EditWeightClassesView(LoginRequiredMixin, CompetitionAccessMixin, View):
     template_name = 'competitions/edit_weight_classes.html'
+    access_level = 'full'
 
     def get(self, request, competition_pk):
-        competition = get_object_or_404(Competition, pk=competition_pk)
-        form = EditWeightClassesForm(competition=competition)
-        return render(request, self.template_name, {'form': form, 'competition': competition})
+        form = EditWeightClassesForm(competition=self.competition)
+        return render(request, self.template_name, {
+            'form': form,
+            'competition': self.competition
+        })
 
     def post(self, request, competition_pk):
         competition = get_object_or_404(Competition, pk=competition_pk)
@@ -372,8 +383,9 @@ class AssignWeightClassesView(View):
         return redirect('competitions:manage_competition', competition_pk=competition.pk)
 
 
-class CombineWeightClassesView(LoginRequiredMixin, UserPassesTestMixin, generic.FormView):
+class CombineWeightClassesView(LoginRequiredMixin, CompetitionAccessMixin, generic.FormView):
     template_name = "competitions/combine_weight_classes.html"
+    access_level = 'full'
     form_class = CombineWeightClassesForm
 
     def get_form_kwargs(self):
@@ -436,8 +448,9 @@ class CombineWeightClassesView(LoginRequiredMixin, UserPassesTestMixin, generic.
         return self.request.user == competition.organizer
 
 
-class CustomDivisionCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
+class CustomDivisionCreateView(LoginRequiredMixin, CompetitionAccessMixin, FormView):
     template_name = "competitions/custom_division_form.html"
+    access_level = 'full'
     formset_class = modelformset_factory(
         Division,
         form=CustomDivisionForm,
@@ -449,12 +462,13 @@ class CustomDivisionCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView
         formset = self.formset_class(queryset=Division.objects.none())
         return render(request, self.template_name, {
             "formset": formset,
-            "competition_pk": competition_pk
+            "competition_pk": competition_pk,
+            "competition": self.competition
         })
 
     def post(self, request, competition_pk):
         formset = self.formset_class(request.POST)
-        competition = get_object_or_404(Competition, pk=competition_pk)
+        competition = self.competition
 
         if formset.is_valid():
             for form in formset:
@@ -465,19 +479,17 @@ class CustomDivisionCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView
                     division.save()
                     competition.allowed_divisions.add(division)
             messages.success(request, "Custom divisions saved successfully.")
-            return redirect('competitions:manage_competition', competition_pk=competition_pk)
+            return redirect('competitions:manage_competition', competition_pk=competition.pk)
         else:
             for idx, form in enumerate(formset):
                 print(f"Form {idx} errors: {form.errors}")
             print("Non-form errors:", formset.non_form_errors())
             return render(request, self.template_name, {
                 "formset": formset,
-                "competition_pk": competition_pk
+                "competition_pk": competition.pk,
+                "competition": competition
             })
 
-    def test_func(self):
-        comp = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
-        return self.request.user == comp.organizer
 
 CustomWeightClassFormSet = modelformset_factory(
     WeightClass,
@@ -486,6 +498,9 @@ CustomWeightClassFormSet = modelformset_factory(
     can_delete=True
 )
 
+
+@login_required
+@competition_permission_required('full')
 def add_custom_weight_class(request, competition_pk):
     competition = get_object_or_404(Competition, pk=competition_pk)
 
@@ -495,7 +510,6 @@ def add_custom_weight_class(request, competition_pk):
 
         selected_division_id = request.POST.get("shared_division")
         use_single_class_mode = request.POST.get("global_single_class") == "on" if request.method == "POST" else False
-
 
         if not selected_division_id:
             print("❌ No shared division selected")
@@ -517,7 +531,7 @@ def add_custom_weight_class(request, competition_pk):
         except Division.DoesNotExist:
             print("❌ Invalid division selected")
             messages.error(request, "Invalid division selected.")
-            formset = CustomWeightClassFormSetFatory(
+            formset = CustomWeightClassFormSetFactory(
                 request.POST,
                 queryset=WeightClass.objects.none(),
                 use_single_class_mode=use_single_class_mode,
@@ -592,16 +606,13 @@ def add_custom_weight_class(request, competition_pk):
         "competition": competition
     })
 
-@method_decorator(login_required, name="dispatch")
-class CompetitionRunOrderView(LoginRequiredMixin, View):
-    template_name = 'competitions/competition_run_order.html'
 
+@method_decorator(login_required, name="dispatch")
+class CompetitionRunOrderView(CompetitionAccessMixin, View):
+    template_name = 'competitions/competition_run_order.html'
+    access_level = 'full'
     def get(self, request, competition_pk, event_pk=None):
         competition = get_object_or_404(Competition, pk=competition_pk)
-
-        if request.user != competition.organizer:
-            messages.error(request, "You are not authorized to view this page.")
-            return redirect('competitions:manage_competition', competition_pk=competition.pk)
 
         events = competition.events.all().order_by('order')
         if not event_pk and events.exists():
@@ -742,10 +753,6 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
     def post(self, request, competition_pk, event_pk):
         competition = get_object_or_404(Competition, pk=competition_pk)
         event = get_object_or_404(Event, pk=event_pk)
-
-        if request.user != competition.organizer:
-            messages.error(request, "You are not authorized to modify the run order.")
-            return redirect('competitions:manage_competition', competition_pk=competition.pk)
 
         action = request.POST.get('action')
 
@@ -955,156 +962,85 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
                     lane = assignment.lane_number if assignment else (current_ro.lane_number or 1)
 
                     # Save score as note + result
-
                     if score:
                         attempt_num = (
-
                                               AthleteEventNote.objects.filter(
-
                                                   athlete_competition=current_ro.athlete_competition,
-
                                                   event=event,
-
                                                   note_type='next_attempt'
-
                                               ).aggregate(Max('attempt_number'))['attempt_number__max'] or 0
-
                                       ) + 1
 
                         AthleteEventNote.objects.create(
-
                             athlete_competition=current_ro.athlete_competition,
-
                             event=event,
-
                             note_type='next_attempt',
-
                             note_value=score,
-
                             note_value_float=float(score),
-
                             attempt_number=attempt_num
-
                         )
 
                         result, _ = Result.objects.get_or_create(
-
                             athlete_competition=current_ro.athlete_competition,
-
                             event=event,
-
                             defaults={'value': score}
-
                         )
 
                         result.value = score
-
                         result.save()
-
                         calculate_points_and_rankings(competition.pk, event.pk)
-
                     # Promote lifters in order
-
                     lane_ros = (
-
                         CompetitionRunOrder.objects
-
                         .select_for_update()
-
                         .filter(
-
                             competition=competition,
-
                             event=event
-
                         )
-
                         .order_by('heat_number', 'order')
-
                     )
-
                     # Filter just this lane
-
                     def get_lane(ro):
-
                         la = LaneAssignment.objects.filter(
-
                             athlete_competition=ro.athlete_competition,
-
                             event=event
-
                         ).first()
-
                         return la.lane_number if la else ro.lane_number or 1
-
                     lane_queue = [ro for ro in lane_ros if get_lane(ro) == lane]
-
                     # Find index of current lifter
-
                     try:
-
                         idx = lane_queue.index(current_ro)
-
                     except ValueError:
-
                         messages.error(request, "Could not locate current lifter.")
-
                         return redirect('competitions:competition_run_order', competition_pk=competition.pk,
                                         event_pk=event.pk)
-
                     # Mark current as completed or re-queue
-
                     if not mark_as_done:
-
                         current_ro.status = 'completed'
-
                         current_ro.completed_at = timezone.now()
-
                     else:
-
                         current_ro.status = 'pending'
-
                         current_ro.completed_at = None
-
                     current_ro.save()
-
                     # Promote next pending athlete to current
-
                     promoted = None
-
                     for ro in lane_queue[idx + 1:]:
-
                         if ro.status == 'pending':
                             ro.status = 'current'
-
                             ro.started_at = timezone.now()
-
                             ro.save()
-
                             promoted = ro
-
                             break
-
                     # Feedback
-
                     msg = f"{current_ro.athlete_competition.athlete.user.get_full_name()} marked as "
-
                     msg += "completed." if current_ro.status == 'completed' else "re-queued."
-
                     if promoted:
-
                         msg += f" {promoted.athlete_competition.athlete.user.get_full_name()} is now current."
-
                     else:
-
                         msg += " No more pending athletes in this lane."
-
                     if score:
                         msg += f" Score: {score}."
-
                     messages.success(request, f"Lane {lane}: {msg}")
-
-
 
             elif action == 'reactivate_lifter':
                 comp_ro = get_object_or_404(CompetitionRunOrder, pk=request.POST.get('run_order_id'),
@@ -1121,6 +1057,7 @@ class CompetitionRunOrderView(LoginRequiredMixin, View):
         if active_tab:
             response['Location'] += f'?tab={active_tab}'
         return response
+
 
 class CompetitionDisplayView(LoginRequiredMixin, View):
     template_name = 'competitions/competition_run_display.html'
@@ -1174,6 +1111,7 @@ class CompetitionDisplayView(LoginRequiredMixin, View):
         }
         return render(request, self.template_name, context)
 
+
 def manual_run_order_edit(request, competition_pk, event_pk):
     competition = get_object_or_404(Competition, pk=competition_pk)
     event = get_object_or_404(Event, pk=event_pk, competition=competition)
@@ -1225,3 +1163,63 @@ def manual_run_order_edit(request, competition_pk, event_pk):
         "event": event,
         "division_map": division_map,
     })
+
+class ManageCompetitionStaffView(LoginRequiredMixin, View):
+    template_name = "competitions/manage_staff.html"
+
+    def get(self, request, competition_pk):
+        competition = get_object_or_404(Competition, pk=competition_pk)
+
+        if request.user != competition.organizer:
+            return redirect('competitions:manage_competition', competition_pk=competition.pk)
+
+        form = AddCompetitionStaffForm()
+        staff_members = competition.staff.select_related('user')
+
+        return render(request, self.template_name, {
+            "competition": competition,
+            "form": form,
+            "staff_members": staff_members
+        })
+
+    def post(self, request, competition_pk):
+        competition = get_object_or_404(Competition, pk=competition_pk)
+
+        if request.user != competition.organizer:
+            return redirect('competitions:manage_competition', competition_pk=competition.pk)
+
+        form = AddCompetitionStaffForm(request.POST)
+        if form.is_valid():
+            user = form.cleaned_data['email']  # now returns a User instance
+            role = form.cleaned_data['role']
+
+            if CompetitionStaff.objects.filter(competition=competition, user=user).exists():
+                messages.error(request, "This user is already assigned to this competition.")
+            else:
+                CompetitionStaff.objects.create(
+                    competition=competition,
+                    user=user,
+                    role=role
+                )
+                messages.success(request, f"{user.get_full_name()} added as {role} staff.")
+
+            return redirect('competitions:manage_staff', competition_pk=competition.pk)
+
+        staff_members = competition.staff.select_related('user')
+        return render(request, self.template_name, {
+            "competition": competition,
+            "form": form,
+            "staff_members": staff_members
+        })
+
+@login_required
+def remove_competition_staff(request, competition_pk, pk):
+    competition = get_object_or_404(Competition, pk=competition_pk)
+
+    if request.user != competition.organizer:
+        return redirect('competitions:manage_competition', competition_pk=competition.pk)
+
+    staff = get_object_or_404(CompetitionStaff, pk=pk, competition=competition)
+    staff.delete()
+    messages.success(request, f"{staff.user.get_full_name()} removed from staff.")
+    return redirect('competitions:manage_staff', competition_pk=competition.pk)

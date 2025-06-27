@@ -1,62 +1,78 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container my-5">
-    <div class="text-center mb-4">
-        <h1 class="display-5 text-primary"><i class="bi bi-trophy-fill me-2"></i> My Competitions</h1>
-        <p class="lead text-muted">Manage your upcoming, completed, and all competitions in one place.</p>
-    </div>
+    <div class="container my-5">
+        <div class="text-center mb-4">
+            <h1 class="display-5 text-primary"><i class="bi bi-trophy-fill me-2"></i> My Competitions</h1>
+            <p class="lead text-muted">Manage your upcoming, completed, and all competitions in one place.</p>
+        </div>
 
-    {% for section in sections %}
-        <div class="mb-5">
-            <!-- Section Card -->
-            <div class="card shadow-lg border-0">
-                <div class="card-header {{ section.badge_class }} text-white">
-                    <h2 class="mb-0"><i class="bi bi-calendar-event me-2"></i> {{ section.title }}</h2>
-                </div>
-                <div class="card-body">
-                    <div class="row g-4">
-                        {% if section.competitions %}
-                            {% for competition in section.competitions %}
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="card h-100 shadow-sm">
-                                        <div class="card-header {{ section.badge_class }} text-white">
-                                            <h5 class="card-title mb-0">{{ competition.name }}</h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <p class="card-text">
-                                                <strong>Date:</strong> {{ competition.comp_date|date:"F j, Y" }} <br>
-                                                <strong>Registration Deadline:</strong> {{ competition.registration_deadline|date:"F j, Y" }}
-                                            </p>
-                                            <p class="mb-3">
-                                                {% for tag in competition.tags.all %}
-                                                    <span class="badge bg-info text-dark">{{ tag.name }}</span>
-                                                {% endfor %}
-                                            </p>
+        {% for section in sections %}
+            <div class="mb-5">
+                <!-- Section Card -->
+                <div class="card shadow-lg border-0">
+                    <div class="card-header {{ section.badge_class }} text-white">
+                        <h2 class="mb-0"><i class="bi bi-calendar-event me-2"></i> {{ section.title }}</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            {% if section.competitions %}
+                                {% for competition in section.competitions %}
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card h-100 shadow-sm">
+                                            <div class="card-header {{ section.badge_class }} text-white">
+                                                <h5 class="card-title mb-0">{{ competition.name }}</h5>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="card-text">
+                                                    <strong>Date:</strong> {{ competition.comp_date|date:"F j, Y" }}
+                                                    <br>
+                                                    <strong>Registration
+                                                        Deadline:</strong> {{ competition.registration_deadline|date:"F j, Y" }}
+                                                </p>
+                                                <p class="mb-3">
+                                                    {% for tag in competition.tags.all %}
+                                                        <span class="badge bg-info text-dark">{{ tag.name }}</span>
+                                                    {% endfor %}
+                                                </p>
+
+
+                                                <p class="text-muted">
+                                                    <i class="bi bi-people-fill me-2"></i>
+                                                    <strong>{{ competition.athletecompetition_set.count }}</strong>
+                                                    Athletes Registered
+                                                </p>
                                             <p class="text-muted">
-                                                <i class="bi bi-people-fill me-2"></i>
-                                                <strong>{{ competition.athletecompetition_set.count }}</strong> Athletes Registered
-                                            </p>
-                                        </div>
-                                        <div class="card-footer bg-light d-flex justify-content-between align-items-center">
-                                            <a href="{% url 'competitions:competition_detail' competition.pk %}" class="btn btn-outline-primary btn-sm">
-                                                <i class="bi bi-eye-fill"></i> View Details
-                                            </a>
-                                            <a href="{% url 'competitions:manage_competition' competition.pk %}" class="btn btn-primary btn-sm">
-                                                <i class="bi bi-gear-fill"></i> Manage
-                                            </a>
+                                                    {% if request.user == competition.organizer %}
+                                                        <i class="bi bi-person-badge me-2"></i>
+                                                        <strong>Organizer</strong>
+                                                    {% else %}
+                                                        <i class="bi bi-person-check me-2"></i>
+                                                        <strong>Staff Access</strong>
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                            <div class="card-footer bg-light d-flex justify-content-between align-items-center">
+                                                <a href="{% url 'competitions:competition_detail' competition.pk %}"
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="bi bi-eye-fill"></i> View Details
+                                                </a>
+                                                <a href="{% url 'competitions:manage_competition' competition.pk %}"
+                                                   class="btn btn-primary btn-sm">
+                                                    <i class="bi bi-gear-fill"></i> Manage
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-12">
+                                    <p class="text-muted">No {{ section.title|lower }} available.</p>
                                 </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="col-12">
-                                <p class="text-muted">No {{ section.title|lower }} available.</p>
-                            </div>
-                        {% endif %}
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    {% endfor %}
-</div>
+        {% endfor %}
+    </div>
 {% endblock %}

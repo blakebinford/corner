@@ -19,9 +19,10 @@ from competitions.models import Competition, AthleteCompetition, Result, Event, 
     Division, ImplementDefinition
 from competitions.forms import EventImplementForm, EventCreationForm, ImplementDefinitionForm
 from competitions.views.scoring_views import calculate_points_and_rankings
-
+from competitions.mixins import competition_permission_required, CompetitionAccessMixin
 logger = logging.getLogger(__name__)
 
+@competition_permission_required('full')
 def create_event(request, competition_pk):
     """
     Handles the creation of an event linked to a competition.
@@ -53,7 +54,7 @@ def create_event(request, competition_pk):
         'action_kwargs': {'competition_pk': competition.pk},
     })
 
-
+@competition_permission_required('full')
 def assign_implements(request, event_pk):
     logger = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ def assign_implements(request, event_pk):
         'grouped_forms': grouped_forms,
     })
 
-
+@competition_permission_required('full')
 def update_event(request, event_pk):
     """
     Handles the update of an existing event.
@@ -170,6 +171,7 @@ def update_event(request, event_pk):
         'action_kwargs': {'event_pk': event.pk},  # Pass event_pk for editing
     })
 
+
 class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteView):
     """
     View for deleting an event from a competition.
@@ -191,8 +193,10 @@ class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, generic.DeleteVie
         competition = event.competition
         return self.request.user == competition.organizer if competition else False
 
-class EditEventOrderView(LoginRequiredMixin, UserPassesTestMixin, View):
+
+class EditEventOrderView(LoginRequiredMixin, CompetitionAccessMixin, View):
     template_name = 'competitions/edit_event_order.html'
+    access_level = 'full'
 
     def get(self, request, competition_pk):
         competition = get_object_or_404(Competition, pk=competition_pk)
@@ -207,9 +211,6 @@ class EditEventOrderView(LoginRequiredMixin, UserPassesTestMixin, View):
         # Redirect to management dashboard after saving
         return redirect('competitions:manage_competition', competition_pk=competition_pk)
 
-    def test_func(self):
-        competition = get_object_or_404(Competition, pk=self.kwargs['competition_pk'])
-        return self.request.user == competition.organizer
 
 @login_required
 def event_list(request, competition_pk):

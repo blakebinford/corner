@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container my-5">
+    <h2 class="mb-4">Manage Staff – {{ competition.name }}</h2>
+
+    <form method="post" class="mb-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary">Add Staff Member</button>
+    </form>
+
+    <h4>Current Staff</h4>
+    <ul class="list-group">
+        {% for staff in staff_members %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ staff.user.get_full_name }} ({{ staff.get_role_display }})
+                <form method="post" action="{% url 'competitions:remove_staff' competition.pk staff.pk %}">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger">Remove</button>
+                </form>
+            </li>
+        {% empty %}
+            <li class="list-group-item">No staff assigned.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+

@@ -6,7 +6,7 @@ import bleach
 import django_filters
 from django import forms
 from django.forms import modelformset_factory, BaseModelFormSet
-from django.contrib.auth import password_validation
+from django.contrib.auth import password_validation, get_user_model
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.forms import TypedChoiceField
 from django_select2.forms import Select2MultipleWidget
@@ -16,7 +16,7 @@ from crispy_forms.helper import FormHelper
 
 from .models import Competition, AthleteCompetition, Event, EventImplement, Result, Tag, \
     EventBase, ZipCode, Federation, Sponsor, TshirtSize, Division, WeightClass, AthleteEventNote, \
-    ImplementDefinition
+    ImplementDefinition, CompetitionStaff
 from accounts.models import AthleteProfile
 
 
@@ -1092,3 +1092,24 @@ class ImplementDefinitionForm(forms.ModelForm):
             'unit': forms.Select(attrs={'class': 'form-select'}),
             'loading_points': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
         }
+
+User = get_user_model()
+
+class AddCompetitionStaffForm(forms.ModelForm):
+    email = forms.EmailField(
+        label="User Email",
+        help_text="Enter the email of an existing user."
+    )
+    role = forms.ChoiceField(choices=CompetitionStaff.ROLE_CHOICES)
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise forms.ValidationError("No user found with that email.")
+        return user
+
+    class Meta:
+        model = CompetitionStaff
+        fields = ['role']
