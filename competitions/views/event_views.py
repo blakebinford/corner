@@ -120,7 +120,7 @@ def assign_implements(request, event_pk):
             messages.error(request, "There was an error saving the implements. Please check the form.")
     else:
         formset = EventImplementFormSet(queryset=existing_implements, initial=initial_data)
-        logger.debug(f"Formset created with {len(formset)} forms")
+
 
     # Group forms by division and gender for rendering
     grouped_forms = {}

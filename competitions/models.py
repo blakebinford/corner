@@ -356,24 +356,16 @@ class EventImplement(models.Model):
         related_name='event_uses'
     )
     implement_order = models.PositiveIntegerField(default=1, help_text="Order of the implement within the event.")
-    weight = models.IntegerField(help_text="Weight of the implement.")
+    weight = models.IntegerField(help_text="Weight of the implement.",
+                                 null=True,
+                                 blank=True
+                                 )
     weight_unit = models.CharField(
         max_length=20,
         choices=[('lbs', 'lbs'), ('kg', 'kg')],
         default='lbs',
         help_text="Weight unit (lbs or kg)."
     )
-
-  #  def get_loadable_weight(self, athlete=None):
-    #    base_weight = self.implement_definition.base_weight if self.implement_definition else 0
-   #     event_weight = self.weight
-
-    #    if self.event.weight_type == 'max' and athlete:
-     #       next_attempt = get_athlete_next_attempt_from_notes(athlete, self.event)
-     #       if next_attempt:
-      #          event_weight = next_attempt
-
-     #   return max(event_weight - base_weight, 0)
 
     class Meta:
         ordering = ['event', 'implement_order']  # Ensure correct ordering of implements

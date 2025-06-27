@@ -2,705 +2,726 @@
 {% load crispy_forms_tags %}
 {% block extra_styles %}
     <style>
-.tooltip-inner {
-    background-color: #333;
-    color: #fff;
-}
-.invalid-feedback {
-    color: #dc3545;
-    display: block;
-}
-thead th {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: #212529; /* Match table-dark background */
-}
-.table-primary {
-    position: sticky;
-    top: 56px; /* Adjust based on your header height */
-    z-index: 5;
-    background-color: #cfe2ff; /* Match table-primary background */
-}
-.gender-row {
-    position: sticky;
-    top: 96px; /* Below division header */
-    z-index: 4;
-    background-color: #e9ecef; /* Light gray for gender headers */
-}
-.source-input {
-    border: 2px solid #007bff; /* Blue border for source inputs */
-    background-color: #e7f0ff; /* Light blue background */
-}
-.table-container {
-    max-height: 70vh; /* Limit table height to viewport */
-    overflow-y: auto;
-    position: relative;
-}
-.table thead th, .table tbody td {
-    vertical-align: middle;
-    padding: 8px; /* Consistent padding */
-}
-.table thead th.implement-order, .table tbody td.implement-order {
-    width: 80px; /* Narrow width for Implement Order */
-}
-.table thead th.weight, .table tbody td.weight {
-    width: 100px; /* Narrow width for Weight */
-}
-.table tbody tr:hover:not(.table-primary):not(.gender-row) {
-    background-color: #f8f9fa; /* Hover highlight */
-}
-.modal .modal-dialog {
-    max-width: 400px;
-}
-@media (max-width: 768px) {
-    .table-container {
-        overflow-x: auto;
-    }
-}
+        .tooltip-inner {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .invalid-feedback {
+            color: #dc3545;
+            display: block;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #212529; /* Match table-dark background */
+        }
+
+        .table-primary {
+            position: sticky;
+            top: 56px; /* Adjust based on your header height */
+            z-index: 5;
+            background-color: #cfe2ff; /* Match table-primary background */
+        }
+
+        .gender-row {
+            position: sticky;
+            top: 96px; /* Below division header */
+            z-index: 4;
+            background-color: #e9ecef; /* Light gray for gender headers */
+        }
+
+        .source-input {
+            border: 2px solid #007bff; /* Blue border for source inputs */
+            background-color: #e7f0ff; /* Light blue background */
+        }
+
+        .table-container {
+            max-height: 70vh; /* Limit table height to viewport */
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .table thead th, .table tbody td {
+            vertical-align: middle;
+            padding: 8px; /* Consistent padding */
+        }
+
+        .table thead th.implement-order, .table tbody td.implement-order {
+            width: 80px; /* Narrow width for Implement Order */
+        }
+
+        .table thead th.weight, .table tbody td.weight {
+            width: 100px; /* Narrow width for Weight */
+        }
+
+        .table tbody tr:hover:not(.table-primary):not(.gender-row) {
+            background-color: #f8f9fa; /* Hover highlight */
+        }
+
+        .modal .modal-dialog {
+            max-width: 400px;
+        }
+
+        @media (max-width: 768px) {
+            .table-container {
+                overflow-x: auto;
+            }
+        }
     </style>
 {% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <h2 class="text-center">Manage Implements for {{ event.name }}</h2>
+    <div class="container mt-5">
+        <h2 class="text-center">Manage Implements for {{ event.name }}</h2>
 
-    <!-- Filter and Bulk Edit Controls -->
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label for="division-filter" class="form-label">Filter by Division</label>
-            <select id="division-filter" class="form-select">
-                <option value="">All Divisions</option>
-                {% for division in grouped_forms.keys %}
-                    <option value="division-{{ forloop.counter }}">{{ division }}</option>
-                {% endfor %}
-            </select>
+        <!-- Filter and Bulk Edit Controls -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label for="division-filter" class="form-label">Filter by Division</label>
+                <select id="division-filter" class="form-select">
+                    <option value="">All Divisions</option>
+                    {% for division in grouped_forms.keys %}
+                        <option value="division-{{ forloop.counter }}">{{ division }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="gender-filter" class="form-label">Filter by Gender</label>
+                <select id="gender-filter" class="form-select">
+                    <option value="">All Genders</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-4 text-end">
+                <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#bulkEditModal">
+                    Bulk Edit
+                </button>
+            </div>
         </div>
-        <div class="col-md-4">
-            <label for="gender-filter" class="form-label">Filter by Gender</label>
-            <select id="gender-filter" class="form-select">
-                <option value="">All Genders</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-            </select>
-        </div>
-        <div class="col-md-4 text-end">
-            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#bulkEditModal">
-                Bulk Edit
-            </button>
-        </div>
-    </div>
 
-    <form method="post" id="implements-form" novalidate>
-        {% csrf_token %}
-        {{ formset.management_form }}
+        <form method="post" id="implements-form" novalidate>
+            {% csrf_token %}
+            {{ formset.management_form }}
 
-        <div class="table-container">
-            <table class="table table-bordered table-striped align-middle">
-                <thead class="table-dark">
+            <div class="table-container">
+                <table class="table table-bordered table-striped align-middle">
+                    <thead class="table-dark">
                     <tr>
                         <th>Division Weight Class</th>
                         {% if event.has_multiple_implements %}
                             <th>
                                 Implement Name
-                                <span class="ms-1" data-bs-toggle="tooltip" title="The name of the implement (e.g., Barbell, Sandbag).">[?]</span>
+                                <span class="ms-1" data-bs-toggle="tooltip"
+                                      title="The name of the implement (e.g., Barbell, Sandbag).">[?]</span>
                             </th>
                             <th class="implement-order">
                                 Implement Order
-                                <span class="ms-1" data-bs-toggle="tooltip" title="The order in which this implement is used (e.g., 1 for first).">[?]</span>
+                                <span class="ms-1" data-bs-toggle="tooltip"
+                                      title="The order in which this implement is used (e.g., 1 for first).">[?]</span>
                             </th>
                         {% endif %}
                         <th class="weight">
                             Weight
-                            <span class="ms-1" data-bs-toggle="tooltip" title="The weight of the implement in the selected unit (e.g., 150).">[?]</span>
+                            <span class="ms-1" data-bs-toggle="tooltip"
+                                  title="The weight of the implement in the selected unit (e.g., 150).">[?]</span>
                         </th>
                         <th>
                             Weight Unit
-                            <span class="ms-1" data-bs-toggle="tooltip" title="Select the unit for the weight (lbs or kg).">[?]</span>
+                            <span class="ms-1" data-bs-toggle="tooltip"
+                                  title="Select the unit for the weight (lbs or kg).">[?]</span>
                         </th>
                     </tr>
-                </thead>
-                <tbody>
+                    </thead>
+                    <tbody>
                     {% for division, gender_groups in grouped_forms.items %}
                         <tbody class="division-group" data-division-id="division-{{ forloop.counter }}">
-                            <!-- Division Header -->
-                            <tr class="table-primary division-row" data-bs-toggle="collapse" data-bs-target=".division-{{ forloop.counter }}" style="cursor: pointer;">
+                        <!-- Division Header -->
+                        <tr class="table-primary division-row" data-bs-toggle="collapse"
+                            data-bs-target=".division-{{ forloop.counter }}" style="cursor: pointer;">
+                            <td colspan="{% if event.has_multiple_implements %}5{% else %}3{% endif %}">
+                                <strong>{{ division }}</strong>
+                                <span class="float-end"><i class="bi bi-chevron-down"></i></span>
+                            </td>
+                        </tr>
+                        {% for gender, entries in gender_groups.items %}
+                            <!-- Gender Subheader -->
+                            <tr class="gender-row collapse show division-{{ forloop.parentloop.counter }}"
+                                data-gender="{{ gender }}">
                                 <td colspan="{% if event.has_multiple_implements %}5{% else %}3{% endif %}">
-                                    <strong>{{ division }}</strong>
-                                    <span class="float-end"><i class="bi bi-chevron-down"></i></span>
+                                    <strong>{{ gender }}</strong>
                                 </td>
                             </tr>
-                            {% for gender, entries in gender_groups.items %}
-                                <!-- Gender Subheader -->
-                                <tr class="gender-row collapse show division-{{ forloop.parentloop.counter }}" data-gender="{{ gender }}">
-                                    <td colspan="{% if event.has_multiple_implements %}5{% else %}3{% endif %}">
-                                        <strong>{{ gender }}</strong>
+                            {% for entry in entries %}
+                                <tr class="collapse show division-{{ forloop.parentloop.counter }}">
+                                    <td>
+                                        {{ entry.form.id.as_hidden }}
+                                        {{ entry.form.event.as_hidden }}
+                                        {{ entry.form.division.as_hidden }}
+                                        {{ entry.form.weight_class.as_hidden }}
+                                        <strong>{{ entry.weight_class_label }} ({{ gender }})</strong>
+                                    </td>
+
+                                    {% if event.has_multiple_implements %}
+                                        <!-- Implement Name Dropdown -->
+                                        <td>
+                                            <div class="input-group">
+                                                {{ entry.form.implement_definition }}
+                                                <button type="button" class="btn btn-outline-primary"
+                                                        hx-get="{% url 'competitions:implement_add' %}"
+                                                        hx-target="#modal-body"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modal">
+                                                    Add
+                                                </button>
+                                            </div>
+
+                                            {% for err in entry.form.implement_name.errors %}
+                                                <div class="invalid-feedback">{{ err }}</div>
+                                            {% endfor %}
+                                        </td>
+                                        <!-- Implement Order -->
+                                        <td class="implement-order">
+                                            {{ entry.form.implement_order }}
+                                            {% for err in entry.form.implement_order.errors %}
+                                                <div class="invalid-feedback">{{ err }}</div>
+                                            {% endfor %}
+                                        </td>
+                                    {% else %}
+                                        <!-- Hidden order when not multiple -->
+                                        <td style="display:none;">{{ entry.form.implement_order }}</td>
+                                    {% endif %}
+
+                                    <!-- Weight -->
+                                    <td class="weight">
+                                        {{ entry.form.weight }}
+                                        {% for err in entry.form.weight.errors %}
+                                            <div class="invalid-feedback">{{ err }}</div>
+                                        {% endfor %}
+                                    </td>
+                                    <!-- Weight Unit -->
+                                    <td>
+                                        {{ entry.form.weight_unit }}
+                                        {% for err in entry.form.weight_unit.errors %}
+                                            <div class="invalid-feedback">{{ err }}</div>
+                                        {% endfor %}
                                     </td>
                                 </tr>
-                                {% for entry in entries %}
-                                    <tr class="collapse show division-{{ forloop.parentloop.counter }}">
-                                        <td>
-                                            {{ entry.form.id.as_hidden }}
-                                            {{ entry.form.event.as_hidden }}
-                                            {{ entry.form.division.as_hidden }}
-                                            {{ entry.form.weight_class.as_hidden }}
-                                            <strong>{{ entry.weight_class_label }} ({{ gender }})</strong>
-                                        </td>
-
-                                        {% if event.has_multiple_implements %}
-                                            <!-- Implement Name Dropdown -->
-                                            <td>
-                                                <div class="input-group">
-                                                  {{ entry.form.implement_definition }}
-                                                  <button type="button" class="btn btn-outline-primary"
-                                                          hx-get="{% url 'competitions:implement_add' %}"
-                                                          hx-target="#modal-body"
-                                                          data-bs-toggle="modal"
-                                                          data-bs-target="#modal">
-                                                    Add
-                                                  </button>
-                                                </div>
-
-                                                {% for err in entry.form.implement_name.errors %}
-                                                  <div class="invalid-feedback">{{ err }}</div>
-                                                {% endfor %}
-                                            </td>
-                                            <!-- Implement Order -->
-                                            <td class="implement-order">
-                                                {{ entry.form.implement_order }}
-                                                {% for err in entry.form.implement_order.errors %}
-                                                  <div class="invalid-feedback">{{ err }}</div>
-                                                {% endfor %}
-                                            </td>
-                                        {% else %}
-                                            <!-- Hidden order when not multiple -->
-                                            <td style="display:none;">{{ entry.form.implement_order }}</td>
-                                        {% endif %}
-
-                                        <!-- Weight -->
-                                        <td class="weight">
-                                            {{ entry.form.weight }}
-                                            {% for err in entry.form.weight.errors %}
-                                              <div class="invalid-feedback">{{ err }}</div>
-                                            {% endfor %}
-                                        </td>
-                                        <!-- Weight Unit -->
-                                        <td>
-                                            {{ entry.form.weight_unit }}
-                                            {% for err in entry.form.weight_unit.errors %}
-                                              <div class="invalid-feedback">{{ err }}</div>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
                             {% endfor %}
+                        {% endfor %}
                         </tbody>
                     {% endfor %}
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="text-center mt-3">
+                <button type="submit" class="btn btn-primary">Save Implements</button>
+            </div>
+        </form>
+
+
+        <!-- Bulk Edit Modal -->
+        <div class="modal fade" id="bulkEditModal" tabindex="-1" aria-labelledby="bulkEditModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="bulkEditModalLabel">Bulk Edit Implements</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="bulkEditForm">
+                            {% if event.has_multiple_implements %}
+                                <div class="mb-3">
+                                    <label for="bulk-order" class="form-label">Implement Order</label>
+                                    <select class="form-select" id="bulk-order" required>
+                                        <option value="" disabled selected>Select Implement Order</option>
+                                        {% for i in "123"|make_list %}
+                                            <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="bulk-implement-name" class="form-label">Implement Name</label>
+                                    <input type="text" class="form-control" id="bulk-implement-name"
+                                           placeholder="e.g., Barbell" required>
+                                </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <label for="bulk-weight" class="form-label">Weight</label>
+                                <input type="number" class="form-control" id="bulk-weight" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="bulk-unit" class="form-label">Weight Unit</label>
+                                <select class="form-select" id="bulk-unit" required>
+                                    <option value="lbs">lbs</option>
+                                    <option value="kg">kg</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="applyBulkEdit">Apply</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="text-center mt-3">
-            <button type="submit" class="btn btn-primary">Save Implements</button>
-        </div>
-    </form>
+        <!-- JavaScript to initialize Bootstrap tooltips -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                console.log('Script loaded and running');
 
+                // Initialize Bootstrap tooltips
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
 
-    <!-- Bulk Edit Modal -->
-<div class="modal fade" id="bulkEditModal" tabindex="-1" aria-labelledby="bulkEditModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="bulkEditModalLabel">Bulk Edit Implements</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="bulkEditForm">
-                    {% if event.has_multiple_implements %}
-                    <div class="mb-3">
-                        <label for="bulk-order" class="form-label">Implement Order</label>
-                        <select class="form-select" id="bulk-order" required>
-                            <option value="" disabled selected>Select Implement Order</option>
-                            {% for i in "123"|make_list %}
-                                <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="bulk-implement-name" class="form-label">Implement Name</label>
-                        <input type="text" class="form-control" id="bulk-implement-name" placeholder="e.g., Barbell" required>
-                    </div>
-                    {% endif %}
-                    <div class="mb-3">
-                        <label for="bulk-weight" class="form-label">Weight</label>
-                        <input type="number" class="form-control" id="bulk-weight" min="0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="bulk-unit" class="form-label">Weight Unit</label>
-                        <select class="form-select" id="bulk-unit" required>
-                            <option value="lbs">lbs</option>
-                            <option value="kg">kg</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="applyBulkEdit">Apply</button>
-            </div>
-        </div>
-    </div>
-</div>
+                // Weight class sorting function
+                function sortWeightClasses() {
+                    console.log('Sorting weight classes...');
 
-<!-- JavaScript to initialize Bootstrap tooltips -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('Script loaded and running');
+                    // Process each division separately
+                    document.querySelectorAll('.division-group').forEach(divisionGroup => {
+                        // Process each gender group separately within the division
+                        const genderGroups = divisionGroup.querySelectorAll('.gender-row');
 
-    // Initialize Bootstrap tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+                        genderGroups.forEach(genderRow => {
+                            const gender = genderRow.getAttribute('data-gender');
+                            console.log(`Sorting ${gender} weight classes in division`);
 
-    // Weight class sorting function
-    function sortWeightClasses() {
-        console.log('Sorting weight classes...');
+                            // Get all rows that belong to this gender group
+                            let weightClassRows = [];
+                            let nextRow = genderRow.nextElementSibling;
 
-        // Process each division separately
-        document.querySelectorAll('.division-group').forEach(divisionGroup => {
-            // Process each gender group separately within the division
-            const genderGroups = divisionGroup.querySelectorAll('.gender-row');
+                            // Collect all rows until the next gender header or division header
+                            while (nextRow &&
+                            !nextRow.classList.contains('gender-row') &&
+                            !nextRow.classList.contains('table-primary')) {
+                                weightClassRows.push(nextRow);
+                                nextRow = nextRow.nextElementSibling;
+                            }
 
-            genderGroups.forEach(genderRow => {
-                const gender = genderRow.getAttribute('data-gender');
-                console.log(`Sorting ${gender} weight classes in division`);
+                            if (weightClassRows.length <= 1) {
+                                console.log('Only one or zero weight classes, no sorting needed');
+                                return; // No need to sort just one row
+                            }
 
-                // Get all rows that belong to this gender group
-                let weightClassRows = [];
-                let nextRow = genderRow.nextElementSibling;
+                            // Sort weight class rows
+                            weightClassRows.sort((rowA, rowB) => {
+                                // Get the weight class text from the first cell
+                                const cellA = rowA.querySelector('td:first-child strong').textContent;
+                                const cellB = rowB.querySelector('td:first-child strong').textContent;
 
-                // Collect all rows until the next gender header or division header
-                while (nextRow &&
-                       !nextRow.classList.contains('gender-row') &&
-                       !nextRow.classList.contains('table-primary')) {
-                    weightClassRows.push(nextRow);
-                    nextRow = nextRow.nextElementSibling;
+                                // Extract weight value and weight_d (u, +, or empty)
+                                const getWeightInfo = (text) => {
+                                    // Remove the gender part that's in parentheses
+                                    const weightClassPart = text.split('(')[0].trim();
+
+                                    let weightD = '';
+                                    let weightValue = 0;
+
+                                    // Check for 'u' prefix (under)
+                                    if (weightClassPart.startsWith('u')) {
+                                        weightD = 'u';
+                                        weightValue = parseFloat(weightClassPart.substring(1));
+                                    }
+                                    // Check for '+' suffix (over)
+                                    else if (weightClassPart.endsWith('+')) {
+                                        weightD = '+';
+                                        weightValue = parseFloat(weightClassPart.substring(0, weightClassPart.length - 1));
+                                    }
+                                    // Otherwise just a regular weight
+                                    else {
+                                        weightValue = parseFloat(weightClassPart);
+                                    }
+
+                                    return {weightD, weightValue};
+                                };
+
+                                const infoA = getWeightInfo(cellA);
+                                const infoB = getWeightInfo(cellB);
+
+                                console.log(`Comparing: ${cellA} (${infoA.weightD}${infoA.weightValue}) vs ${cellB} (${infoB.weightD}${infoB.weightValue})`);
+
+                                // Sort logic:
+                                // 1. 'u' prefixed weights come first, sorted from smallest to largest
+                                // 2. Regular weights come next, sorted from smallest to largest
+                                // 3. '+' suffixed weights come last, sorted from smallest to largest
+
+                                if (infoA.weightD !== infoB.weightD) {
+                                    if (infoA.weightD === 'u') return -1;
+                                    if (infoB.weightD === 'u') return 1;
+                                    if (infoA.weightD === '') return -1;
+                                    if (infoB.weightD === '') return 1;
+                                }
+
+                                // If same weight_d type, sort by numeric value
+                                return infoA.weightValue - infoB.weightValue;
+                            });
+
+                            // Re-insert the sorted rows in order
+                            const parentNode = weightClassRows[0].parentNode;
+
+                            // Insert after the gender row
+                            let insertAfter = genderRow;
+
+                            // Reattach all rows in sorted order
+                            weightClassRows.forEach(row => {
+                                // Remove from current position
+                                row.parentNode.removeChild(row);
+
+                                // Insert after previous element
+                                insertAfter.after(row);
+                                insertAfter = row;
+                            });
+
+                            console.log(`Sorted ${weightClassRows.length} weight class rows`);
+                        });
+                    });
                 }
 
-                if (weightClassRows.length <= 1) {
-                    console.log('Only one or zero weight classes, no sorting needed');
-                    return; // No need to sort just one row
-                }
+                // Run weight class sorting when page loads
+                sortWeightClasses();
 
-                // Sort weight class rows
-                weightClassRows.sort((rowA, rowB) => {
-                    // Get the weight class text from the first cell
-                    const cellA = rowA.querySelector('td:first-child strong').textContent;
-                    const cellB = rowB.querySelector('td:first-child strong').textContent;
+                // Client-side validation
+                var form = document.getElementById('implements-form');
+                if (!form) console.error('Form element not found');
+                form.addEventListener('submit', function (event) {
+                    event.preventDefault();
 
-                    // Extract weight value and weight_d (u, +, or empty)
-                    const getWeightInfo = (text) => {
-                        // Remove the gender part that's in parentheses
-                        const weightClassPart = text.split('(')[0].trim();
+                    const submitButton = form.querySelector('button[type="submit"]');
+                    submitButton.disabled = true;
 
-                        let weightD = '';
-                        let weightValue = 0;
+                    let isValid = true;
+                    const safeHiddenNames = ['id', 'event', 'division', 'weight_class'];
 
-                        // Check for 'u' prefix (under)
-                        if (weightClassPart.startsWith('u')) {
-                            weightD = 'u';
-                            weightValue = parseFloat(weightClassPart.substring(1));
-                        }
-                        // Check for '+' suffix (over)
-                        else if (weightClassPart.endsWith('+')) {
-                            weightD = '+';
-                            weightValue = parseFloat(weightClassPart.substring(0, weightClassPart.length - 1));
-                        }
-                        // Otherwise just a regular weight
-                        else {
-                            weightValue = parseFloat(weightClassPart);
+                    const inputs = form.querySelectorAll('input, select, textarea');
+                    inputs.forEach(input => {
+                        // Reset validation styling
+                        input.classList.remove('is-invalid');
+
+                        const feedback = input.nextElementSibling;
+                        if (feedback && feedback.classList.contains('invalid-feedback')) {
+                            feedback.remove();  // Remove old validation message
                         }
 
-                        return { weightD, weightValue };
-                    };
+                        const createError = (msg) => {
+                            const div = document.createElement('div');
+                            div.className = 'invalid-feedback';
+                            div.textContent = msg;
+                            input.classList.add('is-invalid');
+                            input.insertAdjacentElement('afterend', div);
+                            isValid = false;
+                        };
 
-                    const infoA = getWeightInfo(cellA);
-                    const infoB = getWeightInfo(cellB);
+                        // Required visible inputs
+                        if (
+                            input.hasAttribute('required') &&
+                            input.offsetParent !== null &&  // only check visible fields
+                            !input.value.trim()
+                        ) {
+                            createError('This field is required.');
+                        }
 
-                    console.log(`Comparing: ${cellA} (${infoA.weightD}${infoA.weightValue}) vs ${cellB} (${infoB.weightD}${infoB.weightValue})`);
+                        // Required hidden inputs (only those not in safe list)
+                        if (
+                            input.type === 'hidden' &&
+                            !input.value.trim() &&
+                            !safeHiddenNames.some(name => input.name.includes(name))
+                        ) {
+                            console.warn('Empty hidden field:', input.name, input.value);
+                            isValid = false;
+                        }
 
-                    // Sort logic:
-                    // 1. 'u' prefixed weights come first, sorted from smallest to largest
-                    // 2. Regular weights come next, sorted from smallest to largest
-                    // 3. '+' suffixed weights come last, sorted from smallest to largest
+                        // Number validation (weight, implement_order)
+                        if (
+                            input.type === 'number' &&
+                            input.value &&
+                            parseFloat(input.value) < 0  // allow 0
+                        ) {
+                            createError('Must be 0 or greater.');
+                        }
 
-                    if (infoA.weightD !== infoB.weightD) {
-                        if (infoA.weightD === 'u') return -1;
-                        if (infoB.weightD === 'u') return 1;
-                        if (infoA.weightD === '') return -1;
-                        if (infoB.weightD === '') return 1;
+                    });
+
+                    if (!isValid) {
+                        submitButton.disabled = false;
+                        alert('Please fill in all required fields correctly. Check highlighted fields.');
+                        return;
                     }
 
-                    // If same weight_d type, sort by numeric value
-                    return infoA.weightValue - infoB.weightValue;
-                });
+                    // Valid — proceed with AJAX POST
+                    submitButton.innerHTML = 'Saving... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
-                // Re-insert the sorted rows in order
-                const parentNode = weightClassRows[0].parentNode;
-
-                // Insert after the gender row
-                let insertAfter = genderRow;
-
-                // Reattach all rows in sorted order
-                weightClassRows.forEach(row => {
-                    // Remove from current position
-                    row.parentNode.removeChild(row);
-
-                    // Insert after previous element
-                    insertAfter.after(row);
-                    insertAfter = row;
-                });
-
-                console.log(`Sorted ${weightClassRows.length} weight class rows`);
-            });
-        });
-    }
-
-    // Run weight class sorting when page loads
-    sortWeightClasses();
-
-    // Client-side validation
-    var form = document.getElementById('implements-form');
-    if (!form) console.error('Form element not found');
-    form.addEventListener('submit', function (event) {
-    event.preventDefault();
-
-    const submitButton = form.querySelector('button[type="submit"]');
-    submitButton.disabled = true;
-
-    let isValid = true;
-    const safeHiddenNames = ['id', 'event', 'division', 'weight_class'];
-
-    const inputs = form.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-        // Reset validation styling
-        input.classList.remove('is-invalid');
-
-        const feedback = input.nextElementSibling;
-        if (feedback && feedback.classList.contains('invalid-feedback')) {
-            feedback.remove();  // Remove old validation message
-        }
-
-        const createError = (msg) => {
-            const div = document.createElement('div');
-            div.className = 'invalid-feedback';
-            div.textContent = msg;
-            input.classList.add('is-invalid');
-            input.insertAdjacentElement('afterend', div);
-            isValid = false;
-        };
-
-        // Required visible inputs
-        if (
-            input.hasAttribute('required') &&
-            input.offsetParent !== null &&  // only check visible fields
-            !input.value.trim()
-        ) {
-            createError('This field is required.');
-        }
-
-        // Required hidden inputs (only those not in safe list)
-        if (
-            input.type === 'hidden' &&
-            !input.value.trim() &&
-            !safeHiddenNames.some(name => input.name.includes(name))
-        ) {
-            console.warn('Empty hidden field:', input.name, input.value);
-            isValid = false;
-        }
-
-        // Number validation (weight, implement_order)
-        if (
-            input.type === 'number' &&
-            input.value &&
-            parseFloat(input.value) <= 0
-        ) {
-            createError('Must be a positive number.');
-        }
-    });
-
-    if (!isValid) {
-        submitButton.disabled = false;
-        alert('Please fill in all required fields correctly. Check highlighted fields.');
-        return;
-    }
-
-    // Valid — proceed with AJAX POST
-    submitButton.innerHTML = 'Saving... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-
-    fetch(form.action, {
-        method: 'POST',
-        body: new FormData(form),
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(response => {
-        if (response.ok) {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
-            alertDiv.role = 'alert';
-            alertDiv.innerHTML = `
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {'X-Requested-With': 'XMLHttpRequest'}
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
+                                alertDiv.role = 'alert';
+                                alertDiv.innerHTML = `
                 Implements saved successfully!
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             `;
-            form.parentNode.insertBefore(alertDiv, form);
+                                form.parentNode.insertBefore(alertDiv, form);
 
-            setTimeout(() => {
-                window.location.href = response.url || '/competitions/';
-            }, 2000);
-        } else {
-            throw new Error('Bad response');
-        }
-    })
-    .catch(error => {
-        console.error('Submission failed:', error);
-        submitButton.disabled = false;
-        submitButton.innerHTML = 'Save Implements';
-        alert('Failed to save implements. Please check the form and try again.');
-    });
-});
+                                setTimeout(() => {
+                                    window.location.href = response.url || '/competitions/';
+                                }, 2000);
+                            } else {
+                                throw new Error('Bad response');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Submission failed:', error);
+                            submitButton.disabled = false;
+                            submitButton.innerHTML = 'Save Implements';
+                            alert('Failed to save implements. Please check the form and try again.');
+                        });
+                });
 
 
-    // Multiple implements functionality
-    {% if event.has_multiple_implements %}
-    const rows = Array.from(document.querySelectorAll('tbody tr:not(.table-primary):not(.gender-row)'));
-    const numImplements = {{ event.number_of_implements }};
-    const sourceInputs = new Map();
+                // Multiple implements functionality
+                {% if event.has_multiple_implements %}
+                    const rows = Array.from(document.querySelectorAll('tbody tr:not(.table-primary):not(.gender-row)'));
+                    const numImplements = {{ event.number_of_implements }};
+                    const sourceInputs = new Map();
 
-    rows.forEach(row => {
-        const implementOrderInput = row.querySelector('.implement-order input');
-        const implementNameInput = row.querySelector('.implement-name');
-        if (implementOrderInput && implementNameInput) {
-            const orderValue = parseInt(implementOrderInput.value);
-            if (orderValue <= numImplements && !sourceInputs.has(orderValue)) {
-                sourceInputs.set(orderValue, implementNameInput);
-            }
-        }
-    });
+                    rows.forEach(row => {
+                        const implementOrderInput = row.querySelector('.implement-order input');
+                        const implementNameInput = row.querySelector('.implement-name');
+                        if (implementOrderInput && implementNameInput) {
+                            const orderValue = parseInt(implementOrderInput.value);
+                            if (orderValue <= numImplements && !sourceInputs.has(orderValue)) {
+                                sourceInputs.set(orderValue, implementNameInput);
+                            }
+                        }
+                    });
 
-    const groupByImplementOrder = () => {
-        const grouped = {};
-        rows.forEach(row => {
-            const implementOrderInput = row.querySelector('.implement-order input');
-            const implementNameInput = row.querySelector('.implement-name');
-            if (implementOrderInput && implementNameInput) {
-                const orderValue = implementOrderInput.value;
-                if (!grouped[orderValue]) grouped[orderValue] = [];
-                grouped[orderValue].push(implementNameInput);
-            }
-        });
-        return grouped;
-    };
+                    const groupByImplementOrder = () => {
+                        const grouped = {};
+                        rows.forEach(row => {
+                            const implementOrderInput = row.querySelector('.implement-order input');
+                            const implementNameInput = row.querySelector('.implement-name');
+                            if (implementOrderInput && implementNameInput) {
+                                const orderValue = implementOrderInput.value;
+                                if (!grouped[orderValue]) grouped[orderValue] = [];
+                                grouped[orderValue].push(implementNameInput);
+                            }
+                        });
+                        return grouped;
+                    };
 
-    const syncImplementNames = () => {
-        const grouped = groupByImplementOrder();
-        sourceInputs.forEach((sourceInput, order) => {
-            const targetInputs = grouped[order].filter(input => input !== sourceInput);
-            sourceInput.classList.add('source-input');
-            sourceInput.setAttribute('data-bs-toggle', 'tooltip');
-            sourceInput.setAttribute('title', `Changes here sync to all other fields with order ${order}`);
-            sourceInput.addEventListener('change', function (e) {
-                if (e.target.value.trim() !== '') {
-                    targetInputs.forEach(input => input.value = e.target.value);
+                    const syncImplementNames = () => {
+                        const grouped = groupByImplementOrder();
+                        sourceInputs.forEach((sourceInput, order) => {
+                            const targetInputs = grouped[order].filter(input => input !== sourceInput);
+                            sourceInput.classList.add('source-input');
+                            sourceInput.setAttribute('data-bs-toggle', 'tooltip');
+                            sourceInput.setAttribute('title', `Changes here sync to all other fields with order ${order}`);
+                            sourceInput.addEventListener('change', function (e) {
+                                if (e.target.value.trim() !== '') {
+                                    targetInputs.forEach(input => input.value = e.target.value);
+                                }
+                            });
+                        });
+                        var sourceTooltipTriggerList = [].slice.call(document.querySelectorAll('.source-input[data-bs-toggle="tooltip"]'));
+                        sourceTooltipTriggerList.map(function (tooltipTriggerEl) {
+                            return new bootstrap.Tooltip(tooltipTriggerEl);
+                        });
+                    };
+
+                    syncImplementNames();
+                {% endif %}
+
+                // Division and Gender Filtering
+                const divisionFilter = document.getElementById('division-filter');
+                const genderFilter = document.getElementById('gender-filter');
+
+                const applyFilters = () => {
+                    console.log('Applying filters');
+                    const selectedDivision = divisionFilter.value;
+                    const selectedGender = genderFilter.value;
+
+                    console.log('Selected filters:', {division: selectedDivision, gender: selectedGender});
+
+                    document.querySelectorAll('.division-group').forEach(group => {
+                        const divisionId = group.getAttribute('data-division-id');
+                        group.style.display = (!selectedDivision || divisionId === selectedDivision) ? '' : 'none';
+                    });
+
+                    document.querySelectorAll('.gender-row').forEach(row => {
+                        const gender = row.getAttribute('data-gender');
+                        const parentGroup = row.closest('.division-group');
+                        if (!parentGroup || parentGroup.style.display !== 'none') {
+                            row.style.display = (!selectedGender || gender === selectedGender) ? '' : 'none';
+
+                            // Handle the rows following this gender row until the next gender row
+                            let nextRow = row.nextElementSibling;
+                            while (nextRow && !nextRow.classList.contains('gender-row') && !nextRow.classList.contains('table-primary')) {
+                                nextRow.style.display = row.style.display;
+                                nextRow = nextRow.nextElementSibling;
+                            }
+                        }
+                    });
+                };
+
+                if (divisionFilter && genderFilter) {
+                    console.log('Adding filter event listeners');
+                    divisionFilter.addEventListener('change', applyFilters);
+                    genderFilter.addEventListener('change', applyFilters);
+                    // Initial application of filters
+                    applyFilters();
+                } else {
+                    console.error('Filter elements not found:', {divisionFilter, genderFilter});
                 }
-            });
-        });
-        var sourceTooltipTriggerList = [].slice.call(document.querySelectorAll('.source-input[data-bs-toggle="tooltip"]'));
-        sourceTooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-    };
-
-    syncImplementNames();
-    {% endif %}
-
-    // Division and Gender Filtering
-    const divisionFilter = document.getElementById('division-filter');
-    const genderFilter = document.getElementById('gender-filter');
-
-    const applyFilters = () => {
-        console.log('Applying filters');
-        const selectedDivision = divisionFilter.value;
-        const selectedGender = genderFilter.value;
-
-        console.log('Selected filters:', { division: selectedDivision, gender: selectedGender });
-
-        document.querySelectorAll('.division-group').forEach(group => {
-            const divisionId = group.getAttribute('data-division-id');
-            group.style.display = (!selectedDivision || divisionId === selectedDivision) ? '' : 'none';
-        });
-
-        document.querySelectorAll('.gender-row').forEach(row => {
-            const gender = row.getAttribute('data-gender');
-            const parentGroup = row.closest('.division-group');
-            if (!parentGroup || parentGroup.style.display !== 'none') {
-                row.style.display = (!selectedGender || gender === selectedGender) ? '' : 'none';
-
-                // Handle the rows following this gender row until the next gender row
-                let nextRow = row.nextElementSibling;
-                while (nextRow && !nextRow.classList.contains('gender-row') && !nextRow.classList.contains('table-primary')) {
-                    nextRow.style.display = row.style.display;
-                    nextRow = nextRow.nextElementSibling;
-                }
-            }
-        });
-    };
-
-    if (divisionFilter && genderFilter) {
-        console.log('Adding filter event listeners');
-        divisionFilter.addEventListener('change', applyFilters);
-        genderFilter.addEventListener('change', applyFilters);
-        // Initial application of filters
-        applyFilters();
-    } else {
-        console.error('Filter elements not found:', { divisionFilter, genderFilter });
-    }
 
 // Bulk Edit Functionality
-const bulkEditModal = document.getElementById('bulkEditModal');
-if (bulkEditModal) {
-    document.getElementById('applyBulkEdit').addEventListener('click', function () {
-        console.log('Apply Bulk Edit button clicked');
+                const bulkEditModal = document.getElementById('bulkEditModal');
+                if (bulkEditModal) {
+                    document.getElementById('applyBulkEdit').addEventListener('click', function () {
+                        console.log('Apply Bulk Edit button clicked');
 
-        // Get values from the modal
-        const weight = document.getElementById('bulk-weight').value;
-        const unit = document.getElementById('bulk-unit').value;
+                        // Get values from the modal
+                        const weight = document.getElementById('bulk-weight').value;
+                        const unit = document.getElementById('bulk-unit').value;
 
-        {% if event.has_multiple_implements %}
-        const bulkOrder = document.getElementById('bulk-order').value;
-        const implementName = document.getElementById('bulk-implement-name').value;
-        console.log('Bulk edit values:', { bulkOrder, implementName, weight, unit });
+                        {% if event.has_multiple_implements %}
+                            const bulkOrder = document.getElementById('bulk-order').value;
+                            const implementName = document.getElementById('bulk-implement-name').value;
+                            console.log('Bulk edit values:', {bulkOrder, implementName, weight, unit});
 
-        // Validate inputs for multiple implements
-        if (!implementName.trim()) {
-            alert('Implement name is required.');
-            return;
-        }
-        {% else %}
-        console.log('Bulk edit values:', { weight, unit });
-        {% endif %}
+                            // Validate inputs for multiple implements
+                            if (!implementName.trim()) {
+                                alert('Implement name is required.');
+                                return;
+                            }
+                        {% else %}
+                            console.log('Bulk edit values:', {weight, unit});
+                        {% endif %}
 
-        // Validate weight input
-        if (!weight || isNaN(parseFloat(weight)) || parseFloat(weight) <= 0) {
-            alert('Weight must be a positive number.');
-            return;
-        }
+                        // Validate weight input
+                        if (!weight || isNaN(parseFloat(weight)) || parseFloat(weight) <= 0) {
+                            alert('Weight must be a positive number.');
+                            return;
+                        }
 
-        // Get all visible rows
-        const visibleRows = Array.from(document.querySelectorAll('tbody tr')).filter(row => {
-            // Skip division and gender header rows
-            if (row.classList.contains('table-primary') || row.classList.contains('gender-row')) {
-                return false;
-            }
+                        // Get all visible rows
+                        const visibleRows = Array.from(document.querySelectorAll('tbody tr')).filter(row => {
+                            // Skip division and gender header rows
+                            if (row.classList.contains('table-primary') || row.classList.contains('gender-row')) {
+                                return false;
+                            }
 
-            // Check if the row is actually visible (not filtered out)
-            const style = window.getComputedStyle(row);
-            if (style.display === 'none') {
-                return false;
-            }
+                            // Check if the row is actually visible (not filtered out)
+                            const style = window.getComputedStyle(row);
+                            if (style.display === 'none') {
+                                return false;
+                            }
 
-            // Check if any parent is hidden
-            let parent = row.parentElement;
-            while (parent && parent !== document.body) {
-                if (window.getComputedStyle(parent).display === 'none') {
-                    return false;
-                }
-                parent = parent.parentElement;
-            }
+                            // Check if any parent is hidden
+                            let parent = row.parentElement;
+                            while (parent && parent !== document.body) {
+                                if (window.getComputedStyle(parent).display === 'none') {
+                                    return false;
+                                }
+                                parent = parent.parentElement;
+                            }
 
-            return true;
-        });
+                            return true;
+                        });
 
-        console.log(`Found ${visibleRows.length} visible rows to update`);
+                        console.log(`Found ${visibleRows.length} visible rows to update`);
 
-        // Update all visible rows
-        let updatedCount = 0;
-        visibleRows.forEach(row => {
-            let shouldUpdate = true;
+                        // Update all visible rows
+                        let updatedCount = 0;
+                        visibleRows.forEach(row => {
+                            let shouldUpdate = true;
 
-            {% if event.has_multiple_implements %}
-            // Check if this row matches the selected implement order (if applicable)
-            if (bulkOrder) {
-                const orderInput = row.querySelector('input[name$="implement_order"]');
-                shouldUpdate = orderInput && orderInput.value === bulkOrder;
-            }
-            {% endif %}
+                            {% if event.has_multiple_implements %}
+                                // Check if this row matches the selected implement order (if applicable)
+                                if (bulkOrder) {
+                                    const orderInput = row.querySelector('input[name$="implement_order"]');
+                                    shouldUpdate = orderInput && orderInput.value === bulkOrder;
+                                }
+                            {% endif %}
 
-            if (shouldUpdate) {
-                // Update weight - using a VERY specific selector to avoid confusion with other fields
-                const weightInputs = row.querySelectorAll('input[type="number"]');
-                weightInputs.forEach(input => {
-                    if (input.name && input.name.includes('weight') && !input.name.includes('implement_order')) {
-                        input.value = weight;
-                        updatedCount++;
-                    }
-                });
+                            if (shouldUpdate) {
+                                // Update weight - using a VERY specific selector to avoid confusion with other fields
+                                const weightInputs = row.querySelectorAll('input[type="number"]');
+                                weightInputs.forEach(input => {
+                                    if (input.name && input.name.includes('weight') && !input.name.includes('implement_order')) {
+                                        input.value = weight;
+                                        updatedCount++;
+                                    }
+                                });
 
-                // Update unit with specific selector
-                const unitInputs = row.querySelectorAll('select');
-                unitInputs.forEach(input => {
-                    if (input.name && input.name.includes('weight_unit')) {
-                        input.value = unit;
-                    }
-                });
+                                // Update unit with specific selector
+                                const unitInputs = row.querySelectorAll('select');
+                                unitInputs.forEach(input => {
+                                    if (input.name && input.name.includes('weight_unit')) {
+                                        input.value = unit;
+                                    }
+                                });
 
-                {% if event.has_multiple_implements %}
-                // Update implement name with specific selector
-                const nameInputs = row.querySelectorAll('input[type="text"]');
-                nameInputs.forEach(input => {
-                    if (input.name && input.name.includes('implement_name')) {
-                        input.value = implementName;
-                    }
-                });
-                {% endif %}
-            }
-        });
+                                {% if event.has_multiple_implements %}
+                                    // Update implement name with specific selector
+                                    const nameInputs = row.querySelectorAll('input[type="text"]');
+                                    nameInputs.forEach(input => {
+                                        if (input.name && input.name.includes('implement_name')) {
+                                            input.value = implementName;
+                                        }
+                                    });
+                                {% endif %}
+                            }
+                        });
 
-        console.log(`Updated ${updatedCount} rows`);
+                        console.log(`Updated ${updatedCount} rows`);
 
-        // Show success message
-        const alertDiv = document.createElement('div');
-        alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
-        alertDiv.role = 'alert';
-        alertDiv.innerHTML = `
+                        // Show success message
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
+                        alertDiv.role = 'alert';
+                        alertDiv.innerHTML = `
             Bulk edit applied! Updated ${updatedCount} rows.
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
-        form.parentNode.insertBefore(alertDiv, form);
+                        form.parentNode.insertBefore(alertDiv, form);
 
-        // Dismiss the modal
-        const closeBtn = bulkEditModal.querySelector('.btn-close');
-        if (closeBtn) closeBtn.click();
+                        // Dismiss the modal
+                        const closeBtn = bulkEditModal.querySelector('.btn-close');
+                        if (closeBtn) closeBtn.click();
 
-        // If we have implement name syncing, run it
-        {% if event.has_multiple_implements %}
-        syncImplementNames();
-        {% endif %}
-    });
-} else {
-    console.error('Bulk edit modal not found');
-}
+                        // If we have implement name syncing, run it
+                        {% if event.has_multiple_implements %}
+                            syncImplementNames();
+                        {% endif %}
+                    });
+                } else {
+                    console.error('Bulk edit modal not found');
+                }
 
-    // Toggle chevron icons for division expansion/collapse
-    document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(toggle => {
-        toggle.addEventListener('click', function () {
-            const icon = this.querySelector('i');
-            if (icon) {
-                icon.classList.toggle('bi-chevron-down');
-                icon.classList.toggle('bi-chevron-up');
-            }
-        });
-    });
-});
-</script>
+                // Toggle chevron icons for division expansion/collapse
+                document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(toggle => {
+                    toggle.addEventListener('click', function () {
+                        const icon = this.querySelector('i');
+                        if (icon) {
+                            icon.classList.toggle('bi-chevron-down');
+                            icon.classList.toggle('bi-chevron-up');
+                        }
+                    });
+                });
+            });
+        </script>
 {% endblock %}

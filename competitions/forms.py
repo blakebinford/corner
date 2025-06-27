@@ -551,8 +551,6 @@ class EventImplementForm(forms.ModelForm):
             'weight': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Weight',
-                'required': 'required',
-                'min': '0'
             }),
             'weight_unit': forms.Select(attrs={
                 'class': 'form-select',
@@ -564,6 +562,8 @@ class EventImplementForm(forms.ModelForm):
         event = kwargs.pop('event', None)
         organizer = kwargs.pop('organizer', None)
         super().__init__(*args, **kwargs)
+        self.fields['weight'].required = False
+        self.fields['weight'].help_text = "Leave blank if TBD"
 
         # Initial event reference
         if event:
