@@ -1,5 +1,6 @@
 import boto3
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 
 def generate_presigned_url(key, expires_in=3600):
     s3 = boto3.client(
@@ -38,3 +39,16 @@ def get_onboarding_status(competition):
         'publish': competition.publication_status == 'published',
     }
 
+def competition_permission_required(permission_type):
+    def decorator(view_func):
+        def _wrapped_view(request, *args, **kwargs):
+            competition = get_object_or_404(Competition, pk=kwargs['competition_pk'])
+
+            if permission_type == 'full' and not competition.has_full_access(request.user):
+                raise PermissionDenied
+            elif permission_type == 'any' and not competition.has_any_access(request.user):
+                raise PermissionDenied
+
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator

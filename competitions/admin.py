@@ -4,7 +4,7 @@ from accounts.models import AthleteProfile
 from .models import (
     Competition, Event, AthleteCompetition, EventImplement,
     Tag, Federation, Sponsor, Result, ZipCode, EventBase, Division, WeightClass, TshirtSize, AthleteEventNote,
-    LaneAssignment, CompetitionRunOrder
+    LaneAssignment, CompetitionRunOrder, CompetitionStaff
 )
 
 class CompetitionRunOrderInline(admin.TabularInline):
@@ -38,12 +38,27 @@ class AthleteCompetitionInline(admin.TabularInline):
     model = AthleteCompetition
     extra = 1
 
+class CompetitionStaffInline(admin.TabularInline):
+    model = CompetitionStaff
+    extra = 1
+    autocomplete_fields = ['user']
+    fields = ['user', 'role']
+    verbose_name = "Staff Member"
+    verbose_name_plural = "Competition Staff"
+
+
+@admin.register(CompetitionStaff)
+class CompetitionStaffAdmin(admin.ModelAdmin):
+    list_display = ['user', 'competition', 'role', 'added_at']
+    list_filter = ['role']
+    autocomplete_fields = ['user', 'competition']
+
 @admin.register(Competition)
 class CompetitionAdmin(admin.ModelAdmin):
     list_display = ('name', 'comp_date', 'city', 'state', 'approval_status', 'publication_status', 'organizer', 'status',)
     list_filter = ('status', 'comp_date', 'approval_status')
     search_fields = ('name', 'city', 'state', 'organizer__username', 'organizer__email')
-
+    inlines = [CompetitionStaffInline]
     def get_tags(self, obj):
         return ", ".join([tag.name for tag in obj.tags.all()])
 
@@ -205,3 +220,5 @@ class TokenAdmin(admin.ModelAdmin):
     list_display = ('key', 'user', 'created')
     search_fields = ('key', 'user__username')
     list_filter = ('created',)
+
+

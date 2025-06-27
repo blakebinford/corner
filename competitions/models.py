@@ -117,6 +117,15 @@ class Competition(models.Model):
         related_name='current_for_competitions'
     )
 
+    def has_full_access(self, user):
+        return user == self.organizer or self.staff.filter(user=user, role='full').exists()
+
+    def has_limited_access(self, user):
+        return self.staff.filter(user=user, role='limited').exists()
+
+    def has_any_access(self, user):
+        return self.has_full_access(user) or self.has_limited_access(user)
+
     def set_current_event(self, event):
         self.current_event = event
         self.save(update_fields=['current_event'])
@@ -589,3 +598,17 @@ class ImplementDefinition(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.base_weight}{self.unit}, {self.loading_points} pts)"
+
+class CompetitionStaff(models.Model):
+    ROLE_CHOICES = [
+        ('full', 'Full Access'),
+        ('limited', 'Limited Access'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    competition = models.ForeignKey('Competition', on_delete=models.CASCADE, related_name='staff')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'competition')
