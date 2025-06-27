@@ -18,6 +18,8 @@ class User(AbstractUser):
     facebook_name = models.CharField(max_length=35, blank=True)
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
+    terms_accepted = models.BooleanField(default=False)
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
 
     role = models.CharField(max_length=20, choices=[
         ('athlete', 'Athlete'),

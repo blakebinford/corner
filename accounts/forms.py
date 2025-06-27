@@ -1,6 +1,7 @@
 from django import forms
 from phonenumber_field.formfields import PhoneNumberField
 from django.contrib import messages
+from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import User, AthleteProfile, OrganizerProfile
 import re
@@ -30,6 +31,10 @@ class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True)
     first_name = forms.CharField(max_length=30, required=True)
     last_name = forms.CharField(max_length=30, required=True)
+    agree_to_terms = forms.BooleanField(
+        required=True,
+        label='I agree to the <a href="/terms/" target="_blank">Terms of Service</a> and <a href="/privacy/" target="_blank">Privacy Policy</a>.'
+    )
 
     class Meta:
         model = User
@@ -47,11 +52,14 @@ class CustomUserCreationForm(UserCreationForm):
         user.last_name = self.cleaned_data['last_name']
         user.email = self.cleaned_data['email']
 
+        # ✅ Set terms consent flags
+        user.terms_accepted = True
+        user.terms_accepted_at = timezone.now()
+
         if commit:
             user.save()
             if user.role == 'athlete':
                 AthleteProfile.objects.create(user=user)
-
         return user
 
 

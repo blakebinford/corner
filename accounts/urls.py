@@ -1,6 +1,8 @@
 from django.urls import path, include, reverse_lazy
 from django.contrib.auth import views as auth_views
 from django.contrib import messages
+from django.views.generic import TemplateView
+
 from . import views
 
 app_name = 'accounts'
@@ -34,4 +36,7 @@ urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
         template_name='registration/password_reset_complete.html'
     ), name='password_reset_complete'),
+    path('privacy/', TemplateView.as_view(template_name='registration/legal/privacy.html'), name='privacy_policy'),
+    path('terms/', TemplateView.as_view(template_name='registration/legal/terms.html'), name='terms_of_service'),
+    path('cookies/', TemplateView.as_view(template_name='registration/legal/cookies.html'), name='cookie_policy'),
 ]

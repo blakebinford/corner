@@ -189,6 +189,7 @@ footer {
   {% block extra_styles %}
   {% endblock %}
 </head>
+<script src="https://app.termly.io/resource-blocker/d6ba2a60-1d75-46aa-bdf3-0d67fc75f586?autoBlock=on"></script>
 <body>
 {% if messages %}
         {% for message in messages %}
@@ -264,6 +265,10 @@ footer {
   <footer class="bg-dark text-light">
     <div class="container text-center py-3">
       <p>&copy; {{ year|default:"2025" }} Atlas Competition</p>
+        <a href="{% url 'accounts:privacy_policy' %}">Privacy Policy</a> |
+    <a href="{% url 'accounts:terms_of_service' %}">Terms of Service</a> |
+    <a href="{% url 'accounts:cookie_policy' %}">Cookie Policy</a>
+         <a href="#" class="termly-display-preferences">Consent Preferences</a>
     </div>
   </footer>
 {%  endif %}
