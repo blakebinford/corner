@@ -116,6 +116,13 @@ class Competition(models.Model):
         on_delete=models.SET_NULL,
         related_name='current_for_competitions'
     )
+    auto_summary = models.TextField(blank=True, null=True)
+
+    def generate_auto_summary(self):
+        from competitions.utils import generate_short_description
+        if not self.auto_summary:
+            self.auto_summary = generate_short_description(self)
+            self.save()
 
     def has_full_access(self, user):
         return user == self.organizer or self.staff.filter(user=user, role='full').exists()
