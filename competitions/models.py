@@ -141,7 +141,9 @@ class Competition(ModelMeta, models.Model):
         'object_type': 'get_meta_object_type',
         'site_name': 'get_meta_site_name',
     }
-    schema_type = 'Event'
+
+    def schema_type(self):
+        return "Event"
 
     _schema = {
         '@type': 'schema_type',
