@@ -64,6 +64,7 @@ urlpatterns = [
     path("select2/", include("django_select2.urls")),
     path('sitemap.xml', sitemap, {'sitemaps':sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     path("robots.txt", static_serve, {"path": "robots.txt", "document_root": settings.STATIC_ROOT}, name="robots"),
+    path("BingSiteAuth.xml", static_serve, {"path": "BingSiteAuth.xml", "document_root": settings.STATIC_ROOT}, name="BingSiteAuth"),
     ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
