@@ -5,7 +5,8 @@
 {% load weight_filter %}
 {% block extra_head %}
 <script type="application/ld+json">
-{{ meta.schema|safe }}
+{{ meta.schema|json_script:"structured-data" }}
+
 </script>
 
 {% endblock %}
