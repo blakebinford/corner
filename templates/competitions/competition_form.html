@@ -99,6 +99,16 @@
               </div>
             </fieldset>
 
+          <!-- Public -->
+            <fieldset class="mb-4">
+              <legend>Public Info</legend>
+              <div class="row g-3">
+                <div class="col-md-6">{{ form.registration_open_at|as_crispy_field }}</div>
+                <div class="col-md-6">{{ form.publish_at|as_crispy_field }}</div>
+              </div>
+            </fieldset>
+
+
             <!-- LIABILITY -->
             <fieldset class="mb-4">
               <legend>Legal</legend>

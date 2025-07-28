@@ -17,12 +17,12 @@ class OrganizerProfileInline(admin.StackedInline):
 class CustomUserAdmin(UserAdmin):
     inlines = (AthleteProfileInline, OrganizerProfileInline)
     list_display = ('username', 'email', 'role', 'is_staff')
-    list_filter = ('role', 'is_staff', 'is_active')
+    list_filter = ('role', 'is_staff', 'is_active', 'strongman_status')
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         (('Personal info'), {'fields': (
-            'first_name', 'last_name', 'email', 'date_of_birth', 'profile_picture',
-            'instagram_name', 'x_name', 'facebook_name'  # Include social media fields here
+            'first_name', 'last_name', 'strongman_status', 'email', 'date_of_birth', 'profile_picture',
+            'instagram_name', 'x_name', 'facebook_name'
         )}),
         (('Permissions'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
@@ -30,6 +30,7 @@ class CustomUserAdmin(UserAdmin):
         (('Important dates'), {'fields': ('last_login', 'date_joined')}),
         (('Role'), {'fields': ('role',)}),
     )
+    search_fields = ('first_name', 'last_name', 'username', 'email')
 
 @admin.register(AthleteProfile)
 class AthleteProfileAdmin(admin.ModelAdmin):

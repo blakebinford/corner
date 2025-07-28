@@ -1,11 +1,16 @@
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.conf import settings
-
+from django.utils.text import slugify
+from django.utils.html import strip_tags
+from django.urls import reverse
+from django.utils.timezone import make_aware, get_current_timezone
+from datetime import datetime, time
 
 from accounts.models import User, AthleteProfile
 
 from tinymce.models import HTMLField
+from meta.models import ModelMeta
 
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
@@ -21,7 +26,7 @@ class Federation(models.Model):
         return self.name
 
 
-class Competition(models.Model):
+class Competition(ModelMeta, models.Model):
     """
     Represents a strongman competition with details, divisions, events, and weight classes.
     """
@@ -42,6 +47,7 @@ class Competition(models.Model):
     ]
 
     name = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, blank=True, null=True)
     comp_date = models.DateField()
     comp_end_date = models.DateField(null=True, blank=True)
     location = models.CharField(max_length=255, null=True, blank=True)
@@ -104,7 +110,17 @@ class Competition(models.Model):
     ]
     publication_status = models.CharField(max_length=12, choices=PUBLICATION_STATUS_CHOICES,
                                           default='unpublished', help_text="Organizer publication status")
+    registration_open_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When registration becomes available. Countdown will be shown until this time."
+    )
 
+    publish_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this competition should automatically become published."
+    )
     email_notifications = models.BooleanField(default=False, help_text="Email organizer when athlete signs up")
 
     provides_shirts = models.BooleanField(default=False, help_text="Check if T-shirts are provided")
@@ -116,6 +132,61 @@ class Competition(models.Model):
         on_delete=models.SET_NULL,
         related_name='current_for_competitions'
     )
+    _metadata = {
+        'title': 'get_meta_title',
+        'description': 'get_meta_description',
+        'image': 'get_meta_image',
+        'url': 'get_meta_url',
+        'object_type': 'get_meta_object_type',
+        'site_name': 'get_meta_site_name',
+    }
+
+    _schema = {
+        'name': 'name',
+        'description': 'get_meta_description',
+        'image': 'get_meta_image',
+        'startDate': 'get_schema_start_datetime',
+        'location': 'get_schema_location',
+        'url': 'get_meta_url',
+    }
+
+    def get_schema_start_datetime(self):
+        if self.comp_date and self.start_time:
+            dt = datetime.combine(self.comp_date, self.start_time)
+            return make_aware(dt, get_current_timezone()).isoformat()
+        elif self.comp_date:
+            # Fallback: assume midnight if no start_time set
+            dt = datetime.combine(self.comp_date, time(0, 0))
+            return make_aware(dt, get_current_timezone()).isoformat()
+        return None
+
+    def get_schema_location(self):
+        return {
+            "@type": "Place",
+            "name": self.event_location_name or self.location or "Competition Venue",
+            "address": f"{self.city}, {self.state}" if self.city and self.state else self.location or "",
+        }
+
+    def get_meta_title(self):
+        return self.name
+
+    def get_meta_description(self):
+        return strip_tags(self.description)[:160]
+
+    def get_meta_image(self):
+        if self.image:
+            return self.image.url
+        return None
+
+    def get_meta_url(self):
+        return f"https://atlascompetition.com/competitions/{self.slug}/"
+
+    def get_meta_object_type(self):
+        return 'Event'
+
+    def get_meta_site_name(self):
+        return 'Atlas Competition'
+
     auto_summary = models.TextField(blank=True, null=True)
 
     def generate_auto_summary(self):
@@ -123,6 +194,15 @@ class Competition(models.Model):
         if not self.auto_summary:
             self.auto_summary = generate_short_description(self)
             self.save()
+
+    def is_published(self):
+        return self.publication_status == 'published'
+
+    def is_registration_open(self):
+        return not self.registration_open_at or timezone.now() >= self.registration_open_at
+
+    def is_visible(self):
+        return self.is_published() and self.approval_status == 'approved'
 
     def has_full_access(self, user):
         return user == self.organizer or self.staff.filter(user=user, role='full').exists()
@@ -140,8 +220,22 @@ class Competition(models.Model):
     def get_ordered_events(self):
         return self.events.order_by('order')
 
+    def get_absolute_url(self):
+        return reverse('competitions:competition_detail', kwargs={'slug': self.slug})
+
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug and self.name:
+            base_slug = slugify(self.name)
+            slug = base_slug
+            i = 1
+            while Competition.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{i}"
+                i += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
 class Division(models.Model):
     PREDEFINED_CHOICES = [
@@ -611,3 +705,40 @@ class CompetitionStaff(models.Model):
 
     class Meta:
         unique_together = ('user', 'competition')
+
+# competitions/models.py
+
+from django.db import models
+from django.conf import settings
+
+class NationalsQualifier(models.Model):
+    COMPETITION_TYPE_CHOICES = [
+        ('Local', 'Local'),
+        ('Regional', 'Regional'),
+        ('Pro/Am', 'Pro/Am'),
+    ]
+
+    athlete = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    competition = models.ForeignKey('Competition', on_delete=models.CASCADE)
+    competition_type = models.CharField(max_length=20, choices=COMPETITION_TYPE_CHOICES)
+    competition_date = models.DateField()
+
+    division = models.CharField(max_length=100)
+    weight_class = models.CharField(max_length=100)
+    placing = models.PositiveIntegerField()
+
+    qualification_reason = models.TextField()
+    qualified_on = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Nationals Qualifier"
+        verbose_name_plural = "Nationals Qualifiers"
+        unique_together = (
+            'athlete',
+            'competition',
+            'division',
+            'weight_class',
+        )
+
+    def __str__(self):
+        return f"{self.athlete.get_full_name()} - {self.competition.name} - {self.division}/{self.weight_class} ({self.placing})"

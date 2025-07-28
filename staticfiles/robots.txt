@@ -1,0 +1,78 @@
+User-agent: *
+# Allow key public-facing pages
+Allow: /
+Allow: /competitions/
+Allow: /accounts/about/
+Allow: /accounts/privacy/
+Allow: /accounts/terms/
+Allow: /accounts/cookies/
+Allow: /api/schema/
+Allow: /api/docs/
+Allow: /api/redoc/
+Allow: /sitemap.xml
+
+# Disallow sensitive or duplicate entry points
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /accounts/signup/
+Disallow: /accounts/profile/update/
+Disallow: /accounts/update_athlete_profile/
+Disallow: /accounts/update_organizer_profile/
+Disallow: /accounts/logout/
+Disallow: /accounts/get_weight_classes/
+Disallow: /accounts/password_reset/
+Disallow: /accounts/password_reset/done/
+Disallow: /accounts/reset/
+Disallow: /accounts/reset/done/
+Disallow: /accounts/login/
+Disallow: /accounts/logout/
+Disallow: /api_auth/
+Disallow: /api/get-token/
+Disallow: /chat/
+Disallow: /tinymce/
+Disallow: /select2/
+Disallow: /__reload__/
+Disallow: /competitions/*/delete/
+Disallow: /competitions/*/update/
+Disallow: /competitions/*/manage/
+Disallow: /competitions/*/email/
+Disallow: /competitions/*/score/
+Disallow: /competitions/*/register/
+Disallow: /competitions/*/download_athlete_table/
+Disallow: /competitions/*/run-order/
+Disallow: /competitions/*/event/*/edit/
+Disallow: /competitions/*/manual-order/
+Disallow: /competitions/*/manage/staff/
+Disallow: /competitions/*/remove-staff/
+Disallow: /competitions/*/checkin/
+Disallow: /competitions/*/complete/
+Disallow: /competitions/*/combine_weight_classes/
+Disallow: /competitions/*/custom-weight-class/add/
+Disallow: /competitions/*/custom-division/add/
+Disallow: /competitions/*/set-current-event/
+Disallow: /competitions/*/display/
+Disallow: /competitions/*/broadcast/
+Disallow: /competitions/*/scorecard/
+Disallow: /competitions/*/overlay/
+Disallow: /competitions/*/toggle_publish/
+Disallow: /competitions/*/toggle_email_notifications/
+Disallow: /competitions/*/edit_weight_classes/
+Disallow: /competitions/*/add_athlete/
+Disallow: /competitions/*/create_athlete_profile/
+Disallow: /athletecompetition/
+Disallow: /event/
+
+# Stripe and webhook-related endpoints
+Disallow: /competitions/stripe/webhook/
+Disallow: /competitions/connect/
+Disallow: /competitions/onboard-complete/
+Disallow: /competitions/express/login/
+Disallow: /competitions/*/checkout/
+Disallow: /competitions/*/checkout/*/start/
+Disallow: /competitions/*/checkout/*/success/
+Disallow: /competitions/*/checkout/*/cancel/
+
+
+Sitemap: https://atlascompetition.com/sitemap.xml
+

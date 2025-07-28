@@ -1,0 +1,12 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+  <h1>Export Nationals Qualifiers</h1>
+  <div class="module">
+    <form method="post">{% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="default">Export CSV</button>
+    </form>
+  </div>
+{% endblock %}

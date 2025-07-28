@@ -74,7 +74,7 @@
             <div class="card position-relative h-100">
                 <div class="card-img-top" style="height: 250px; overflow: hidden;">
                     {% if competition.image %}
-                    <a href="{% url 'competitions:competition_detail' competition.pk %}">
+                    <a href="{% url 'competitions:competition_detail' competition.slug %}">
                         <img src="{{ competition.image.url }}" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="{{ competition.name }} image">
                     </a>
                     {% endif %}
@@ -96,7 +96,7 @@
                 </div>
                 <div class="card-body">
                     <h5 class="card-title text-center">
-                        <a href="{% url 'competitions:competition_detail' competition.pk %}" class="text-decoration-none text-dark">{{ competition.name }}</a>
+                        <a href="{% url 'competitions:competition_detail' competition.slug %}" class="text-decoration-none text-dark">{{ competition.name }}</a>
                     </h5>
                     <p class="card-text text-center text-muted">
                         <i class="bi bi-calendar-event"></i> {{ competition.comp_date }}<br>

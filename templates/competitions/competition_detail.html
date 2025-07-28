@@ -3,9 +3,22 @@
 {% load competition_tags %}
 {% load dictkey_filter %}
 {% load weight_filter %}
+{% block extra_head %}
+<script type="application/ld+json">
+{{ meta.schema|safe }}
+</script>
 
+{% endblock %}
+{% block title %}{{ competition.name }} | Atlas Competition{% endblock %}
 {% block extra_styles %}
 <style>
+@font-face {
+  font-family: '7segment';
+  src: url("{% static 'fonts/7segment.woff' %}") format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
 .table th.event-header {
     background-color: #343a40; /* Darker background for headers */
     color: white;
@@ -348,6 +361,184 @@
     font-size: 0.8rem !important;
   }
 }
+
+.echo-timer {
+  background: linear-gradient(to bottom, #111 0%, #000 100%);
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  margin: 3rem auto;
+  max-width: 480px;
+  font-family: '7segment', monospace;
+  transform: perspective(800px) rotateX(8deg) rotateY(-10deg);
+  transform-origin: top right;
+  position: relative;
+  border: 1px solid #191919;
+  animation: flicker 0.15s infinite alternate;
+  box-shadow:
+    5px 15px 25px rgba(0, 0, 0, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.05),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* LED Power Light (Bottom-Left) */
+.echo-timer::after {
+  content: '';
+  position: absolute;
+  bottom: 8px;
+  left: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #00ff66 0%, #007f33 80%);
+  box-shadow:
+    0 0 6px #00ff66,
+    0 0 10px rgba(0, 255, 102, 0.8),
+    0 0 12px rgba(0, 255, 102, 0.5);
+  z-index: 3;
+}
+
+/* Bottom-right bolt */
+.echo-timer::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, #666, #111);
+  border-radius: 50%;
+  box-shadow:
+    0 0 1px #999,
+    inset 1px 1px 2px rgba(255,255,255,0.2),
+    inset -1px -1px 2px rgba(0,0,0,0.3);
+}
+
+/* Add NEW pseudo-element for bottom-right bolt */
+.echo-timer::after,
+.echo-timer::before {
+  pointer-events: none;
+}
+.echo-glass {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0));
+  pointer-events: none;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  z-index: 2;
+  mix-blend-mode: screen;
+}
+
+.echo-timer .bolt-right {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, #666, #111);
+  border-radius: 50%;
+  box-shadow:
+    0 0 1px #999,
+    inset 1px 1px 2px rgba(255,255,255,0.2),
+    inset -1px -1px 2px rgba(0,0,0,0.3);
+}
+
+.echo-brand {
+  font-size: 1.5rem;
+  color: #eee;
+  letter-spacing: 2px;
+  text-align: left;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  opacity: 0.75;
+}
+
+.echo-digits {
+  font-family: '7segment', monospace;
+  font-size: 4.5rem;
+  color: #ff2c2c;
+  letter-spacing: 0px;
+  text-shadow:
+    0 0 6px #ff2c2c,
+    0 0 10px rgba(255, 44, 44, 0.8),
+    0 0 20px rgba(255, 44, 44, 0.6);
+}
+
+.echo-digits .colon {
+  color: #ff2c2c;
+  opacity: 0.8;
+  text-shadow: none;
+}
+
+/* 💡 Flicker effect on timer box */
+@keyframes flicker {
+  0% { opacity: 0.98; }
+  50% { opacity: 1; }
+  100% { opacity: 0.97; }
+}
+
+/* Optional: smoother animation on LED */
+@keyframes pulseLED {
+  0%, 100% { box-shadow: 0 0 6px #00ff66, 0 0 10px rgba(0, 255, 102, 0.8); }
+  50% { box-shadow: 0 0 10px #00ff66, 0 0 14px rgba(0, 255, 102, 1); }
+}
+
+@media (max-width: 576px) {
+  .echo-timer {
+    max-width: 95%;
+    padding: 1rem;
+    transform: none;
+  }
+
+  .echo-digits {
+    font-size: 2rem;
+    letter-spacing: 3px;
+  }
+
+  .echo-brand {
+    font-size: 0.75rem;
+    text-align: center;
+  }
+}
+
+.bolt.bottom-right {
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, #666, #111);
+  border-radius: 50%;
+  box-shadow:
+    0 0 1px #999,
+    inset 1px 1px 2px rgba(255,255,255,0.2),
+    inset -1px -1px 2px rgba(0,0,0,0.3);
+  z-index: 3;
+}
+@keyframes blink-colon {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.echo-digits .colon {
+  animation: blink-colon 1s infinite steps(1);
+}
+.countdown-header {
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #000000;
+  letter-spacing: 1.2px;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  font-family: 'Arial Black', sans-serif;
+}
+
 </style>
 {% endblock %}
 
@@ -365,7 +556,7 @@
                 <div class="hero-content">
                     <div class="hero-image">
                         {% if competition.image %}
-                        <img src="{{ competition.image.url }}" alt="{{ competition.name }} image">
+                        <img src="{{ competition.image.url }}" alt="{{ competition.name }} event poster">
                         {% else %}
                         <img src="{% static 'images/default_competition_image.jpg' %}" alt="Default competition image">
                         {% endif %}
@@ -431,7 +622,7 @@
                 <div class="sponsor-grid d-flex justify-content-center flex-wrap">
                     {% for sponsor in competition.sponsor_logos.all|dictsort:"display_order" %}
                     <a href="{{ sponsor.url }}" target="_blank" class="m-2">
-                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" class="img-fluid">
+                        <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }} sponsor logo" class="img-fluid">
                     </a>
                     {% endfor %}
                 </div>
@@ -674,12 +865,37 @@
     {% endfor %}
 </div>
 
-
+<!-- countdown timer -->
 <div class="row mt-4 text-center">
     <div class="col">
-        {% if user.is_authenticated and not is_signed_up and competition.status != 'closed' and competition.status != 'completed' and competition.status != 'full' and competition.status != 'canceled' %}
+        {% if user.is_authenticated and not is_signed_up and competition.status not in 'closed completed full canceled' %}
+    {% if not competition.is_registration_open %}
+        <h4 class="countdown-header">Registration Opens In</h4>
+
+     <div id="countdown-timer" class="echo-timer" data-time="{{ competition.registration_open_at|date:'c' }}">
+     <div class="echo-glass"></div>
+
+  <div class="echo-brand">ATLAS</div>
+  <div class="echo-digits">
+      <div class="bolt-right"></div>
+    <span id="cd-days">00</span><span class="colon">:</span>
+    <span id="cd-hours">00</span><span class="colon">:</span>
+    <span id="cd-minutes">00</span><span class="colon">:</span>
+    <span id="cd-seconds">00</span>
+  </div>
+  <div class="bolt bottom-right"></div>
+</div>
+
+
+
+
+
+    {% else %}
         <a href="{% url 'competitions:athletecompetition_create' competition.pk %}" class="btn btn-success me-2">Register</a>
-        {% endif %}
+    {% endif %}
+{% endif %}
+
+
         <a href="{% url 'competitions:competition_scorecard' competition.pk %}" class="btn btn-primary">View Scorecard</a>
         <button id="share-button" class="btn btn-primary">
           <i class="bi bi-share-fill"></i> Share
@@ -772,15 +988,42 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-    <script>
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-  anchor.addEventListener('click', function (e) {
-    e.preventDefault();
-    const target = document.querySelector(this.getAttribute('href'));
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' });
-    }
-  });
+  <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const wrapper = document.getElementById("countdown-timer");
+    if (!wrapper) return;
+
+    const targetTime = new Date(wrapper.dataset.time).getTime();
+    const days = document.getElementById("cd-days");
+    const hours = document.getElementById("cd-hours");
+    const minutes = document.getElementById("cd-minutes");
+    const seconds = document.getElementById("cd-seconds");
+
+    const interval = setInterval(() => {
+        const now = Date.now();
+        const diff = targetTime - now;
+
+        if (diff <= 0) {
+            clearInterval(interval);
+            wrapper.innerHTML = `
+              <div class="alert alert-success fw-bold fs-5 animate__animated animate__fadeIn">
+                🟢 Registration is now open!
+              </div>`;
+            setTimeout(() => location.reload(), 1000);
+            return;
+        }
+
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((diff / (1000 * 60)) % 60);
+        const s = Math.floor((diff / 1000) % 60);
+
+        days.textContent = String(d).padStart(2, '0');
+        hours.textContent = String(h).padStart(2, '0');
+        minutes.textContent = String(m).padStart(2, '0');
+        seconds.textContent = String(s).padStart(2, '0');
+    }, 1000);
 });
-    </script>
+</script>
+
 {% endblock %}

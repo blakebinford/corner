@@ -27,6 +27,19 @@ class User(AbstractUser):
         ('judge', 'Judge'),
         ('other', 'other')
     ])
+    STRONGMAN_STATUS_CHOICES = [
+        ('Amateur', 'Amateur'),
+        ('Pro', 'Pro'),
+    ]
+
+    strongman_status = models.CharField(
+        max_length=10,
+        choices=STRONGMAN_STATUS_CHOICES,
+        default='Amateur',
+    )
+
+    def is_pro(self):
+        return self.strongman_status == 'Pro'
 
     def get_full_name(self):
         """

@@ -1,10 +1,19 @@
+import csv
+from datetime import date, timedelta
+
 from django.contrib import admin
+from django.http import HttpResponse
+from django.shortcuts import render
+from django.urls import path
+
+from .forms import ExportNationalsForm
+from .utils import get_local_qualifiers, get_regional_qualifiers, get_pro_am_qualifiers, create_or_update_qualifier
 from rest_framework.authtoken.models import Token
 from accounts.models import AthleteProfile
 from .models import (
     Competition, Event, AthleteCompetition, EventImplement,
     Tag, Federation, Sponsor, Result, ZipCode, EventBase, Division, WeightClass, TshirtSize, AthleteEventNote,
-    LaneAssignment, CompetitionRunOrder, CompetitionStaff
+    LaneAssignment, CompetitionRunOrder, CompetitionStaff, NationalsQualifier
 )
 
 class CompetitionRunOrderInline(admin.TabularInline):
@@ -47,35 +56,99 @@ class CompetitionStaffInline(admin.TabularInline):
     verbose_name_plural = "Competition Staff"
 
 
-@admin.register(CompetitionStaff)
-class CompetitionStaffAdmin(admin.ModelAdmin):
-    list_display = ['user', 'competition', 'role', 'added_at']
-    list_filter = ['role']
-    autocomplete_fields = ['user', 'competition']
-
 @admin.register(Competition)
 class CompetitionAdmin(admin.ModelAdmin):
     list_display = ('name', 'comp_date', 'city', 'state', 'approval_status', 'publication_status', 'organizer', 'status',)
     list_filter = ('status', 'comp_date', 'approval_status')
     search_fields = ('name', 'city', 'state', 'organizer__username', 'organizer__email')
     inlines = [CompetitionStaffInline]
+    filter_horizontal = ('allowed_divisions', 'sponsor_logos')
+    fieldsets = (
+        ('Timing & Access Control', {
+            'fields': ('publish_at', 'registration_open_at')
+        }),
+    )
+
     def get_tags(self, obj):
         return ", ".join([tag.name for tag in obj.tags.all()])
-
     get_tags.short_description = 'Tags'
-    filter_horizontal = ('allowed_divisions', 'sponsor_logos')
 
     def get_readonly_fields(self, request, obj=None):
-        """Make 'approval_status' editable only for superusers."""
         if not request.user.is_superuser:
             return ['approval_status']
         return []
 
     def save_model(self, request, obj, form, change):
-        """Ensure only approved competitions can be published."""
         if obj.publication_status == 'published' and obj.approval_status != 'approved':
             raise ValueError("A competition must be approved before it can be published.")
         super().save_model(request, obj, form, change)
+
+    # === BEGIN: Export Nationals CSV ===
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                'export-nationals/',
+                self.admin_site.admin_view(self.export_nationals),
+                name='export-nationals-csv',
+            ),
+        ]
+        return custom_urls + urls
+
+    def export_nationals(self, request):
+        if request.method == "POST":
+            form = ExportNationalsForm(request.POST)
+            if form.is_valid():
+                start = form.cleaned_data.get("start_date")
+                end = form.cleaned_data.get("end_date")
+
+                if not end:
+                    end = date.today()
+                if not start:
+                    start = end - timedelta(days=365)
+
+                local = get_local_qualifiers(start, end)
+                regional = get_regional_qualifiers(start, end)
+                pro_am = get_pro_am_qualifiers(start, end)
+                qualifiers = local + regional + pro_am
+
+                response = HttpResponse(content_type='text/csv')
+                response['Content-Disposition'] = 'attachment; filename="nationals_qualifiers.csv"'
+
+                writer = csv.writer(response)
+                writer.writerow([
+                    'First Name', 'Last Name', 'Email',
+                    'Competition Name', 'Competition Type', 'Competition Date',
+                    'Division', 'Weight Class', 'Placing', 'Qualification Reason'
+                ])
+
+                for q in qualifiers:
+                    create_or_update_qualifier(q)
+
+                    writer.writerow([
+                        q["user"].first_name,
+                        q["user"].last_name,
+                        q["user"].email,
+                        q["competition"].name,
+                        q["competition_type"],
+                        q["competition_date"],
+                        q["division"],
+                        q["weight_class"],
+                        q["placing"],
+                        q["reason"],
+                    ])
+
+                return response
+        else:
+            form = ExportNationalsForm()
+
+        return render(request, "admin/competitions/export_form.html", {"form": form})
+
+    change_list_template = "admin/competitions/change_list.html"
+
+    # === END: Export Nationals CSV ===
+
 
 
 @admin.register(Federation)
@@ -221,4 +294,39 @@ class TokenAdmin(admin.ModelAdmin):
     search_fields = ('key', 'user__username')
     list_filter = ('created',)
 
+@admin.register(NationalsQualifier)
+class NationalsQualifierAdmin(admin.ModelAdmin):
+    change_list_template = "admin/change_list.html"
 
+    list_display = (
+        'athlete_name',
+        'email',
+        'competition',
+        'competition_type',
+        'competition_date',
+        'division',
+        'weight_class',
+        'placing',
+        'qualified_on',
+    )
+    list_display_links = ('athlete_name',)
+
+    list_filter = (
+        'competition_type',
+        'competition_date',
+        'division',
+        'weight_class',
+    )
+    search_fields = (
+        'athlete__first_name',
+        'athlete__last_name',
+        'athlete__email',
+        'competition__name',
+    )
+    date_hierarchy = 'competition_date'
+
+    def athlete_name(self, obj):
+        return obj.athlete.get_full_name()
+
+    def email(self, obj):
+        return obj.athlete.email

@@ -120,7 +120,7 @@ class CompetitionForm(forms.ModelForm):
             'address', 'city', 'state', 'zip_code', 'federation',
             'signup_price', 'capacity', 'registration_deadline', 'image',
             'description', 'liability_waiver_accepted', 'provides_shirts', 'allowed_tshirt_sizes',
-            'tags', 'facebook_url', 'instagram_url',
+            'tags', 'facebook_url', 'instagram_url', 'registration_open_at', 'publish_at',
         ]
         widgets = {
             'comp_date': forms.DateInput(attrs={'type': 'date'}),
@@ -132,7 +132,8 @@ class CompetitionForm(forms.ModelForm):
             'signup_price': forms.NumberInput(attrs={'type': 'number', 'step': '0.01', 'min': '0'}),
             'facebook_url': forms.URLInput(attrs={'placeholder': 'https://www.facebook.com/...'}),
             'instagram_url': forms.URLInput(attrs={'placeholder': 'https://www.instagram.com/...'}),
-
+            'registration_open_at': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'publish_at': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         }
 
     def clean_registration_deadline(self):
@@ -158,8 +159,14 @@ class CompetitionForm(forms.ModelForm):
         Cleans and validates related data.
         """
         cleaned_data = super().clean()
+        registration_open_at = cleaned_data.get('registration_open_at')
+        publish_at = cleaned_data.get('publish_at')
         comp_date = cleaned_data.get('comp_date')
         comp_end_date = cleaned_data.get('comp_end_date')
+
+        if registration_open_at and publish_at:
+            if registration_open_at < publish_at:
+                self.add_error('registration_open_at', "Registration cannot open before the competition is published.")
 
         # Ensure that the end date is not before the start date
         if comp_end_date and comp_end_date < comp_date:
@@ -1113,3 +1120,23 @@ class AddCompetitionStaffForm(forms.ModelForm):
     class Meta:
         model = CompetitionStaff
         fields = ['role']
+
+from django import forms
+
+class ExportNationalsForm(forms.Form):
+    start_date = forms.DateField(
+        required=False,
+        label="Start Date",
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'vDateField'  # Django admin CSS class
+        })
+    )
+    end_date = forms.DateField(
+        required=False,
+        label="End Date",
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'vDateField'
+        })
+    )

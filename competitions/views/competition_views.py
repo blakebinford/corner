@@ -182,6 +182,8 @@ class CompetitionDetailView(generic.DetailView):
     Displays detailed information about a competition, including divisions, weight classes, and events.
     """
     model = Competition
+    slug_field = 'slug'
+    slug_url_kwarg = 'slug'
     template_name = 'competitions/competition_detail.html'
     context_object_name = 'competition'
 
@@ -189,25 +191,22 @@ class CompetitionDetailView(generic.DetailView):
         context = super().get_context_data(**kwargs)
         competition = self.get_object()
 
-        # Check if the user is signed up for this competition
+        # Pass meta object to context for django-meta
+        context['meta'] = competition.as_meta(self.request)
+
         if self.request.user.is_authenticated:
             context['is_signed_up'] = AthleteCompetition.objects.filter(
                 competition=competition,
                 athlete__user=self.request.user
             ).exists()
 
-        # Initialize data structures
         division_tables = {}
         has_male_events = False
         has_female_events = False
-
-        # Retrieve divisions and associated weight classes for this competition
         divisions = competition.allowed_divisions.all()
 
         for division in divisions:
             division_tables[division.name] = []
-
-            # Get weight classes specifically for this division
             weight_classes = WeightClass.objects.filter(division=division)
 
             for weight_class in weight_classes:
@@ -216,13 +215,11 @@ class CompetitionDetailView(generic.DetailView):
                     'gender': weight_class.gender
                 }
 
-                # Track if male or female rows exist
                 if weight_class.gender == 'Male':
                     has_male_events = True
                 elif weight_class.gender == 'Female':
                     has_female_events = True
 
-                # Populate event details within the row
                 for event in competition.events.all():
                     event_implements = EventImplement.objects.filter(
                         event=event,
@@ -237,15 +234,12 @@ class CompetitionDetailView(generic.DetailView):
                             implement_info = f"{implement.implement_name} - {implement_info}"
                         implement_data.append(implement_info)
 
-                    # Store implement data in the row
                     row[event.name] = ", ".join(implement_data) if implement_data else "N/A"
 
-                # Append row to the division table
                 division_tables[division.name].append(row)
 
-        # Add context variables for the template
         context['division_tables'] = division_tables
-        context['events'] = competition.events.all().order_by('order')  # Ensure events are ordered
+        context['events'] = competition.events.all().order_by('order')
         context['has_male_events'] = has_male_events
         context['has_female_events'] = has_female_events
 

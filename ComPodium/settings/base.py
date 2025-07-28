@@ -30,6 +30,27 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),  # This is your app's static directory
 ]
 
+META_SITE_PROTOCOL = 'https'
+META_USE_SITES = True
+META_DEFAULT_KEYWORDS = [
+    "strongman competition",
+    "strongman event",
+    "strongman contests near me",
+    "amateur strongman",
+    "Texas strongman",
+    "beginner strongman",
+    "strongman registration",
+    "how to train for strongman",
+    "strongman scoring",
+    'find a strongman competition',
+    "strongman weight classes",
+    "run a strongman competition",
+    "Atlas Competition",
+]
+
+META_INCLUDE_KEYWORDS = ['keywords']
+META_INCLUDE_PROPERTIES = ['og:type', 'og:title', 'og:description', 'og:image', 'og:url']
+
 
 UNFOLD = {
     'SITE_TITLE': 'Atlas Competition',
@@ -46,6 +67,7 @@ UNFOLD = {
                 'items': [
                     {'title': _('Dashboard'),      'icon': 'dashboard',       'link': reverse_lazy('admin:index')},
                     {'title': _('Users'),          'icon': 'people',          'link': reverse_lazy('admin:accounts_user_changelist')},
+                    {'title': _('Nationals Qualifiers'), 'icon': 'military_tech', 'link': reverse_lazy('admin:competitions_nationalsqualifier_changelist')},
                     {'title': _('Competitions'),   'icon': 'calendar_today',  'link': reverse_lazy('admin:competitions_competition_changelist')},
                     {'title': _('Registrations'),  'icon': 'how_to_reg',      'link': reverse_lazy('admin:competitions_athletecompetition_changelist')},
 
@@ -107,6 +129,7 @@ INSTALLED_APPS = [
     'accounts',
     'django.contrib.auth',
     'django.contrib.admin',
+    'django.contrib.sitemaps',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -133,6 +156,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_select2',
     'stripe',
+    'meta',
 
 ]
 
@@ -166,6 +190,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.static',
+                'core.context_processors.default_meta',
             ],
         },
     },

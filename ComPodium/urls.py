@@ -20,14 +20,31 @@ from django.urls import path
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
+from django.contrib.sitemaps.views import sitemap
+from django.contrib.sitemaps import GenericSitemap
 
-
+from core.sitemaps import StaticViewSitemap
 from accounts import views as accounts_views
 from competitions import views as competitions_views
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve as static_serve
+from competitions.models import Competition
 from competitions.serializers import GetTokenView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+
+sitemaps = {
+    'competitions': GenericSitemap(
+        info_dict={
+            'queryset': Competition.objects.filter(publication_status='published', approval_status='approved'),
+            'date_field': 'comp_date',
+        },
+        priority=0.9,
+        changefreq='weekly',
+    ),
+    'static': StaticViewSitemap(),
+}
+
 
 urlpatterns = [
     path('dashboard/', admin.site.urls),
@@ -44,10 +61,10 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    # urls.py
     path("select2/", include("django_select2.urls")),
-
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    path('sitemap.xml', sitemap, {'sitemaps':sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path("robots.txt", static_serve, {"path": "robots.txt", "document_root": settings.STATIC_ROOT}, name="robots"),
+    ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
