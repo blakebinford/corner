@@ -140,8 +140,10 @@ class Competition(ModelMeta, models.Model):
         'object_type': 'get_meta_object_type',
         'site_name': 'get_meta_site_name',
     }
+    schema_type = 'Event'
 
     _schema = {
+        '@type': 'schema_type',
         'name': 'name',
         'description': 'get_meta_description',
         'image': 'get_meta_image',

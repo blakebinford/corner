@@ -29,7 +29,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),  # This is your app's static directory
 ]
-
+META_SCHEMAORG_CONTEXT = "https://schema.org"
 META_SITE_PROTOCOL = 'https'
 META_USE_SITES = True
 META_DEFAULT_KEYWORDS = [
