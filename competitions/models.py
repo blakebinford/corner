@@ -169,7 +169,14 @@ class Competition(ModelMeta, models.Model):
         return {
             "@type": "Place",
             "name": self.event_location_name or self.location or "Competition Venue",
-            "address": f"{self.city}, {self.state}" if self.city and self.state else self.location or "",
+            "address": {
+                "@type": "PostalAddress",
+                "streetAddress": self.address or "",
+                "addressLocality": self.city or "",
+                "addressRegion": self.state or "",
+                "postalCode": self.zip_code or "",
+                "addressCountry": "US"
+            }
         }
 
     def get_meta_title(self):
