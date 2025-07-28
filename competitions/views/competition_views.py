@@ -2,7 +2,7 @@ import math
 from datetime import date
 from collections import defaultdict
 from decimal import Decimal
-
+import json
 import stripe
 from django.utils.timezone import now
 from django.core.exceptions import PermissionDenied
@@ -192,8 +192,7 @@ class CompetitionDetailView(generic.DetailView):
         competition = self.get_object()
 
         # Pass meta object to context for django-meta
-        context['meta_schema_json'] = competition.as_meta(self.request).as_json_ld()
-        print(competition.as_meta(self.request).as_json_ld())
+        context["meta_schema_json"] = json.dumps(competition.as_meta().schema)
 
         if self.request.user.is_authenticated:
             context['is_signed_up'] = AthleteCompetition.objects.filter(

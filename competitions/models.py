@@ -133,6 +133,7 @@ class Competition(ModelMeta, models.Model):
         on_delete=models.SET_NULL,
         related_name='current_for_competitions'
     )
+    auto_summary = models.TextField(blank=True, null=True)
     _metadata = {
         'title': 'get_meta_title',
         'description': 'get_meta_description',
@@ -146,13 +147,18 @@ class Competition(ModelMeta, models.Model):
         return "Event"
 
     _schema = {
-        '@type': 'schema_type',
-        'name': 'name',
-        'description': 'get_meta_description',
-        'image': 'get_meta_image',
-        'startDate': 'get_schema_start_datetime',
-        'location': 'get_schema_location',
-        'url': 'get_meta_url',
+        "@context": "https://schema.org",
+        "@type": "schema_type",
+        "name": "name",
+        "description": "get_meta_description",
+        "image": "get_schema_images",
+        "startDate": "get_schema_start_datetime",
+        "endDate": "get_schema_end_datetime",
+        "eventStatus": "get_schema_event_status",
+        "location": "get_schema_location",
+        "offers": "get_schema_offers",
+        "organizer": "get_schema_organizer",
+        "url": "get_meta_url",
     }
 
     def get_schema_start_datetime(self):
@@ -160,10 +166,44 @@ class Competition(ModelMeta, models.Model):
             dt = datetime.combine(self.comp_date, self.start_time)
             return make_aware(dt, get_current_timezone()).isoformat()
         elif self.comp_date:
-            # Fallback: assume midnight if no start_time set
-            dt = datetime.combine(self.comp_date, time(0, 0))
-            return make_aware(dt, get_current_timezone()).isoformat()
+            return self.comp_date.isoformat()  # Don't assume midnight if time isn't known
         return None
+
+    def get_schema_end_datetime(self):
+        if self.comp_end_date and self.start_time:
+            dt = datetime.combine(self.comp_end_date, time(17, 0))  # Hardcoded end time
+            return make_aware(dt, get_current_timezone()).isoformat()
+        elif self.comp_end_date:
+            return self.comp_end_date.isoformat()
+        return None
+
+    def get_schema_images(self):
+        image_url = self.get_meta_image()
+        return [image_url] if image_url else []
+
+    def get_schema_event_status(self):
+        if self.status == 'canceled':
+            return "https://schema.org/EventCancelled"
+        elif self.status == 'completed':
+            return "https://schema.org/EventCompleted"
+        return "https://schema.org/EventScheduled"
+
+    def get_schema_offers(self):
+        return {
+            "@type": "Offer",
+            "url": self.get_meta_url(),
+            "price": str(self.signup_price or "0"),
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock",
+            "validFrom": self.registration_open_at.isoformat() if self.registration_open_at else None,
+        }
+
+    def get_schema_organizer(self):
+        return {
+            "@type": "Organization",
+            "name": "Atlas Competition",
+            "url": "https://atlascompetition.com"
+        }
 
     def get_schema_location(self):
         return {
@@ -171,7 +211,7 @@ class Competition(ModelMeta, models.Model):
             "name": self.event_location_name or self.location or "Competition Venue",
             "address": {
                 "@type": "PostalAddress",
-                "streetAddress": self.address or "",
+                "streetAddress": self.address or "123 Main St",  # Ideally populate from real field
                 "addressLocality": self.city or "",
                 "addressRegion": self.state or "",
                 "postalCode": self.zip_code or "",
@@ -183,7 +223,7 @@ class Competition(ModelMeta, models.Model):
         return self.name
 
     def get_meta_description(self):
-        return strip_tags(self.description)[:160]
+        return strip_tags(self.auto_summary)[:160]
 
     def get_meta_image(self):
         if self.image:
@@ -199,7 +239,7 @@ class Competition(ModelMeta, models.Model):
     def get_meta_site_name(self):
         return 'Atlas Competition'
 
-    auto_summary = models.TextField(blank=True, null=True)
+
 
     def generate_auto_summary(self):
         from competitions.utils import generate_short_description

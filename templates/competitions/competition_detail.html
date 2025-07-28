@@ -4,11 +4,10 @@
 {% load dictkey_filter %}
 {% load weight_filter %}
 {% block extra_head %}
+
 <script type="application/ld+json">
-{{ meta.schema|json_script:"structured-data" }}
+{{ meta_schema_json|safe }}
 </script>
-
-
 
 {% endblock %}
 {% block title %}{{ competition.name }} | Atlas Competition{% endblock %}
