@@ -192,7 +192,9 @@ class CompetitionDetailView(generic.DetailView):
         competition = self.get_object()
 
         # Pass meta object to context for django-meta
-        context['meta'] = competition.as_meta(self.request)
+        context['meta_schema_json'] = competition.as_meta(self.request).as_json_ld()
+        print(self.object)  # should be the competition
+        print(competition.as_meta(self.request))  # should be a Meta object, not None
 
         if self.request.user.is_authenticated:
             context['is_signed_up'] = AthleteCompetition.objects.filter(
