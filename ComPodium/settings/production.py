@@ -1,4 +1,7 @@
 import os
+
+from django.conf.global_settings import CSRF_TRUSTED_ORIGINS
+
 from .base import *
 from decouple import config
 import dj_database_url
@@ -6,7 +9,9 @@ import dj_database_url
 SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = False
 
-ALLOWED_HOSTS = ['atlascompetition.com']
+ALLOWED_HOSTS = ['atlascompetition.com', 'www.atlascompetition.com']
+SECURE_SSL_REDIRECT = True
+CSRF_TRUSTED_ORIGINS = ['https://atlascompetition.com']
 
 # Production Database
 DATABASES = {
