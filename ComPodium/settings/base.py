@@ -25,6 +25,7 @@ TINYMCE_DEFAULT_CONFIG = TINYMCE_DEFAULT_CONFIG
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_MAX_AGE = 31536000  # 1 year
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),  # This is your app's static directory

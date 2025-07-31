@@ -1,5 +1,9 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block extra_head %}
+<link rel="preload" href="{% static 'images/atlaslogo.png' %}" as="image" fetchpriority="high">
+
+{% endblock %}
 {% block extra_styles %}
     <style>
 @media (max-width: 768px) {
@@ -20,33 +24,7 @@
     padding-right: 0;
   }
 }
-</style>
-
-{% endblock %}
-{% block content %}
-<div class="container-fluid min-vh-100 d-flex align-items-start justify-content-center pt-5" style="background: linear-gradient(to right, #222222, #444444);">
-  <div class="col-12 col-md-8 text-center">
-    <div class="p-4 text-light">
-      <a class="navbar-brand d-block text-center" href="{% url 'home' %}">
-  <img
-    src="{% static 'images/atlaslogo.png' %}"
-    alt="Atlas Competition Logo"
-    class="logo mb-3 d-block mx-auto">
-</a>
-
-      <h1 class="display-4 fw-bold text-shadow-sm" style="font-family: 'Josefin Sans', sans-serif; margin-top: 50px;">Welcome to Atlas Competition</h1>
-      <p class="lead text-shadow-sm" style="font-family: 'Josefin Sans', sans-serif;">Find your next challenge, connect with athletes, and unleash your strength.</p>
-      <div class="d-grid gap-2">
-        <a href="{% url 'competitions:competition_list' %}" class="btn btn-lg btn-primary" style="background-color: #e63946; border: none;">
-          Explore Competitions
-        </a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
-  .text-shadow-sm {
+.text-shadow-sm {
     text-shadow: 1px 1px 3px #000;
   }
 
@@ -82,4 +60,33 @@
     }
   }
 </style>
+
+{% endblock %}
+{% block content %}
+<div class="container-fluid min-vh-100 d-flex align-items-start justify-content-center pt-5" style="background: linear-gradient(to right, #222222, #444444);">
+  <div class="col-12 col-md-8 text-center">
+    <div class="p-4 text-light">
+      <a class="navbar-brand d-block text-center" href="{% url 'home' %}">
+  <img
+  src="{% static 'images/atlaslogo.png' %}"
+  alt="Atlas Competition Logo"
+  class="logo mb-3 d-block mx-auto"
+  width="400"
+  height="auto"
+  fetchpriority="high"
+  decoding="async"
+  >
+
+
+      <h1 class="display-4 fw-bold text-shadow-sm" style="font-family: 'Josefin Sans', sans-serif; margin-top: 50px;">Welcome to Atlas Competition</h1>
+      <p class="lead text-shadow-sm" style="font-family: 'Josefin Sans', sans-serif;">Find your next challenge, connect with athletes, and unleash your strength.</p>
+      <div class="d-grid gap-2">
+        <a href="{% url 'competitions:competition_list' %}" class="btn btn-lg btn-primary" style="background-color: #e63946; border: none;">
+          Explore Competitions
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
